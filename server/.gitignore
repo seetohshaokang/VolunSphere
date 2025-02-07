@@ -1,0 +1,16 @@
+### Server side gitignore file for VolunSphere ###
+
+#Ignore node_modules directory
+node_modules/
+
+# Ignore .env file for sensitive environment variables
+.env
+
+# Ignore log files
+*.log
+
+# Ignore operating system files
+.DS_Store
+Thumbs.db
+
+### package.json and package-lock files cannot be gitignored ###
