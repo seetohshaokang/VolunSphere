@@ -1,10 +1,19 @@
 require("dotenv").config({ path: "./.env.server" }); // Load environment variables from .env.server file
 const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
+const cors = require("cors"); // Import CORS to enable cross-origin requests
 
 // Declare express app and port
 const app = express();
 const port = process.env.SERVER_PORT || 8000;
+
+// Enable CORS
+app.use(
+	cors({
+		origin: "http://localhost:5173", // Allow only the frontend URL
+	})
+);
+
 // Create a new Supabase client
 const supabase = createClient(
 	process.env.SUPABASE_URL,

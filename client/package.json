@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --env-file .env.client",
-    "build": "vite build --env.file .env.client",
+    "dev": "vite .env.client",
+    "build": "vite build .env.client",
     "lint": "eslint .",
     "preview": "vite preview --env-file.env.client"
   },
   "dependencies": {
+    "axios": "^1.7.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
