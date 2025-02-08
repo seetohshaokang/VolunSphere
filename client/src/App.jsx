@@ -11,14 +11,25 @@ function App() {
 
   // Get the API URL from environment variables
   const apiUrl = import.meta.env.VITE_API_URL;
+  console.log(`URL is : ${apiUrl}`);
 
   // Function to fetch data from the backend
   const fetchData = async () => {
     try {
-      const response = axios.get(`${apiUrl}/test-connection`);
-      console.log(response.data); // Log the data from the API
-      setMessage(response.data.message); // Display the message from the response
-      setError(''); // Clear any previous error
+      const response = await axios.get(`${apiUrl}/test-connection`);
+      console.log('Full Response', response); // Log response from backend
+      console.log(typeof response.data);
+
+      if (response.data) {
+        const {message, data} = await response.data;
+        console.log(message);
+        console.log(data);
+        setMessage(message);
+        setError('');
+      } else {
+        setError('No data returned from backend');
+        setMessage('');
+      }
     } catch (err) {
       console.error('Error fetching data from the backend:', err);
       setError('Failed to connect to the backend.'); // Set error message
