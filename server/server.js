@@ -7,10 +7,25 @@ const cors = require("cors"); // Import CORS to enable cross-origin requests
 const app = express();
 const port = process.env.SERVER_PORT || 8000;
 
+// CORS URL
+const allowedORigins = [
+	"http://localhost:5173",
+	"https://volun-sphere.vercel.app",
+	"https://volunsphere.onrender.com",
+];
+
 // Enable CORS
 app.use(
 	cors({
-		origin: "http://localhost:5173", // Allow only the frontend URL
+		origin: function (origin, callback) {
+			if (!origin) return callback(null, true);
+			if (allowedORigins.indexOf(origin) === -1) {
+				const msg =
+					"The CORS policy for this site does not allow access from the specified Origin.";
+				return callback(new Error(msg), false);
+			}
+			return callback(null, true);
+		},
 	})
 );
 
