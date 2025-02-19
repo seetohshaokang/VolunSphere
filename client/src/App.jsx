@@ -4,10 +4,26 @@ import './App.css';
 import reactLogo from './assets/react.svg';
 import viteLogo from '/vite.svg';
 
+// Must need to connect to other jsx files
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import Login from './login';
+
 function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </Router>
+  );
+}
+
+function Home() {
   const [count, setCount] = useState(0);
   const [message, setMessage] = useState(''); // Store success message
   const [error, setError] = useState(''); // Store error message
+  const navigate = useNavigate();
 
   // Get the API URL from environment variables
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -54,8 +70,8 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+        <button onClick={() => navigate('/login')} className="btn btn-primary mt-3">
+          Go to Login Page
         </button>
         <p>
           Edit <code>src/App.jsx</code> and save to test HMR
