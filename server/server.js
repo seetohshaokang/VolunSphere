@@ -4,6 +4,7 @@ const { createClient } = require("@supabase/supabase-js");
 const cors = require("cors"); // Import CORS to enable cross-origin requests
 const authRoutes = require("./routes/authRoutes.js");
 const { protectRoute } = require("./middleware/authMiddleware.js");
+const testRoutes = require("./routes/testRoutes.js");
 
 // Declare express app and port
 const app = express();
@@ -41,33 +42,7 @@ const supabase = createClient(
 );
 
 app.use("/auth", authRoutes); //adding /auth into the path of the authRoutes, example is /auth/signup
-
-// Test connection to Supabase endpoint
-app.get("/test-connection", async (req, res) => {
-	try {
-		// Test connection by querying data from table
-		const { data, error } = await supabase.from("volunteers").select("*");
-
-		if (error) {
-			// If error querying DB
-			console.error("Error querying Supabase", error);
-			return res
-				.status(500)
-				.json({ error: "Error querying Supabase", details: error });
-		}
-		res.json({ message: "Successfully connected to Supabase", data });
-	} catch (err) {
-		console.error("Error connecting to Supabase", err);
-		res.status(500).json({
-			error: "Error connecting to Supabase",
-			details: err,
-		});
-	}
-});
-
-app.get("/test-auth", protectRoute, (req, res) => {
-	return res.json({ message: "Middleware is working", user: req.user });
-});
+app.use("/test", testRoutes);
 
 app.get("/", (req, res) => {
 	//DEFAULT ROUTE
