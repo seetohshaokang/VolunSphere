@@ -3,6 +3,7 @@ const express = require("express");
 const { createClient } = require("@supabase/supabase-js");
 const cors = require("cors"); // Import CORS to enable cross-origin requests
 const authRoutes = require("./routes/authRoutes.js");
+const { protectRoute } = require("./middleware/authMiddleware.js");
 
 // Declare express app and port
 const app = express();
@@ -62,6 +63,10 @@ app.get("/test-connection", async (req, res) => {
 			details: err,
 		});
 	}
+});
+
+app.get("/test-auth", protectRoute, (req, res) => {
+	return res.json({ message: "Middleware is working", user: req.user });
 });
 
 app.get("/", (req, res) => {
