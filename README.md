@@ -22,7 +22,7 @@ VolunSphere is a **volunteer engagement platform** that enables:
 
 ## 💻 Technologies Used
 
-| ** Stack**         | **Technologies**                    |
+| **Stack**          | **Technologies**                    |
 | ------------------ | ----------------------------------- |
 | **Frontend**       | React.js, BootStrap                 |
 | **Backend**        | Node.js (Express)                   |
@@ -74,7 +74,7 @@ npm start
 
 ## 👥 Team Members
 
-| ** Name **           | **Website** |
+| **Name**             | **Website** |
 | -------------------- | ----------- |
 | **Bryan Eng**        |             |
 | **Chong Zi Yuan**    |             |
