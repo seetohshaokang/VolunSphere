@@ -12,9 +12,9 @@ VolunSphere is a **volunteer engagement platform** that enables:
 -   **Organisations** to create and manage volunteering opportunities.
 -   **Admin** to oversee the platform and approve event listings.
 
-    **Project for IS3106 - Enterprise Systems Interface Design and Development.**
+📌 **Project for IS3106 - Enterprise Systems Interface Design and Development.**
 
-    ***
+---
 
 ## 🚀 Features
 
