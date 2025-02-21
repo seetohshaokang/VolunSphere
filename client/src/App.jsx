@@ -7,6 +7,8 @@ import viteLogo from '/vite.svg';
 // Must need to connect to other jsx files
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Login from './login';
+import RegistrationOrganiser from './RegistrationOrganiser';
+import LoginVolunteer from './LoginVolunteer';
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/RegistrationOrganiser" element={<RegistrationOrganiser />} />
+        <Route path="/LoginVolunteer" element={<LoginVolunteer />} />
       </Routes>
     </Router>
   );
