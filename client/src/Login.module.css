@@ -1,4 +1,4 @@
-/* 🟢 Desktop (Default) Styling */
+/* Desktop Styling */
 .splitBackground {
   display: flex;
   width: 100vw;
@@ -11,7 +11,7 @@
   padding: 20px;
 }
 
-/* Title Alignment - Only for Desktop */
+/* Title Alignment */
 .splitTitle {
   font-size: 4rem;
   font-weight: bold;
@@ -24,7 +24,7 @@
   align-items: center;
 }
 
-/* Title Colors (Default) */
+/* Title Colors */
 .splitTitle span:first-child {
   color: white;
   padding-right: 5px;
@@ -119,7 +119,7 @@
   }
 }
 
-/* 🟢 MOBILE FIXES - ONLY Apply for Screens <= 768px */
+/* Mobile Screen */
 @media (max-width: 768px) {
   .splitBackground {
     background: #0d6efd;
