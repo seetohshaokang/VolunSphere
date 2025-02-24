@@ -9,6 +9,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import Login from './login';
 import RegistrationOrganiser from './RegistrationOrganiser';
 import LoginVolunteer from './LoginVolunteer';
+import EditProfile from './profile';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/RegistrationOrganiser" element={<RegistrationOrganiser />} />
         <Route path="/LoginVolunteer" element={<LoginVolunteer />} />
+        <Route path="/Profile" element={<EditProfile />} />
       </Routes>
     </Router>
   );
