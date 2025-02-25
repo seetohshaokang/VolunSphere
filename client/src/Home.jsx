@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import Navbar from './Navbar';
 
 // Basically landing page for non logged in users
 function Home() {
@@ -170,139 +171,142 @@ function Home() {
     };
 
     return (
-        <div className="container mx-auto pb-4">
-            <h2 className="mb-6">Upcoming Volunteer Opportunities</h2>
+        <div>
+            <Navbar />
 
-            {/* Row that contains search and filter options */}
-            <div className="flex flex-wrap items-center p-4 rounded-md mb-6">
-                {/* Search Bar */}
-                <div className="flex items-center gap-2 flex-grow">
-                    <input
-                        type="text"
-                        placeholder="Search using keywords..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        className="w-full p-2 border rounded"
-                    />
-                    <button
-                        onClick={resetFilters}
-                        className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
-                    >
-                        Reset
-                    </button>
-                </div>
+            <div className="container mx-auto pb-4" style={{ paddingTop: '70px' }}>
+                <h2 className="mb-6">Upcoming Volunteer Opportunities</h2>
 
-                {/* Category Filter */}
-                <div className="w-48">
-                    <label className="block text-sm font-medium">Category</label>
-                    <select
-                        value={filters.category}
-                        onChange={(e) => handleFilterChange('category', e.target.value)}
-                        className="w-full p-2 border rounded"
-                    >
-                        <option value="">All Categories</option>
-                        {categories.map(category => (
-                            <option key={category} value={category}>{category}</option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Location Filter */}
-                <div className="w-48">
-                    <label className="block text-sm font-medium">Location</label>
-                    <select
-                        value={filters.location}
-                        onChange={(e) => handleFilterChange('location', e.target.value)}
-                        className="w-full p-2 border rounded"
-                    >
-                        <option value="">All Locations</option>
-                        {locations.map(location => (
-                            <option key={location} value={location}>{location}</option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Price Range Filter */}
-                <div className="w-60">
-                    <label className="block text-sm font-medium">Price Range</label>
-                    <div className="flex gap-2 items-center">
+                {/* Row that contains search and filter options */}
+                <div className="flex flex-wrap items-center p-4 rounded-md mb-6">
+                    {/* Search Bar */}
+                    <div className="flex items-center gap-2 flex-grow">
                         <input
-                            type="number"
-                            placeholder="Min"
-                            value={filters.priceRange.min}
-                            onChange={(e) => handleFilterChange('priceMin', e.target.value)}
-                            className="w-1/2 p-2 border rounded"
+                            type="text"
+                            placeholder="Search using keywords..."
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            className="w-full p-2 border rounded"
                         />
-                        <span>to</span>
-                        <input
-                            type="number"
-                            placeholder="Max"
-                            value={filters.priceRange.max}
-                            onChange={(e) => handleFilterChange('priceMax', e.target.value)}
-                            className="w-1/2 p-2 border rounded"
-                        />
+                        <button
+                            onClick={resetFilters}
+                            className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+                        >
+                            Reset
+                        </button>
                     </div>
-                </div>
 
-                {/* Date Range Filter */}
-                <div className="w-60">
-                    <label className="block text-sm font-medium">Date Range</label>
-                    <div className="flex gap-2">
-                        <input
-                            type="date"
-                            value={filters.dateRange.start}
-                            onChange={(e) => handleFilterChange('dateStart', e.target.value)}
-                            className="w-1/2 p-2 border rounded"
-                        />
-                        <input
-                            type="date"
-                            value={filters.dateRange.end}
-                            onChange={(e) => handleFilterChange('dateEnd', e.target.value)}
-                            className="w-1/2 p-2 border rounded"
-                        />
+                    {/* Category Filter */}
+                    <div className="w-48">
+                        <label className="block text-sm font-medium">Category</label>
+                        <select
+                            value={filters.category}
+                            onChange={(e) => handleFilterChange('category', e.target.value)}
+                            className="w-full p-2 border rounded"
+                        >
+                            <option value="">All Categories</option>
+                            {categories.map(category => (
+                                <option key={category} value={category}>{category}</option>
+                            ))}
+                        </select>
                     </div>
-                </div>
-            </div>
 
-            {/* Events List */}
-            <div>
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold">Events ({filteredEvents.length})</h2>
-                    <div className="text-sm text-gray-500">
-                        {filteredEvents.length === 0 && "No events match your filters"}
+                    {/* Location Filter */}
+                    <div className="w-48">
+                        <label className="block text-sm font-medium">Location</label>
+                        <select
+                            value={filters.location}
+                            onChange={(e) => handleFilterChange('location', e.target.value)}
+                            className="w-full p-2 border rounded"
+                        >
+                            <option value="">All Locations</option>
+                            {locations.map(location => (
+                                <option key={location} value={location}>{location}</option>
+                            ))}
+                        </select>
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                    {filteredEvents.map(event => (
-                        <div key={event.id} className="border p-4 rounded hover:shadow-md">
-                            <div className="flex justify-between mb-2">
-                                <h3 className="text-xl font-semibold">{event.title}</h3>
-                                <span className="font-bold">${event.price}</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-                                    {event.category}
-                                </span>
-                                <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm">
-                                    {new Date(event.date).toLocaleDateString('en-US', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    })}
-                                </span>
-                            </div>
-                            <p className="text-gray-600 mb-2">{event.location}</p>
-                            <p className="text-gray-700">{event.description}</p>
-                            <button className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                                View Details
-                            </button>
+                    {/* Price Range Filter */}
+                    <div className="w-60">
+                        <label className="block text-sm font-medium">Price Range</label>
+                        <div className="flex gap-2 items-center">
+                            <input
+                                type="number"
+                                placeholder="Min"
+                                value={filters.priceRange.min}
+                                onChange={(e) => handleFilterChange('priceMin', e.target.value)}
+                                className="w-1/2 p-2 border rounded"
+                            />
+                            <span>to</span>
+                            <input
+                                type="number"
+                                placeholder="Max"
+                                value={filters.priceRange.max}
+                                onChange={(e) => handleFilterChange('priceMax', e.target.value)}
+                                className="w-1/2 p-2 border rounded"
+                            />
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Date Range Filter */}
+                    <div className="w-60">
+                        <label className="block text-sm font-medium">Date Range</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="date"
+                                value={filters.dateRange.start}
+                                onChange={(e) => handleFilterChange('dateStart', e.target.value)}
+                                className="w-1/2 p-2 border rounded"
+                            />
+                            <input
+                                type="date"
+                                value={filters.dateRange.end}
+                                onChange={(e) => handleFilterChange('dateEnd', e.target.value)}
+                                className="w-1/2 p-2 border rounded"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Events List */}
+                <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-semibold">Events ({filteredEvents.length})</h2>
+                        <div className="text-sm text-gray-500">
+                            {filteredEvents.length === 0 && "No events match your filters"}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                        {filteredEvents.map(event => (
+                            <div key={event.id} className="border p-4 rounded hover:shadow-md">
+                                <div className="flex justify-between mb-2">
+                                    <h3 className="text-xl font-semibold">{event.title}</h3>
+                                    <span className="font-bold">${event.price}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                                        {event.category}
+                                    </span>
+                                    <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm">
+                                        {new Date(event.date).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </span>
+                                </div>
+                                <p className="text-gray-600 mb-2">{event.location}</p>
+                                <p className="text-gray-700">{event.description}</p>
+                                <button className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                                    View Details
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
-
     );
 }
 

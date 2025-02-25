@@ -18,18 +18,13 @@ function App() {
 	return (
 		<AuthProvider>
 			<Router>
-				<div>
-					<Navbar />
-					<div >
-						<Routes>
-							<Route path="/" element={<Home />} />
-							<Route path="/login" element={<Login />} />
-							<Route path="/RegistrationOrganiser" element={<RegistrationOrganiser />} />
-							<Route path="/LoginVolunteer" element={<LoginVolunteer />} />
-							<Route path="/Profile" element={<EditProfile />} />
-						</Routes>
-					</div>
-				</div>
+				<Routes>
+					<Route path="/" element={<Home />} />
+					<Route path="/login" element={<Login />} />
+					<Route path="/RegistrationOrganiser" element={<RegistrationOrganiser />} />
+					<Route path="/LoginVolunteer" element={<LoginVolunteer />} />
+					<Route path="/Profile" element={<EditProfile />} />
+				</Routes>
 			</Router>
 		</AuthProvider>
 	);
