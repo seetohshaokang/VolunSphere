@@ -9,9 +9,9 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import { AuthProvider } from './AuthContext'; // Import AuthProvider
 import Home from './Home';
 import Navbar from './Navbar';
-import Login from './login';
+import Registration from './Registration';
 import RegistrationOrganiser from './RegistrationOrganiser';
-import LoginVolunteer from './LoginVolunteer';
+import RegistrationVolunteer from './RegistrationVolunteer';
 import EditProfile from './profile';
 
 function App() {
@@ -20,9 +20,9 @@ function App() {
 			<Router>
 				<Routes>
 					<Route path="/" element={<Home />} />
-					<Route path="/login" element={<Login />} />
+					<Route path="/Registration" element={<Registration />} />
 					<Route path="/RegistrationOrganiser" element={<RegistrationOrganiser />} />
-					<Route path="/LoginVolunteer" element={<LoginVolunteer />} />
+					<Route path="/RegistrationVolunteer" element={<RegistrationVolunteer />} />
 					<Route path="/Profile" element={<EditProfile />} />
 				</Routes>
 			</Router>

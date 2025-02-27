@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import styles from "./Login.module.css"; // Import CSS module
+import styles from "./Registration.module.css"; // Import CSS module
 
 // Must need to connect to other jsx files
 import {
@@ -11,24 +11,24 @@ import {
   useNavigate,
 } from "react-router-dom";
 import RegistrationOrganiser from "./RegistrationOrganiser";
-import LoginVolunteer from "./LoginVolunteer";
+import RegistrationVolunteer from "./RegistrationVolunteer";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/registration" element={<Registration />} />
         <Route
-          path="/login/RegistrationOrganiser"
+          path="/registrationorganiser"
           element={<RegistrationOrganiser />}
         />
-        <Route path="/login/LoginVolunteer" element={<LoginVolunteer />} />
+        <Route path="/registration/registrationvolunteer" element={<RegistrationVolunteer />} />
       </Routes>
     </Router>
   );
 }
 
-function Login() {
+function Registration() {
   const [message, setMessage] = useState(""); // Store success message
   const [error, setError] = useState(""); // Store error message
   const navigate = useNavigate();
@@ -98,7 +98,7 @@ function Login() {
             I want to find volunteers
           </h2>
           <button
-            onClick={() => navigate("/RegistrationOrganiser")}
+            onClick={() => navigate("/registrationorganiser")}
             className={`${
               isMobile ? styles.btnCustomWhite : styles.btnCustomWhite
             }`}
@@ -132,7 +132,7 @@ function Login() {
             I want to help others
           </h2>
           <button
-            onClick={() => navigate("/LoginVolunteer")}
+            onClick={() => navigate("/registrationvolunteer")}
             className={`${
               isMobile ? styles.btnCustomWhite : styles.btnCustomBlue
             }`}
@@ -145,4 +145,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Registration;

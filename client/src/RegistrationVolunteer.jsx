@@ -1,12 +1,13 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import styles from "./RegistrationOrganiser.module.css";
+import styles from "./RegistrationVolunteer.module.css";
 import { Modal, Button } from "react-bootstrap"; // Bootstrap Validation
 
-function RegistrationOrganiser() {
+function RegistrationVolunteer() {
   const [formData, setFormData] = useState({
-    companyName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     terms: false,
@@ -59,7 +60,8 @@ function RegistrationOrganiser() {
 
   const validateForm = () => {
     let errors = [];
-    if (!formData.companyName) errors.push("Company name is required.");
+    if (!formData.firstName) errors.push("First name is required.");
+    if (!formData.lastName) errors.push("Last name is required.");
     if (!formData.email) errors.push("Email is required.");
     if (!formData.phone) errors.push("Phone number is required.");
     if (!formData.dateOfBirth) errors.push("Date of Birth is required.");
@@ -105,8 +107,13 @@ function RegistrationOrganiser() {
             <h3 className="text-center">Registration</h3>
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
-                <label className="form-label">Company Name *</label>
+                <label className="form-label">First Name *</label>
                 <input type="text" name="firstName" className="form-control" placeholder="First Name" value={formData.firstName} onChange={handleChange} />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Last Name *</label>
+                <input type="text" name="lastName" className="form-control" placeholder="Last Name" value={formData.lastName} onChange={handleChange} />
               </div>
 
               <div className="mb-3">
@@ -177,4 +184,4 @@ function RegistrationOrganiser() {
   );
 }
 
-export default RegistrationOrganiser;
+export default RegistrationVolunteer;

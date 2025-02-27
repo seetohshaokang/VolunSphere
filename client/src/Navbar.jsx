@@ -45,7 +45,7 @@ function Navbar() {
     };
 
     const handleSignup = () => {
-        navigate("/signup");
+        navigate("/registration");
     };
 
     const handleProfileClick = () => {
