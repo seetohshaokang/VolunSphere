@@ -3,59 +3,48 @@ import { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import styles from "./RegistrationVolunteer.module.css";
 import { Modal, Button } from "react-bootstrap"; // Bootstrap Validation
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+} from "react-router-dom";
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/registrationVolunteer" element={<RegistrationVolunteer />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </Router>
+  );
+}
 
 function RegistrationVolunteer() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    phone: "",
+    dateOfBirth: "",
     password: "",
     terms: false,
   });
 
-  // Get the API URL from environment variables
-  const apiUrl = import.meta.env.VITE_API_URL;
-  console.log(`URL is : ${apiUrl}`); // Fixed `console.log` syntax
-
-  // Function to fetch data from the backend
-  const fetchData = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/test-connection`); // Fixed template literal
-      console.log("Full Response", response); // Log response from backend
-
-      if (response.data) {
-        const { message, data } = response.data;
-        console.log(message, data);
-        setMessage(message);
-        setError("");
-      } else {
-        setError("No data returned from backend");
-        setMessage("");
-      }
-    } catch (err) {
-      console.error("Error fetching data from the backend:", err);
-      setError("Failed to connect to the backend.");
-      setMessage(""); 
-    }
-  };
-
-  // Call the fetchData function when the component mounts
-  useEffect(() => {
-    fetchData();
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   const [showModal, setShowModal] = useState(false);
-  const [modalMessages, setModalMessages] = useState([]); // Store validation errors
+  const [modalMessages, setModalMessages] = useState([]);
+  const [showTermsModal, setShowTermsModal] = useState(false); // Terms & Conditions Modal
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
+
+    // Prevent the modal click from affecting the checkbox state
+    if (name !== "terms") {
+      setFormData({
+        ...formData,
+        [name]: type === "checkbox" ? checked : value,
+      });
+    }
   };
 
   const validateForm = () => {
@@ -92,8 +81,7 @@ function RegistrationVolunteer() {
         >
           <h1 className="fw-bold">VolunSphere</h1>
           <p className="mt-3">
-            We connect passionate individuals with meaningful volunteer
-            opportunities.
+            We connect passionate individuals with meaningful volunteer opportunities.
           </p>
           <p>
             Make an impact, give back, and be part of a community that cares.
@@ -101,20 +89,21 @@ function RegistrationVolunteer() {
           <p>Join us in creating positive change—one volunteer at a time.</p>
         </div>
 
-        {/* Registration Info Input */}
+        {/* Registration Form */}
         <div className="col-12 col-md-6 d-flex justify-content-center align-items-center">
           <div className={`card p-4 shadow ${styles.formContainer}`}>
             <h3 className="text-center">Registration</h3>
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
                 <label className="form-label">First Name *</label>
-                <input type="text" name="firstName" className="form-control" placeholder="First Name" value={formData.firstName} onChange={handleChange} />
+                <input type="text" name="companyName" className="form-control" placeholder="Company Name" value={formData.companyName} onChange={handleChange} />
               </div>
 
               <div className="mb-3">
                 <label className="form-label">Last Name *</label>
-                <input type="text" name="lastName" className="form-control" placeholder="Last Name" value={formData.lastName} onChange={handleChange} />
+                <input type="text" name="companyName" className="form-control" placeholder="Company Name" value={formData.companyName} onChange={handleChange} />
               </div>
+
 
               <div className="mb-3">
                 <label className="form-label">Email *</label>
@@ -125,7 +114,7 @@ function RegistrationVolunteer() {
                 <label className="form-label">Phone Number *</label>
                 <input type="tel" name="phone" className="form-control" placeholder="Phone Number" value={formData.phone} onChange={handleChange} />
               </div>
-              
+
               <div className="mb-3">
                 <label className="form-label">Date of Birth *</label>
                 <input type="date" name="dateOfBirth" className="form-control" value={formData.dateOfBirth} onChange={handleChange} />
@@ -137,8 +126,23 @@ function RegistrationVolunteer() {
               </div>
 
               <div className="mb-3 form-check">
-                <input type="checkbox" name="terms" className="form-check-input" id="terms" checked={formData.terms} onChange={handleChange} />
-                <label className="form-check-label" htmlFor="terms">I agree to the <a href="#" className="text-primary">terms and conditions</a></label>
+                <input
+                  type="checkbox"
+                  name="terms"
+                  className="form-check-input"
+                  id="terms"
+                  checked={formData.terms}
+                  onChange={(e) => setFormData({ ...formData, terms: e.target.checked })}
+                />
+                <label className="form-check-label" htmlFor="terms">
+                  I agree to the{" "}
+                  <span className="text-primary" style={{ cursor: "pointer" }} onClick={(e) => {
+                    e.preventDefault();
+                    setShowTermsModal(true);
+                  }}>
+                    terms and conditions
+                  </span>
+                </label>
               </div>
 
               <button type="submit" className="btn btn-primary w-100">
@@ -146,39 +150,60 @@ function RegistrationVolunteer() {
               </button>
             </form>
 
+            {/* Already have an account? Login here */}
             <p className="text-center mt-3">
               Already have an account?{" "}
-              <a href="#" className="text-primary">
-                Sign in
+              <a href="/login" className="text-primary">
+                Login here
               </a>
             </p>
           </div>
         </div>
       </div>
 
-      {/* BootStrap Validations */}
+      {/* Bootstrap Validation Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Body className="text-center">
+        <Modal.Header closeButton>
+          <Modal.Title>Validation Error</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
           {modalMessages.length > 1 ? (
             <>
-              <h5 className="text-danger">
-                Please fill out the following fields:
-              </h5>
+              <h5 className="text-danger">Please fill out the following fields:</h5>
               <ul className="text-start">
                 {modalMessages.map((msg, index) => (
-                  <li key={index} className="text-danger">
-                    {msg}
-                  </li>
+                  <li key={index} className="text-danger">{msg}</li>
                 ))}
               </ul>
             </>
           ) : (
             <h5 className="text-success">{modalMessages[0]}</h5>
           )}
-          <Button variant="primary" onClick={() => setShowModal(false)}>
-            OK
-          </Button>
         </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => setShowModal(false)}>OK</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Terms and Conditions Modal */}
+      <Modal show={showTermsModal} onHide={() => setShowTermsModal(false)} centered size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Terms and Conditions</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="overflow-auto" style={{ maxHeight: "400px" }}>
+          <p>Welcome to VolunSphere. Please read the following terms and conditions carefully:</p>
+          <ul>
+            <li>You must provide accurate and complete information.</li>
+            <li>Your data will be used in compliance with privacy laws.</li>
+            <li>VolunSphere is not liable for any damages caused by volunteering activities.</li>
+            <li>By registering, you agree to receive communications about volunteering opportunities.</li>
+            <li>Failure to comply with our guidelines may result in account suspension.</li>
+          </ul>
+          <p>For further inquiries, contact our support team.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => setShowTermsModal(false)}>Done</Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );

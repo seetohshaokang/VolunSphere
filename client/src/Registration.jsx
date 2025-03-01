@@ -18,10 +18,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/registration" element={<Registration />} />
-        <Route
-          path="/registrationorganiser"
-          element={<RegistrationOrganiser />}
-        />
+        <Route path="/registrationorganiser" element={<RegistrationOrganiser />} />
         <Route path="/registration/registrationvolunteer" element={<RegistrationVolunteer />} />
       </Routes>
     </Router>
