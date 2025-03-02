@@ -13,6 +13,7 @@ import Registration from './Registration';
 import Login from './Login';
 import RegistrationOrganiser from './RegistrationOrganiser';
 import RegistrationVolunteer from './RegistrationVolunteer';
+import ForgotPassword from './ForgotPassword';
 import EditProfile from './profile';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
 					<Route path="/Login" element={<Login />} />
 					<Route path="/RegistrationOrganiser" element={<RegistrationOrganiser />} />
 					<Route path="/RegistrationVolunteer" element={<RegistrationVolunteer />} />
+					<Route path="/ForgotPassword" element={<ForgotPassword />} />
 					<Route path="/Profile" element={<EditProfile />} />
 				</Routes>
 			</Router>

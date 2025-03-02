@@ -99,7 +99,7 @@ function Login() {
           </button>
 
           <div className="text-center mt-3">
-            <a href="#" className="text-primary small">
+            <a href="/forgotPassword" className="text-primary small">
               Forgot password?
             </a>
           </div>
