@@ -55,9 +55,10 @@ const loginUser = async (req, res) => {
 		if (error) {
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
+		const { session } = data;
 		return res
 			.status(200)
-			.json({ message: "Login successful", user: data });
+			.json({ message: "Login successful", user: data, token: session.access_token });
 	} catch (err) {
 		console.error("Error loggin in:", err.message);
 		return res
