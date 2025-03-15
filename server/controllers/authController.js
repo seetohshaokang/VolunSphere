@@ -11,30 +11,59 @@ const signUpUser = async (req, res) => {
 	const { email, password, confirmpassword, role } = req.body;
 
 	try {
+		// Validate passwords match
 		if (confirmpassword !== password) {
 			return res.status(400).json({ message: "Passwords do not match" });
 		}
 
+		// Check if email already exists
 		const emailExists = await checkEmailExists(email);
 		if (emailExists) {
 			return res.status(400).json({ message: "Email already in use" });
 		}
 
-		const userResponse = await createAuthUser(email, password);
-		if (!userResponse || !userResponse.user) {
-			return res.status(500).json({ message: "Failed to create user" });
-		}
+		// Start transaction-like process(Supabase doesn't support true transactions across Auth and DB)
+		let authUser = null;
 
-		const authId = userResponse.user.id; // Supabase Auth UID
+		try {
+			// Step 1: Create auth user
+			const userResponse = await createAuthUser(email, password);
+			if (!userResponse || !userResponse.user) {
+				throw new Error("Failed to create auth user");
+			}
 
-		const userData = { auth_id: authId, email, role };
-		const insertedUser = await createUser(userData);
-		if (!insertedUser) {
-			return res.status(500).json({ message: "User creation failed" });
+			authUser = userResposne.user;
+			const authId = authUser.id; // Supabase Auth UID
+
+			// Step 2 L Create database user
+			const userData = { auth_id: authId, email, role };
+			const insertedUser = await createUser(userData);
+
+			if (!insertedUser) {
+				throw new Error("User database entry creation failed");
+			}
+			return res.status(201).json({
+				message: "Registration successful, please confirm your email",
+			});
+		} catch (innerError) {
+			// If we created an auth user but database user creation failed
+			// attempt to clean up the orphaned auth user
+			if (authUser) {
+				try {
+					await supabase.auth.admin.deleteUser(authUser.id);
+					console.log(
+						`Cleaned up orphaned auth user: ${authUser.id}`
+					);
+				} catch (cleanupError) {
+					console.error(
+						"Failed to clean up orphaned auth user:",
+						cleanupError
+					);
+					// Log this for administrative attention
+				}
+			}
+			throw innerError;
 		}
-		return res.status(201).json({
-			message: "Registration successful, please confirm your email",
-		});
 	} catch (err) {
 		console.error("Error signing up:", err.message);
 		return res
