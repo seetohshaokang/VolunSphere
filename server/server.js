@@ -35,19 +35,13 @@ app.use(
 
 app.use(express.json()); //allow accessing of parsed data, as postman sends JSON-formatted data
 
-// Create a new Supabase client
-const supabase = createClient(
-	process.env.SUPABASE_URL,
-	process.env.SUPABASE_KEY
-);
-
-app.use("/auth", authRoutes); //adding /auth into the path of the authRoutes, example is /auth/signup
-app.use("/test", testRoutes);
-
+// API Entry Points
 app.get("/", (req, res) => {
 	//DEFAULT ROUTE
 	res.send("Welcome to the Volunsphere!");
 });
+app.use("/auth", authRoutes); //adding /auth into the path of the authRoutes, example is /auth/signup
+app.use("/test", testRoutes);
 
 // Start the express server
 app.listen(port, () => {
