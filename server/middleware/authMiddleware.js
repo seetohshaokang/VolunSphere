@@ -1,5 +1,4 @@
 const { createClient } = require("@supabase/supabase-js");
-const { create } = require("domain");
 require("dotenv").config({ path: "./.env.server" });
 
 const supabase = createClient(
@@ -10,22 +9,36 @@ const supabase = createClient(
 // Middleware to protect routes
 const protectRoute = async (req, res, next) => {
 	try {
-		// Step 1: Get the token from the Authorisation Header
+		// Check if Authorization header exists
+		if (!req.headers.authorization) {
+			return res.status(401).json({
+				message: "Unauthorized: No authorization header provided",
+			});
+		}
+
+		// Check if it follows Bearer token format
+		if (!req.headers.authorization.startsWith("Bearer ")) {
+			return res.status(401).json({
+				message: "Unauthorized: Invalid authorization format",
+			});
+		}
+
+		// Extract token safely
 		const token = req.headers.authorization.split(" ")[1];
-		console.log(token);
+
 		if (!token) {
 			return res
 				.status(401)
-				.json({ message: "Unauthorised: No token provided" });
+				.json({ message: "Unauthorized: No token provided" });
 		}
 
-		// Step 2: Verify token with the one obtain from Supa
+		// Verify token with Supabase
 		const { data, error } = await supabase.auth.getUser(token);
 
 		if (error || !data?.user) {
 			return res
 				.status(401)
-				.json({ message: "Unauthorised: Invalid token" });
+				.json({ message: "Unauthorized: Invalid token" });
 		}
 
 		// Step 3 Attach the user data to request
