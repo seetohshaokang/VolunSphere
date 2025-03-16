@@ -32,7 +32,7 @@ const signUpUser = async (req, res) => {
 				throw new Error("Failed to create auth user");
 			}
 
-			authUser = userResposne.user;
+			authUser = userResponse.user;
 			const authId = authUser.id; // Supabase Auth UID
 
 			// Step 2 L Create database user
