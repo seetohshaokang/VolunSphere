@@ -3,10 +3,13 @@
  * Handles CRUD operations for volunteer events
  */
 
-const { start } = require("repl");
 const {
 	eventOperations,
 	registrationOperations,
+	baseUserOperations,
+	volunteerOperations,
+	organiserOperations,
+	reportOperations,
 } = require("../config/database");
 
 /**
@@ -184,7 +187,7 @@ const updateEvent = async (req, res) => {
 		// Admins would bypass this check with a separate route
 		if (event.organiser_id !== userId) {
 			return res
-				.status(402)
+				.status(403)
 				.json({ message: "Not authorized to update this event" });
 		}
 
@@ -257,7 +260,7 @@ const deleteEvent = async (req, res) => {
 		const event = await eventOperations.getEventById(parseInt(id));
 
 		if (!event) {
-			return res.status(401).json({ message: "Event not found" });
+			return res.status(404).json({ message: "Event not found" });
 		}
 
 		// Check ownership (organiser can only delete their own events)
@@ -456,20 +459,24 @@ const getOrganizedEvents = async (req, res) => {
 		// First check if the user is an organiser
 		const userData = await baseUserOperations.getUserByAuthId(user.id);
 
-		if(!userData) {
-			return res.status(404).json({error: 'User profile not found'});
+		if (!userData) {
+			return res.status(404).json({ error: "User profile not found" });
 		}
 
-		if(userData.role !== 'organiser') {
-			return res.status(403).json*({"Only organisers can access this endpoint"});
+		if (userData.role !== "organiser") {
+			return res
+				.status(403)
+				.json({ message: "Only organisers can access this endpoint" });
 		}
-		const events = await organiserOperations.getOrganiserEvents(userData.id);
+		const events = await organiserOperations.getOrganiserEvents(
+			userData.id
+		);
 		return res.status(200).json(events);
 	} catch (error) {
 		console.error("Error fetching organizsed events:", error);
 		return res.status(500).json({
-			error: 'Failed to fetch organised events',
-			details: error.message
+			error: "Failed to fetch organised events",
+			details: error.message,
 		});
 	}
 };
@@ -488,7 +495,7 @@ const reportEvent = async (req, res) => {
 		if (!eventId || isNaN(parseInt(eventId))) {
 			return res
 				.status(400)
-				.json({ message: "Valied event ID is required" });
+				.json({ message: "Valid event ID is required" });
 		}
 
 		if (!reason) {
@@ -533,5 +540,5 @@ module.exports = {
 	cancelRegistration,
 	getRegisteredEvents,
 	getOrganizedEvents,
-	reportEvent
+	reportEvent,
 };

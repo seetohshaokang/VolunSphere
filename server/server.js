@@ -1,17 +1,21 @@
+/**
+ * Main server entry point
+ * Configure Express app and initializes routes
+ */
+
 require("dotenv").config({ path: "./.env.server" }); // Load environment variables from .env.server file
 const express = require("express");
-const { createClient } = require("@supabase/supabase-js");
 const cors = require("cors"); // Import CORS to enable cross-origin requests
 const authRoutes = require("./routes/authRoutes.js");
-const { protectRoute } = require("./middleware/authMiddleware.js");
 const profileRoutes = require("./routes/profileRoutes.js");
 const testRoutes = require("./routes/testRoutes.js");
+const { default: test } = require("node:test");
 
 // Declare express app and port
 const app = express();
 const port = process.env.SERVER_PORT || 8000;
 
-// CORS URL
+// CORS Configuration
 const allowedOrigins = [
 	"http://localhost:5173",
 	"http://localhost:8000",
@@ -19,10 +23,11 @@ const allowedOrigins = [
 	"https://volunsphere.onrender.com",
 ];
 
-// Enable CORS
+// Enable CORS with origina validation
 app.use(
 	cors({
 		origin: function (origin, callback) {
+			// Allow requests with no origin (like mobile apps or curl requests)
 			if (!origin) return callback(null, true);
 			if (allowedOrigins.indexOf(origin) === -1) {
 				const msg =
@@ -31,28 +36,40 @@ app.use(
 			}
 			return callback(null, true);
 		},
+		credentials: true, // Allow cookies to be sent with requests
 	})
 );
 
-app.use(express.json()); //allow accessing of parsed data, as postman sends JSON-formatted data
+// Parse JSON request bodies
+app.use(express.json());
 
-// Create a new Supabase client
-const supabase = createClient(
-	process.env.SUPABASE_URL,
-	process.env.SUPABASE_KEY
-);
+// Root route
+app.get("/", (req, res) => {
+	res.send("Welcome to the VolunSphere API!");
+});
 
-// API Entry Points
-app.use("/auth", authRoutes); //adding /auth into the path of the authRoutes, example is /auth/signup
+// Mount route handlers
+app.use("/auth", authRoutes);
+app.use("/events", eventRoutes);
 app.use("/profile", profileRoutes);
 app.use("/test", testRoutes);
 
-app.get("/", (req, res) => {
-	//DEFAULT ROUTE
-	res.send("Welcome to the Volunsphere!");
+// Error handling middleware
+app.use((err, req, res, next) => {
+	console.error(err.stack);
+	res.status(500).json({
+		message: "Something went wrong!",
+		error:
+			process.env.NODE_ENV === "production"
+				? "An error occured"
+				: err.message,
+	});
 });
-app.use("/auth", authRoutes); //adding /auth into the path of the authRoutes, example is /auth/signup
-app.use("/test", testRoutes);
+
+// 404 Handler for routes that do not exist
+app.use((req, res) => {
+	res.status(404).json({ message: "Route not found" });
+});
 
 // Start the express server
 app.listen(port, () => {
@@ -61,3 +78,5 @@ app.listen(port, () => {
 			` Volunsphere Server is running on port ${port}...`
 	);
 });
+
+module.exports = app; // For testing
