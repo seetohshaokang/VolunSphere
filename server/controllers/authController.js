@@ -1,23 +1,43 @@
+/**
+ * Authentication Controller
+ * Handles user authentication operations including signup, login and logout
+ */
+
 const { createClient } = require("@supabase/supabase-js");
+const {
+	baseUserOperations,
+	volunteerOperations,
+	organiserOperations,
+	supabase,
+} = require("../config/database");
 require("dotenv").config({ path: "./.env.server" });
 
-const supabase = createClient(
-	process.env.SUPABASE_URL,
-	process.env.SUPABASE_KEY
-);
+/**
+ * User signup handler
+ * Creates a user in both Auth and Database with appropriate role
+ */
 
-// Signup
 const signUpUser = async (req, res) => {
 	const { email, password, confirmpassword, role } = req.body;
 
 	try {
+		// Validate input
+		if (!email || !password || !confirmpassword || !role) {
+			return res.status(400).json({ message: "All fields are required" });
+		}
+
 		// Validate passwords match
 		if (confirmpassword !== password) {
 			return res.status(400).json({ message: "Passwords do not match" });
 		}
 
+		// Validate role is one of the accepted roles
+		if (!["volunteer", "organiser"].includes(role)) {
+			return res.status(400).json({ message: "Invalid user role" });
+		}
+
 		// Check if email already exists
-		const emailExists = await checkEmailExists(email);
+		const emailExists = await baseUserOperations.checkEmailExists(email);
 		if (emailExists) {
 			return res.status(400).json({ message: "Email already in use" });
 		}
@@ -26,7 +46,7 @@ const signUpUser = async (req, res) => {
 		let authUser = null;
 
 		try {
-			// Step 1: Create auth user
+			// Step 1: Create auth user in Supabase Auth
 			const userResponse = await createAuthUser(email, password);
 			if (!userResponse || !userResponse.user) {
 				throw new Error("Failed to create auth user");
@@ -35,9 +55,18 @@ const signUpUser = async (req, res) => {
 			authUser = userResponse.user;
 			const authId = authUser.id; // Supabase Auth UID
 
-			// Step 2 L Create database user
+			// Step 2 Create database user with the appropriate role
+			let insertedUser;
 			const userData = { auth_id: authId, email, role };
-			const insertedUser = await createUser(userData);
+			if (role === "volunteer") {
+				insertedUser = await volunteerOperations.createVolunteer(
+					userData
+				);
+			} else {
+				insertedUser = await organiserOperations.createOrganiser(
+					userData
+				);
+			}
 
 			if (!insertedUser) {
 				throw new Error("User database entry creation failed");
@@ -85,9 +114,11 @@ const loginUser = async (req, res) => {
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
 		const { session } = data;
-		return res
-			.status(200)
-			.json({ message: "Login successful", user: data, token: session.access_token });
+		return res.status(200).json({
+			message: "Login successful",
+			user: data,
+			token: session.access_token,
+		});
 	} catch (err) {
 		console.error("Error loggin in:", err.message);
 		return res

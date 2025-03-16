@@ -1,123 +1,294 @@
-const { createClient } = require("@supabase/supabase-js");
-require("dotenv").config({ path: "./.env.server" });
-const multer = require("multer");
+/**
+ * Profile Management Controller
+ * Handles user profile operations including fetch, update, and delete
+ */
+const {
+	baseUserOperations,
+	volunteerOperations,
+	organiserOperations,
+	supabase,
+} = require("../database");
 
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
-
+/**
+ * Fetch user profile with role-specific daata
+ * @route GET /profile
+ */
 const fetchProfile = async (req, res) => {
-    const user = req.user; //Assuming user is set in the request
-    try {
-        const { data, error } = await supabase //retrieve 1 row based on auth_id column
-            .from('users')
-            .select('*')
-            .eq('auth_id', user.id)
-            .single();
+	const user = req.user; // From auth middleware
+	try {
+		// Get basic user data first
+		const basicUserData = await baseUserOperations.getUserByAuthId(user.id);
 
-        if (error) {
-            console.error("Error fetching user data: ", error);
-            return res.status(500).json({ error: 'An error occurred while fetching the profile' });
-        }
+		if (!basicUserData) {
+			return res.status(404).json({ error: "User profile not found" });
+		}
 
-        return res.json(data);
-    } catch (error) {
-        console.log("Error fetching user data: ", error);
-        return res.status(500).json({ error: 'An error occurred while fetching the profile' });
-    }
-}
+		let profileData;
 
+		// Get role-specific profile data
+		switch (basicUserData.role) {
+			case "volunteer":
+				profileData = await volunteerOperations.getVolunteerProfile(
+					user.id
+				);
+				break;
+			case "organiser":
+				profileData = await organiserOperations.getOrganiserProfile(
+					user.id
+				);
+				break;
+			default:
+				// For other roles like admin, just return basic data
+				profileData = basicUserData;
+		}
+
+		return res.json(profileData);
+	} catch (error) {
+		console.log("Error fetching user profile: ", error);
+		return res.status(500).json({
+			error: "An error occurred while fetching the profile",
+			details: error.message,
+		});
+	}
+};
+
+/**
+ * Update profile picture
+ * Uses multer middleware for file handling
+ * @private
+ */
 const updateProfilePicture = async (req, res) => {
+	const user = req.user; // From auth middleware
 
-    const user = req.user; //Assuming user is set in the request
-    const filePath = `profileimages/${user.id}-${Date.now()}-${req.file.originalname}`; //unique filepath
+	try {
+		if (!req.file) {
+			return res.status(400).json({ error: "No file uploaded" });
+		}
 
-    const { data, error } = await supabase.storage //upload the image into the bucket "profileimages"
-        .from('profileimages')
-        .upload(filePath, req.file.buffer, { contentType: req.file.mimetype }); //req.file.buffer refers to the actual file data from multer
+		// Create a unique filename to prevent collisions
+		const filePath = `profileimages/${user.id}-${Date.now()}-${
+			req.file.originalname
+		}`;
 
-    if (error) {
-        console.error("Error uploading image: ", error);
-    }
+		// Upload the new image to storage
+		const { data, error } = await supabase.storage
+			.from("profileimages")
+			.upload(filePath, req.file.buffer, {
+				contentType: req.file.mimetype,
+			});
 
-    const { publicUrl } = supabase.storage.from("profileimages").getPublicUrl(filePath); //get the public url of uploaded image in bucket
+		if (error) {
+			console.error("Error uploading image:", error);
+			return res
+				.status(500)
+				.json({ error: "Failed to upload profile picture" });
+		}
 
-    const { data: userData, error: fetchError } = await supabase //fetch user data
-        .from("users")
-        .select("profile_picture_url")
-        .eq("auth_id", user.id)
-        .single();
+		// Get the public URL of the uploaded image
+		const { publicUrl } = supabase.storage
+			.from("profileimages")
+			.getPublicUrl(filePath);
 
-    if (fetchError) {
-        console.error("Error fetching user data:", fetchError);
-    }
+		// Get the current user data to find existing profile picture
+		const { data: userData, error: fetchError } = await supabase
+			.from("users")
+			.select("profile_picture_url")
+			.eq("auth_id", user.id)
+			.single();
 
-    const currentImageUrl = userData?.profile_picture_url; //this is the current profilepicture url of user
+		if (fetchError) {
+			console.error("Error fetching user data:", fetchError);
+		}
 
-    const { error: deleteError } = await supabase.storage //remove current profilepicture from the storage bucket
-        .from("profileimages")
-        .remove([currentImageUrl]); //Supabase expects an array, so must []
-    ``
-    if (deleteError) {
-        console.error("Error deleting file:", deleteError);
-    }
+		// Delete the old profile picture if it exists
+		if (userData?.profile_picture_url) {
+			// Extract the filename from the URL
+			const oldFilePath = userData.profile_picture_url.split("/").pop();
 
-    const { data: updateData, error: updateError } = await supabase //update the picture url in supabase column
-        .from("users")
-        .update({ profile_picture_url: publicUrl })
-        .eq("auth_id", user.id);
+			if (oldFilePath) {
+				const { error: deleteError } = await supabase.storage
+					.from("profileimages")
+					.remove([oldFilePath]);
 
-    if (updateError) {
-        console.error("Error updating profile picture: ", updateError);
-    }
-}
+				if (deleteError) {
+					console.error(
+						"Error deleting old profile picture:",
+						deleteError
+					);
+					// Non-fatal error, continue with update
+				}
+			}
+		}
+
+		// Update the user's profile picture URL
+		const updateData = { profile_picture_url: publicUrl };
+		const updatedUser = await baseUserOperations.updateBasicUserInfo(
+			user.id,
+			updateData
+		);
+
+		return res.json({
+			message: "Profile picture updated successfully",
+			profile_picture_url: publicUrl,
+		});
+	} catch (error) {
+		console.error("Error updating profile picture:", error);
+		return res.status(500).json({
+			error: "An error occurred while updating the profile picture",
+			details: error.message,
+		});
+	}
+};
+
+/**
+ * Update user profile
+ * @route PUT /profile
+ */
 
 const editProfile = async (req, res) => {
-    const user = req.user; //Assuming user is set in the request
-    console.log(req.body);
-    const { name, dob, phone, bio, address } = req.body; //Assuming all these is sent from frontend, can be null
-    const updateData = {};
+	const user = req.user; // From auth middleware
 
-    if (name !== undefined) updateData.name = name; // check if any field is undefined (can remove if frontend doing the check)
-    if (dob !== undefined) updateData.dob = dob;
-    if (phone !== undefined) updateData.phone = phone;
-    if (bio !== undefined) updateData.bio = bio;
-    if (address !== undefined) updateData.address = address;
+	try {
+		// Get the user's current data
+		const currentUserData = await baseUserOperations.getUserByAuthId(
+			user.id
+		);
 
-    if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ error: "No new data provided for update." });
-    }
+		if (!currentUserData) {
+			return res.status(404).json({ error: "User profile not found" });
+		}
 
-    const { data, error } = await supabase // update all the fields except profilePictureUrl
-        .from('users')
-        .update(updateData)
-        .eq('auth_id', user.id)
-        .select();
+		// Extract common profile fields from request
+		const { name, dob, phone, bio, address } = req.body;
 
-    if (req.file) {
-        await updateProfilePicture(req, res); //update profilepicture url
-    }
+		// Build updateData with only the fieds that are provided
+		const updateData = {};
+		if (name !== undefined) updateData.name = name;
+		if (dob !== undefined) updateData.dob = dob;
+		if (phone !== undefined) updateData.phone = phone;
+		if (bio !== undefined) updateData.bio = bio;
+		if (address !== undefined) updateData.address = address;
 
-    if (error) {
-        return res.status(500).json({ error: "Failed to update user profile" });
-    }
-    return res.json({ message: "Profile updated successfully", data });
-}
+		// Check if there's anything to update
+		if (Object.keys(updateData).length === 0 && !req.file) {
+			return res
+				.status(400)
+				.json({ error: "No new data provided for update" });
+		}
 
+		// Update profile picture if a file was uploaded
+		if (req.file) {
+			await updateProfilePicture(req, res);
+		}
+
+		// Update the basic user info if there are fields to update
+		let updatedUser;
+		if (Object.keys(updateData).length > 0) {
+			updatedUser = await baseUserOperations.updateBasicUserInfo(
+				user.id,
+				updateData
+			);
+		}
+
+		// Handle role-specific updates
+		if (currentUserData.role === "volunteer") {
+			// Update volunteer skills if provided
+			if (req.body.skills) {
+				const skills = Array.isArray(req.body.skills)
+					? req.body.skills
+					: JSON.parse(req.body.skills);
+
+				await volunteerOperations.updateVolunteerSkills(
+					currentUserData.id,
+					skills
+				);
+			}
+		} else if (currentUserData.role === "organiser") {
+			// Update organization details if provided
+			if (req.body.organisation) {
+				const orgDetails =
+					typeof req.body.organisation === "string"
+						? JSON.parse(req.body.organisation)
+						: req.body.organisation;
+
+				await organiserOperations.updateOrganisationDetails(
+					currentUserData.id,
+					orgDetails
+				);
+			}
+		}
+
+		// Fetch the updated profile to return
+		const updatedProfile = await fetchProfile(req, {
+			json: (data) => data,
+		});
+		return res.json({
+			message: "Profile updated successfully",
+			data: updatedProfile,
+		});
+	} catch (error) {
+		console.error("Error updating profile:", error);
+		return res.status(500).json({
+			error: "An error occurred while updating the profile",
+			details: error.message,
+		});
+	}
+};
+
+/**
+ * Delete user profile
+ * @route DELETE /profile
+ */
 const deleteProfile = async (req, res) => {
-    const userId = req.user.id; //fetch users id
-    try {
-        const { error } = await supabase.auth.admin.deleteUser(userId);
-        if (error) {
-            return res.status(400).json({ error: error.message });
-        }
-        console.log("Successfully deleted user profile");
-        return res.status(200).json({ message: "Successfully deleted user profile" });
-    } catch (error) {
-        console.log("Error deleting user profile: ", error);
-        return res.status(500).json({ error: 'An error occurred while deleting the user.' });
-    }
-}
+	const userId = req.user.id; // From auth middleware
+
+	try {
+		// Get the user's current data to check for profile picture
+		const userData = await baseUserOperations.getUserByAuthId(userId);
+
+		if (!userData) {
+			return res.status(404).json({ error: "User profile not found" });
+		}
+
+		// Delete profile picture if it exists
+		if (userData.profile_picture_url) {
+			const filePath = userData.profile_picture_url.split("/").pop();
+
+			if (filePath) {
+				const { error: deleteError } = await supabase.storage
+					.from("profileimages")
+					.remove([filePath]);
+
+				if (deleteError) {
+					console.error(
+						"Error deleting profile pciture:",
+						deleteError
+					);
+					// Non-fatal error, continue with deletion
+				}
+			}
+		}
+
+		// Delete the user from the Supabase Auth
+		const { error } = await supabase.auth.admin.deleteUser(userId);
+
+		if (error) {
+			return res.status(400).json({ error: error.message });
+		}
+
+		// Delete the user from the database
+		await baseUserOperations.deleteUser(userId);
+
+		return res
+			.status(200)
+			.json({ message: "Successfully deleted user profile" });
+	} catch (error) {
+		console.error("Error deleting user profile:", error);
+		return res.status(500).json({
+			error: "An error occurred while deleting the user",
+			details: error.message,
+		});
+	}
+};
 
 module.exports = { fetchProfile, editProfile, deleteProfile };
