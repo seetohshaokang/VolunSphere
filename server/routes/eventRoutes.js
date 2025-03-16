@@ -1,11 +1,44 @@
+/**
+ * Event Routes
+ * Handles routes for event management and participation
+ */
 const express = require("express");
-const { createEvent, getEvents, getEventById, updateEvent, deleteEvent } = require("./eventController");
-
 const router = express.Router();
-router.post("/events", createEvent);
-router.get("/events", getEvents);
-router.get("/events/:id", getEventById);
-router.put("/events/:id", updateEvent);
-router.delete("/events/:id", deleteEvent);
+const {
+	createEvent,
+	getEvents,
+	getEventById,
+	updateEvent,
+	deleteEvent,
+	registerForEvent,
+	cancelRegistration,
+	getRegisteredEvents,
+	getOrganizedEvents,
+	reportEvent,
+} = require("../controllers/eventController");
+const { protectRoute } = require("../middleware/authMiddleware");
+
+// Public even routes (no authentication required)
+router.get("/", getEvents);
+router.get("/:id", getEventById);
+
+// Protected event routes (require authentication)
+router.use(protectRoute);
+
+// Event creation and management - typically for organisers
+router.post("/", createEvent);
+router.put("/:id", updateEvent);
+router.delete("/:id", deleteEvent);
+
+// Event registration routes - for volunteers
+router.post("/:id/register", registerForEvent);
+router.delete("/Lid/register", cancelRegistration);
+
+// User-specific event lists
+router.get("/user/registered", getRegisteredEvents);
+router.get("/user/organized", getOrganizedEvents);
+
+// Event reporting route
+router.post("/:id/report", reportEvent);
 
 module.exports = router;

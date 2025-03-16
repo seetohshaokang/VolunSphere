@@ -411,6 +411,118 @@ const cancelRegistration = async (req, res) => {
 	}
 };
 
+/**
+ * Get events that a volunteer has registered for
+ * @route GET /events/registered
+ */
+const getRegisteredEvents = async (req, res) => {
+	const user = req.user; // From auth middeware
+
+	try {
+		// First check if the user is a volunteer
+		const userData = await baseUserOperations.getUserByAuthId(user.id);
+
+		if (!userData) {
+			return res.status(404).json({ error: "User profile not found" });
+		}
+
+		if (userData.role !== "volunteer") {
+			return res
+				.status(403)
+				.json({ message: "Only volunteers can access this endpoint" });
+		}
+
+		const events = await volunteerOperations.getVolunteerEvents(
+			userData.id
+		);
+		return res.status(200).json(events);
+	} catch (error) {
+		console.error("Error fetching registered events:", error);
+		return res.status(500).json({
+			error: "Failed to fetch registered events",
+			details: error.message,
+		});
+	}
+};
+
+/**
+ * Get events that an organizer has created
+ * @route GET /events/organized
+ */
+const getOrganizedEvents = async (req, res) => {
+	const user = req.user; // From auth middleware
+
+	try {
+		// First check if the user is an organiser
+		const userData = await baseUserOperations.getUserByAuthId(user.id);
+
+		if(!userData) {
+			return res.status(404).json({error: 'User profile not found'});
+		}
+
+		if(userData.role !== 'organiser') {
+			return res.status(403).json*({"Only organisers can access this endpoint"});
+		}
+		const events = await organiserOperations.getOrganiserEvents(userData.id);
+		return res.status(200).json(events);
+	} catch (error) {
+		console.error("Error fetching organizsed events:", error);
+		return res.status(500).json({
+			error: 'Failed to fetch organised events',
+			details: error.message
+		});
+	}
+};
+
+/**
+ * Report an event
+ * @route POST /reports/events/:id
+ */
+const reportEvent = async (req, res) => {
+	const { id: eventId } = req.params;
+	const { reason } = req.body;
+	const userId = req.user.id;
+
+	try {
+		// Validate inputs
+		if (!eventId || isNaN(parseInt(eventId))) {
+			return res
+				.status(400)
+				.json({ message: "Valied event ID is required" });
+		}
+
+		if (!reason) {
+			return res
+				.status(400)
+				.json({ message: "Reason for report is required" });
+		}
+
+		// Check if event exists
+		const event = await eventOperations.getEventById(parseInt(eventId));
+		if (!event) {
+			return res.status(404).json({ message: "Event not found" });
+		}
+
+		// Create the report
+		const report = await reportOperations.reportEvent(
+			userId,
+			parseInt(eventId),
+			reason
+		);
+
+		return res.status(201).json({
+			message: "Event reported successfully",
+			data: report[0],
+		});
+	} catch (error) {
+		console.error("Error reporting event:", error);
+		return res.status(500).json({
+			message: "Error reporting event",
+			error: error.message,
+		});
+	}
+};
+
 module.exports = {
 	createEvent,
 	getEvents,
@@ -419,4 +531,7 @@ module.exports = {
 	deleteEvent,
 	registerForEvent,
 	cancelRegistration,
+	getRegisteredEvents,
+	getOrganizedEvents,
+	reportEvent
 };

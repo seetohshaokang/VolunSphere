@@ -7,7 +7,7 @@ const {
 	volunteerOperations,
 	organiserOperations,
 	supabase,
-} = require("../database");
+} = require("../config/database");
 
 /**
  * Fetch user profile with role-specific daata
