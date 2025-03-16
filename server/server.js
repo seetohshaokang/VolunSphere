@@ -4,6 +4,7 @@ const { createClient } = require("@supabase/supabase-js");
 const cors = require("cors"); // Import CORS to enable cross-origin requests
 const authRoutes = require("./routes/authRoutes.js");
 const { protectRoute } = require("./middleware/authMiddleware.js");
+const profileRoutes = require("./routes/profileRoutes.js");
 const testRoutes = require("./routes/testRoutes.js");
 
 // Declare express app and port
@@ -35,7 +36,17 @@ app.use(
 
 app.use(express.json()); //allow accessing of parsed data, as postman sends JSON-formatted data
 
+// Create a new Supabase client
+const supabase = createClient(
+	process.env.SUPABASE_URL,
+	process.env.SUPABASE_KEY
+);
+
 // API Entry Points
+app.use("/auth", authRoutes); //adding /auth into the path of the authRoutes, example is /auth/signup
+app.use("/profile", profileRoutes);
+app.use("/test", testRoutes);
+
 app.get("/", (req, res) => {
 	//DEFAULT ROUTE
 	res.send("Welcome to the Volunsphere!");
