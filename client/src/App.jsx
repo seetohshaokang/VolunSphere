@@ -9,7 +9,7 @@ import RegistrationOrganiser from './RegistrationOrganiser';
 import RegistrationVolunteer from './RegistrationVolunteer';
 import ForgotPassword from './ForgotPassword';
 import EditProfile from './profile';
-import EventDetail from './EventDetail';
+import EventDetail from './pages/EventDetail';
 
 function App() {
 	return (
