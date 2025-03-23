@@ -9,6 +9,8 @@ const cors = require("cors"); // Import CORS to enable cross-origin requests
 const authRoutes = require("./routes/authRoutes.js");
 const profileRoutes = require("./routes/profileRoutes.js");
 const testRoutes = require("./routes/testRoutes.js");
+const eventRoutes = require("./routes/eventRoutes.js");
+const adminRoutes = require("./routes/adminRoutes.js");
 const { default: test } = require("node:test");
 
 // Declare express app and port
@@ -53,6 +55,7 @@ app.use("/auth", authRoutes);
 app.use("/events", eventRoutes);
 app.use("/profile", profileRoutes);
 app.use("/test", testRoutes);
+app.use("/admin", adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

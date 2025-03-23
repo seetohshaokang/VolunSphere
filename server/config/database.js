@@ -305,6 +305,95 @@ const reportOperations = {
 	},
 };
 
+const adminOperations = {
+    // User management operations
+    getAllUsers: async (role = null) => {
+        let query = supabase.from('users').select('*');
+        
+        if (role) {
+            query = query.eq('role', role);
+        }
+        
+        const { data, error } = await query.order('created_at', { ascending: false });
+        if (error) throw error;
+        return data;
+    },
+    
+    banUser: async (userId, reason, adminId) => {
+        // First update the user record with banned status
+        const { data, error } = await supabase
+            .from('users')
+            .update({ 
+                status: 'banned',
+                ban_reason: reason,
+				banned_by: adminId
+            })
+            .eq('user_id', userId)
+            .select();
+            
+        if (error) throw error;
+        return data;
+    },
+    
+    verifyOrganizer: async (organizerId, adminId) => {
+        const { data, error } = await supabase
+            .from('users')
+            .update({ 
+                status: "verified",
+            })
+            .eq('user_id', organizerId)
+            .eq('role', 'organiser')
+            .select();
+            
+        if (error) throw error;
+        return data;
+    },
+    
+    // Report management operations
+	getAllReports: async (status = null) => {
+		let query = supabase
+			.from('reports')
+			.select(`
+				*,
+				users!user_id(name, email),
+				events!event_id(name, description)
+			`);
+		
+		if (status) {
+			query = query.eq('status', status);
+		}
+		
+		const { data, error } = await query.order('reported_date', { ascending: false });
+		if (error) throw error;
+		return data;
+	},
+
+    resolveReport: async (reportId, adminId) => {
+        const { data, error } = await supabase
+            .from('reports')
+            .update({
+                status: 'resolved',
+                resolved_by: adminId,
+                resolved_date: new Date()
+            })
+            .eq('id', reportId)
+            .select();
+            
+        if (error) throw error;
+        return data;
+    },	
+	//simple remove event
+	removeEvent: async (eventId, reason, adminId) => {
+        const { error } = await supabase
+            .from('events')
+            .delete()
+            .eq('id', eventId);
+            
+        if (error) throw error;
+        return { success: true };
+    },
+};
+
 module.exports = {
 	supabase,
 	baseUserOperations,
@@ -313,4 +402,5 @@ module.exports = {
 	eventOperations,
 	registrationOperations,
 	reportOperations,
+	adminOperations
 };

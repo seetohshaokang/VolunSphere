@@ -1,4 +1,7 @@
 const { createClient } = require("@supabase/supabase-js");
+const {
+	baseUserOperations,
+} = require("../config/database");
 require("dotenv").config({ path: "./.env.server" });
 
 const supabase = createClient(
@@ -41,9 +44,28 @@ const protectRoute = async (req, res, next) => {
 				.json({ message: "Unauthorized: Invalid token" });
 		}
 
-		// Step 3 Attach the user data to request
-		req.user = data.user;
-		next(); // Step 4: Proceed to the next middleware/controller
+		// Get the user from your database using auth_id
+		const userData = await baseUserOperations.getUserByAuthId(data.user.id);
+		
+		if (!userData) {
+			return res
+				.status(401)
+				.json({ message: "Unauthorized: User not found in database" });
+		}
+		
+		// Check if user is banned
+		if (userData.status === 'banned') {
+			return res
+				.status(403)
+				.json({ 
+					message: "This account has been banned", 
+					reason: userData.ban_reason 
+				});
+		}
+
+		// Attach your database user to request (instead of auth user)
+		req.user = userData;
+		next();
 	} catch (err) {
 		console.error("Error in auth middleware:", err.message);
 		return res.status(500).json({ message: "Internal server error" });
@@ -51,3 +73,30 @@ const protectRoute = async (req, res, next) => {
 };
 
 module.exports = { protectRoute };
+
+const isAdmin = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+        const { data, error } = await supabase
+            .from("users")
+            .select("role")
+            .eq("user_id", req.user.user_id)
+            .single();
+            
+        if (error || !data) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        
+        if (data.role !== "admin") {
+            return res.status(403).json({ message: "Access denied: Admin role required" });
+        }
+        
+        next();
+    } catch (err) {
+        console.error("Error in admin middleware:", err.message);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+module.exports = { protectRoute, isAdmin };
