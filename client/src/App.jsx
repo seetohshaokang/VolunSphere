@@ -1,15 +1,32 @@
 // Must need to connect to other jsx files
-import { BrowserRouter } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext"; // Import AuthProvider
-import AppRoutes from "./routes/AppRoutes";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { AuthProvider } from './AuthContext'; // Import AuthProvider
+import Home from './Home';
+import Navbar from './Navbar';
+import Registration from './Registration';
+import Login from './Login';
+import RegistrationOrganiser from './RegistrationOrganiser';
+import RegistrationVolunteer from './RegistrationVolunteer';
+import ForgotPassword from './ForgotPassword';
+import EditProfile from './profile';
+import EventDetail from './EventDetail';
 
 function App() {
 	return (
-		<BrowserRouter>
-			<AuthProvider>
-				<AppRoutes />
-			</AuthProvider>
-		</BrowserRouter>
+		<AuthProvider>
+			<Router>
+				<Routes>
+					<Route path="/" element={<Home />} />
+					<Route path="/Registration" element={<Registration />} />
+					<Route path="/Login" element={<Login />} />
+					<Route path="/RegistrationOrganiser" element={<RegistrationOrganiser />} />
+					<Route path="/RegistrationVolunteer" element={<RegistrationVolunteer />} />
+					<Route path="/ForgotPassword" element={<ForgotPassword />} />
+					<Route path="/Profile" element={<EditProfile />} />
+					<Route path="/event/:eventId" element={<EventDetail />} />
+				</Routes>
+			</Router>
+		</AuthProvider>
 	);
 }
 
