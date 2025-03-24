@@ -12,6 +12,7 @@ import EditProfile from './pages/profile';
 import EventDetail from './pages/EventDetail';
 import OrganiserDashboard from './pages/organiser/OrganiserDashboard';
 import OrganiserEventList from './pages/organiser/OrganiserEventList';
+import OrganizerEventDetail from './OrganizerEventDetail';
 
 function App() {
 	return (
@@ -28,6 +29,8 @@ function App() {
 					<Route path="/event/:eventId" element={<EventDetail />} />
 					<Route path="/organiser/dashboard" element={<OrganiserDashboard />} />
 					<Route path="/organiser/event" element={<OrganiserEventList />} />
+					<Route path="/manage-event/:eventId" element={<OrganizerEventDetail />} />
+					<Route path="/manage-events" element={<Home />} />
 				</Routes>
 			</Router>
 		</AuthProvider>
