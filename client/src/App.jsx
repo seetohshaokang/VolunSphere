@@ -10,6 +10,8 @@ import RegistrationVolunteer from './pages/auth/RegistrationVolunteer';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import EditProfile from './pages/profile';
 import EventDetail from './pages/EventDetail';
+import OrganiserDashboard from './pages/organiser/OrganiserDashboard';
+import OrganiserEventList from './pages/organiser/OrganiserEventList';
 
 function App() {
 	return (
@@ -24,6 +26,8 @@ function App() {
 					<Route path="/ForgotPassword" element={<ForgotPassword />} />
 					<Route path="/Profile" element={<EditProfile />} />
 					<Route path="/event/:eventId" element={<EventDetail />} />
+					<Route path="/organiser/dashboard" element={<OrganiserDashboard />} />
+					<Route path="/organiser/event" element={<OrganiserEventList />} />
 				</Routes>
 			</Router>
 		</AuthProvider>

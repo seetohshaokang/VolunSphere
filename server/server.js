@@ -12,7 +12,6 @@ const testRoutes = require("./routes/testRoutes.js");
 const eventRoutes = require("./routes/eventRoutes.js");
 const adminRoutes = require("./routes/adminRoutes.js");
 const { default: test } = require("node:test");
-const eventRoutes = require("./routes/eventRoutes.js");
 
 // Declare express app and port
 const app = express();
@@ -77,7 +76,7 @@ app.use((req, res) => {
 app.listen(port, () => {
   console.log(
     new Date().toLocaleTimeString() +
-      ` Volunsphere Server is running on port ${port}...`
+    ` Volunsphere Server is running on port ${port}...`
   );
 });
 
