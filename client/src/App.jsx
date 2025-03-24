@@ -1,14 +1,14 @@
 // Must need to connect to other jsx files
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { AuthProvider } from './AuthContext'; // Import AuthProvider
-import Home from './Home';
-import Navbar from './Navbar';
-import Registration from './Registration';
-import Login from './Login';
-import RegistrationOrganiser from './RegistrationOrganiser';
-import RegistrationVolunteer from './RegistrationVolunteer';
-import ForgotPassword from './ForgotPassword';
-import EditProfile from './profile';
+import { AuthProvider } from './contexts/AuthContext'; // Import AuthProvider
+import Home from './pages/Home';
+import Navbar from './layout/Navbar';
+import Registration from './pages/auth/Registration';
+import Login from './pages/auth/Login';
+import RegistrationOrganiser from './pages/auth/RegistrationOrganiser';
+import RegistrationVolunteer from './pages/auth/RegistrationVolunteer';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import EditProfile from './pages/profile';
 import EventDetail from './pages/EventDetail';
 
 function App() {
