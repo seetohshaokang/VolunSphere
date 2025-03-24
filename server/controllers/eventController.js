@@ -4,12 +4,12 @@
  */
 
 const {
-	eventOperations,
-	registrationOperations,
-	baseUserOperations,
-	volunteerOperations,
-	organiserOperations,
-	reportOperations,
+  eventOperations,
+  registrationOperations,
+  baseUserOperations,
+  volunteerOperations,
+  organiserOperations,
+  reportOperations,
 } = require("../config/database");
 
 /**
@@ -17,68 +17,78 @@ const {
  * @route POST /events
  */
 const createEvent = async (req, res) => {
-	const {
-		name,
-		duration,
-		description,
-		cause,
-		location,
-		start_date,
-		end_date,
-	} = req.body;
-	const organiser_id = req.user.id; // From auth middleware
+  const {
+    name,
+    duration,
+    description,
+    cause,
+    location,
+    start_date,
+    end_date,
+    is_recurring,
+    recurrence_pattern, // "daily", "weekly", "monthly"
+    recurrence_day, // day of week (0-6, where 0 is Sunday)
+    start_time, // "HH:MM" format for recurring events
+    end_time, // "HH:MM" format for recurring events
+    max_volunteers, // Maximum number of volunteers allowed
+  } = req.body;
+  const organiser_id = req.user.id; // From auth middleware
 
-	try {
-		// Input validation
-		if (
-			!name ||
-			!description ||
-			!cause ||
-			!location ||
-			!start_date ||
-			!end_date
-		) {
-			return res
-				.status(400)
-				.json({ message: "Required fields are missing" });
-		}
+  try {
+    // Input validation
+    if (
+      !name ||
+      !description ||
+      !cause ||
+      !location ||
+      !start_date ||
+      !end_date
+    ) {
+      return res.status(400).json({ message: "Required fields are missing" });
+    }
 
-		// Additional validation
-		const startDate = new Date(start_date);
-		const endDate = new Date(end_date);
+    // Additional validation
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
 
-		if (endDate < startDate) {
-			return res
-				.status(400)
-				.json({ message: "End date cannot be before start date" });
-		}
+    if (endDate < startDate) {
+      return res
+        .status(400)
+        .json({ message: "End date cannot be before start date" });
+    }
 
-		// Create the event
-		const eventData = {
-			name,
-			duration,
-			description,
-			cause,
-			location,
-			start_date,
-			end_date,
-			organiser_id,
-			status: "active", // Default status
-		};
+    // Create the event
+    const eventData = {
+      name,
+      duration,
+      description,
+      cause,
+      location,
+      start_date,
+      end_date,
+      organiser_id,
+      status: "active", // Default status
+      is_recurring: is_recurring || false,
+      recurrence_pattern: is_recurring ? recurrence_pattern : null,
+      recurrence_day: is_recurring ? recurrence_day : null,
+      start_time: is_recurring ? start_time : null,
+      end_time: is_recurring ? end_time : null,
+      max_volunteers: max_volunteers || null, // If not provided, set to null
+    };
 
-		const data = await eventOperations.createEvent(eventData);
+    const data = await eventOperations.createEvent(eventData);
 
-		return res.status(201).json({
-			message: "Event created successfully",
-			data: data[0],
-		});
-	} catch (error) {
-		console.error("Error creating event:", error);
-		return res.status(500).json({
-			message: "Error creating event",
-			error: error.message,
-		});
-	}
+    return res.status(201).json({
+      message: "Event created successfully",
+      data: data[0],
+    });
+  } catch (error) {
+    console.error("Error creating event:", error);
+    return res.status(500).json({
+      message: "Error creating event",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -89,37 +99,37 @@ const createEvent = async (req, res) => {
  */
 
 const getEvents = async (req, res) => {
-	try {
-		// Extract query parameters for filtering
-		const filters = {
-			searchTerm: req.query.search,
-			category: req.query.category,
-			location: req.query.location,
-			dateStart: req.query.dateStart,
-			dateEnd: req.query.dateEnd,
-		};
+  try {
+    // Extract query parameters for filtering
+    const filters = {
+      searchTerm: req.query.search,
+      category: req.query.category,
+      location: req.query.location,
+      dateStart: req.query.dateStart,
+      dateEnd: req.query.dateEnd,
+    };
 
-		// Filter out undefined values
-		Object.keys(filters).forEach((key) => {
-			if (filters[key] === undefined) {
-				delete filters[key];
-			}
-		});
+    // Filter out undefined values
+    Object.keys(filters).forEach((key) => {
+      if (filters[key] === undefined) {
+        delete filters[key];
+      }
+    });
 
-		// If there are filters, use search function
-		const data =
-			Object.keys(filters).length > 0
-				? await eventOperations.searchEvents(filters)
-				: await eventOperations.getAllEvents();
+    // If there are filters, use search function
+    const data =
+      Object.keys(filters).length > 0
+        ? await eventOperations.searchEvents(filters)
+        : await eventOperations.getAllEvents();
 
-		return res.status(200).json(data);
-	} catch (error) {
-		console.error("Error fetching events:", error);
-		return res.status(500).json({
-			message: "Error fetching events",
-			error: error.message,
-		});
-	}
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    return res.status(500).json({
+      message: "Error fetching events",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -127,27 +137,25 @@ const getEvents = async (req, res) => {
  * @route GET /events/:id
  */
 const getEventById = async (req, res) => {
-	const { id } = req.params;
+  const { id } = req.params;
 
-	try {
-		if (!id || isNaN(parseInt(id))) {
-			return res
-				.status(400)
-				.json({ message: "Valid event ID is required" });
-		}
-		const data = await eventOperations.getEventById(parseInt(id));
+  try {
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({ message: "Valid event ID is required" });
+    }
+    const data = await eventOperations.getEventById(parseInt(id));
 
-		if (!data) {
-			return res.status(404).json({ message: "Event not found" });
-		}
-		return res.status(200).json(data);
-	} catch (error) {
-		console.error(`Error fetching event ${id}:`, error);
-		return res.status(500).json({
-			message: "Error fetching event",
-			error: error.message,
-		});
-	}
+    if (!data) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error(`Error fetching event ${id}:`, error);
+    return res.status(500).json({
+      message: "Error fetching event",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -155,89 +163,97 @@ const getEventById = async (req, res) => {
  * @route PUT /events/:id
  */
 const updateEvent = async (req, res) => {
-	const { id } = req.params;
-	const {
-		name,
-		duration,
-		description,
-		cause,
-		location,
-		start_date,
-		end_date,
-		status,
-	} = req.body;
-	const userId = req.user.id; // From auth middleware
+  const { id } = req.params;
+  const {
+    name,
+    duration,
+    description,
+    cause,
+    location,
+    start_date,
+    end_date,
+    status,
+    is_recurring,
+    recurrence_pattern,
+    recurrence_day,
+    start_time,
+    end_time,
+    max_volunteers,
+  } = req.body;
+  const userId = req.user.id; // From auth middleware
 
-	try {
-		//Validate event ID
-		if (!id || isNaN(parseInt(id))) {
-			return res
-				.status(400)
-				.json({ message: "Valid event ID is required" });
-		}
+  try {
+    //Validate event ID
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({ message: "Valid event ID is required" });
+    }
 
-		// Check if event exists and user has permission
-		const event = await eventOperations.getEventById(parseInt(id));
+    // Check if event exists and user has permission
+    const event = await eventOperations.getEventById(parseInt(id));
 
-		if (!event) {
-			return res.status(400).json({ message: "Event not found" });
-		}
+    if (!event) {
+      return res.status(400).json({ message: "Event not found" });
+    }
 
-		// Check ownership (organiser can only update their own events)
-		// Admins would bypass this check with a separate route
-		if (event.organiser_id !== userId) {
-			return res
-				.status(403)
-				.json({ message: "Not authorized to update this event" });
-		}
+    // Check ownership (organiser can only update their own events)
+    // Admins would bypass this check with a separate route
+    if (event.organiser_id !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to update this event" });
+    }
 
-		// Prepare update data
-		const updateData = {};
-		if (name !== undefined) updateData.name = name;
-		if (duration !== undefined) updateData.duration = duration;
-		if (description !== undefined) updateData.description = description;
-		if (cause !== undefined) updateData.cause = cause;
-		if (location !== undefined) updateData.location = location;
-		if (start_date !== undefined) updateData.start_date = start_date;
-		if (end_date !== undefined) updateData.end_date = end_date;
-		if (status !== undefined) updateData.status = status;
+    // Prepare update data
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (duration !== undefined) updateData.duration = duration;
+    if (description !== undefined) updateData.description = description;
+    if (cause !== undefined) updateData.cause = cause;
+    if (location !== undefined) updateData.location = location;
+    if (start_date !== undefined) updateData.start_date = start_date;
+    if (end_date !== undefined) updateData.end_date = end_date;
+    if (status !== undefined) updateData.status = status;
+    if (is_recurring !== undefined) updateData.is_recurring = is_recurring;
+    if (recurrence_pattern !== undefined)
+      updateData.recurrence_pattern = recurrence_pattern;
+    if (recurrence_day !== undefined)
+      updateData.recurrence_day = recurrence_day;
+    if (start_time !== undefined) updateData.start_time = start_time;
+    if (end_time !== undefined) updateData.end_time = end_time;
+    if (max_volunteers !== undefined)
+      updateData.max_volunteers = max_volunteers;
 
-		// Validate dates if both are provided
-		if (updateData.start_date && updateData.end_date) {
-			const startDate = new Date(updateData.start_date);
-			const endDate = new Date(updateData.end_date);
+    // Validate dates if both are provided
+    if (updateData.start_date && updateData.end_date) {
+      const startDate = new Date(updateData.start_date);
+      const endDate = new Date(updateData.end_date);
 
-			if (endDate < startDate) {
-				return res
-					.status(400)
-					.json({ message: "End date cannot be before start date" });
-			}
-		}
+      if (endDate < startDate) {
+        return res
+          .status(400)
+          .json({ message: "End date cannot be before start date" });
+      }
+    }
 
-		// Ensure there's something to update
-		if (Object.keys(updateData).length === 0) {
-			return res
-				.status(400)
-				.json({ message: "No fields provided for update" });
-		}
+    // Ensure there's something to update
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No fields provided for update" });
+    }
 
-		// Update the event
-		const data = await eventOperations.updateEvent(
-			parseInt(id),
-			updateData
-		);
+    // Update the event
+    const data = await eventOperations.updateEvent(parseInt(id), updateData);
 
-		return res.status(200).json({
-			message: "Event updated successfully",
-			data: data[0],
-		});
-	} catch (error) {
-		console.error(`Error updating event ${id}:`, error);
-		return res.status(500).json({
-			message: "Error updating event",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message: "Event updated successfully",
+      data: data[0],
+    });
+  } catch (error) {
+    console.error(`Error updating event ${id}:`, error);
+    return res.status(500).json({
+      message: "Error updating event",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -245,43 +261,42 @@ const updateEvent = async (req, res) => {
  * @route DELETE /events/:id
  */
 const deleteEvent = async (req, res) => {
-	const { id } = req.params;
-	const userId = req.user.id; // From auth middleware
+  // Function remains same as the original
+  const { id } = req.params;
+  const userId = req.user.id; // From auth middleware
 
-	try {
-		//Validate event ID
-		if (!id || isNaN(parseInt(id))) {
-			return res
-				.status(400)
-				.json({ message: "Valid event ID is required" });
-		}
+  try {
+    //Validate event ID
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({ message: "Valid event ID is required" });
+    }
 
-		// Check if event exists and user has permission
-		const event = await eventOperations.getEventById(parseInt(id));
+    // Check if event exists and user has permission
+    const event = await eventOperations.getEventById(parseInt(id));
 
-		if (!event) {
-			return res.status(404).json({ message: "Event not found" });
-		}
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
-		// Check ownership (organiser can only delete their own events)
-		// Admins would bypass this check with a separate route
-		if (event.organiser_id !== userId) {
-			return res
-				.status(403)
-				.json({ message: "Not authorised to delete this event" });
-		}
+    // Check ownership (organiser can only delete their own events)
+    // Admins would bypass this check with a separate route
+    if (event.organiser_id !== userId) {
+      return res
+        .status(403)
+        .json({ message: "Not authorised to delete this event" });
+    }
 
-		// Delete the event
-		await eventOperations.deleteEvent(parseInt(id));
+    // Delete the event
+    await eventOperations.deleteEvent(parseInt(id));
 
-		return res.status(200).json({ message: "Event deleted successfully" });
-	} catch (error) {
-		console.error(`Error deleting event ${id}:`, error);
-		return res.status(500).json({
-			message: "Error deleting event",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({ message: "Event deleted successfully" });
+  } catch (error) {
+    console.error(`Error deleting event ${id}:`, error);
+    return res.status(500).json({
+      message: "Error deleting event",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -289,71 +304,65 @@ const deleteEvent = async (req, res) => {
  * @route POST /events/:id/register
  */
 const registerForEvent = async (req, res) => {
-	const { id: eventId } = req.params;
-	const userId = req.user.id; // From auth middleware
+  // Function remains same as the original
+  const { id: eventId } = req.params;
+  const userId = req.user.id; // From auth middleware
 
-	try {
-		// Validate event ID
-		if (!eventId || isNaN(parseInt(eventId))) {
-			return res
-				.status(400)
-				.json({ message: "Valid event ID is required" });
-		}
+  try {
+    // Validate event ID
+    if (!eventId || isNaN(parseInt(eventId))) {
+      return res.status(400).json({ message: "Valid event ID is required" });
+    }
 
-		// Check if event exists and is active
-		const event = await eventOperations.getEventById(parseInt(eventId));
+    // Check if event exists and is active
+    const event = await eventOperations.getEventById(parseInt(eventId));
 
-		if (!event) {
-			return res.status(404).json({ message: "Event not found" });
-		}
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
-		if (event.status !== "active") {
-			return res.status(400).json({
-				message: `Cannot register for an event with status: ${event.status}`,
-			});
-		}
+    if (event.status !== "active") {
+      return res.status(400).json({
+        message: `Cannot register for an event with status: ${event.status}`,
+      });
+    }
 
-		// Check if already registered
-		const registrations = await eventOperations.getEventRegistrations(
-			parseInt(eventId)
-		);
-		const isRegistered = registrations.some(
-			(reg) => reg.user_id === userId
-		);
+    // Check if already registered
+    const registrations = await eventOperations.getEventRegistrations(
+      parseInt(eventId)
+    );
+    const isRegistered = registrations.some((reg) => reg.user_id === userId);
 
-		if (isRegistered) {
-			return res
-				.status(400)
-				.json({ message: "Already registered for this event" });
-		}
+    if (isRegistered) {
+      return res
+        .status(400)
+        .json({ message: "Already registered for this event" });
+    }
 
-		// Check if event is at capacity
-		if (
-			event.max_volunteers &&
-			registrations.length >= event.max_volunteers
-		) {
-			return res
-				.status(400)
-				.json({ message: "Event has reached maximum capacity" });
-		}
+    // Check if event is at capacity
+    if (event.max_volunteers && registrations.length >= event.max_volunteers) {
+      return res
+        .status(400)
+        .json({ message: "Event has reached maximum capacity" });
+    }
 
-		// Register for the event
-		const data = await registrationOperations.registerForEvent(
-			userId,
-			parseInt(eventId)
-		);
+    // Register for the event
+    const data = await registrationOperations.registerForEvent(
+      userId,
+      parseInt(eventId)
+    );
 
-		return res.status(200).json({
-			message: "Successfully registered for event",
-			data: data[0],
-		});
-	} catch (error) {
-		console.error(`Error registering for event ${eventId}:`, error);
-		return res.status(500).json({
-			message: "Error registering for event",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message: "Successfully registered for event",
+      data: data[0],
+    });
+  } catch (error) {
+    console.error(`Error registering for event ${eventId}:`, error);
+    return res.status(500).json({
+      message: "Error registering for event",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -361,57 +370,46 @@ const registerForEvent = async (req, res) => {
  * @route DELETE /events/:id/register
  */
 const cancelRegistration = async (req, res) => {
-	const { id: eventId } = req.params;
-	const userId = req.user.id; // From auth middleware
+  // Function remains same as the original
+  const { id: eventId } = req.params;
+  const userId = req.user.id; // From auth middleware
 
-	try {
-		// Validate event ID
-		if (!eventId || isNaN(parseInt(eventId))) {
-			return res
-				.status(400)
-				.json({ message: "Valid event ID is required" });
-		}
+  try {
+    // Validate event ID
+    if (!eventId || isNaN(parseInt(eventId))) {
+      return res.status(400).json({ message: "Valid event ID is required" });
+    }
 
-		// Check if event exists
-		const event = await eventOperations.getEventById(parseInt(eventId));
+    // Check if event exists
+    const event = await eventOperations.getEventById(parseInt(eventId));
 
-		if (!event) {
-			return res.status(404).json({ message: "Event not found" });
-		}
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
-		// Check if registered
-		const registrations = await eventOperations.getEventRegistrations(
-			parseInt(eventId)
-		);
-		const isRegistered = registrations.some(
-			(reg) => reg.user_id === userId
-		);
+    // Check if registered
+    const registrations = await eventOperations.getEventRegistrations(
+      parseInt(eventId)
+    );
+    const isRegistered = registrations.some((reg) => reg.user_id === userId);
 
-		if (!isRegistered) {
-			return res
-				.status(400)
-				.json({ message: "Not registered for this event" });
-		}
+    if (!isRegistered) {
+      return res.status(400).json({ message: "Not registered for this event" });
+    }
 
-		// Cancel registration
-		await registrationOperations.cancelRegistration(
-			userId,
-			parseInt(eventId)
-		);
+    // Cancel registration
+    await registrationOperations.cancelRegistration(userId, parseInt(eventId));
 
-		return res
-			.status(200)
-			.json({ message: "Registration cancelled successfully" });
-	} catch (error) {
-		console.error(
-			`Error cancelling registration for event ${eventId}:`,
-			error
-		);
-		return res.status(500).json({
-			message: "Error cancelling registration",
-			error: error.message,
-		});
-	}
+    return res
+      .status(200)
+      .json({ message: "Registration cancelled successfully" });
+  } catch (error) {
+    console.error(`Error cancelling registration for event ${eventId}:`, error);
+    return res.status(500).json({
+      message: "Error cancelling registration",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -419,33 +417,32 @@ const cancelRegistration = async (req, res) => {
  * @route GET /events/registered
  */
 const getRegisteredEvents = async (req, res) => {
-	const user = req.user; // From auth middeware
+  // Function remains same as the original
+  const user = req.user; // From auth middeware
 
-	try {
-		// First check if the user is a volunteer
-		const userData = await baseUserOperations.getUserByAuthId(user.id);
+  try {
+    // First check if the user is a volunteer
+    const userData = await baseUserOperations.getUserByAuthId(user.id);
 
-		if (!userData) {
-			return res.status(404).json({ error: "User profile not found" });
-		}
+    if (!userData) {
+      return res.status(404).json({ error: "User profile not found" });
+    }
 
-		if (userData.role !== "volunteer") {
-			return res
-				.status(403)
-				.json({ message: "Only volunteers can access this endpoint" });
-		}
+    if (userData.role !== "volunteer") {
+      return res
+        .status(403)
+        .json({ message: "Only volunteers can access this endpoint" });
+    }
 
-		const events = await volunteerOperations.getVolunteerEvents(
-			userData.id
-		);
-		return res.status(200).json(events);
-	} catch (error) {
-		console.error("Error fetching registered events:", error);
-		return res.status(500).json({
-			error: "Failed to fetch registered events",
-			details: error.message,
-		});
-	}
+    const events = await volunteerOperations.getVolunteerEvents(userData.id);
+    return res.status(200).json(events);
+  } catch (error) {
+    console.error("Error fetching registered events:", error);
+    return res.status(500).json({
+      error: "Failed to fetch registered events",
+      details: error.message,
+    });
+  }
 };
 
 /**
@@ -453,32 +450,31 @@ const getRegisteredEvents = async (req, res) => {
  * @route GET /events/organized
  */
 const getOrganizedEvents = async (req, res) => {
-	const user = req.user; // From auth middleware
+  // Function remains same as the original
+  const user = req.user; // From auth middleware
 
-	try {
-		// First check if the user is an organiser
-		const userData = await baseUserOperations.getUserByAuthId(user.id);
+  try {
+    // First check if the user is an organiser
+    const userData = await baseUserOperations.getUserByAuthId(user.id);
 
-		if (!userData) {
-			return res.status(404).json({ error: "User profile not found" });
-		}
+    if (!userData) {
+      return res.status(404).json({ error: "User profile not found" });
+    }
 
-		if (userData.role !== "organiser") {
-			return res
-				.status(403)
-				.json({ message: "Only organisers can access this endpoint" });
-		}
-		const events = await organiserOperations.getOrganiserEvents(
-			userData.id
-		);
-		return res.status(200).json(events);
-	} catch (error) {
-		console.error("Error fetching organizsed events:", error);
-		return res.status(500).json({
-			error: "Failed to fetch organised events",
-			details: error.message,
-		});
-	}
+    if (userData.role !== "organiser") {
+      return res
+        .status(403)
+        .json({ message: "Only organisers can access this endpoint" });
+    }
+    const events = await organiserOperations.getOrganiserEvents(userData.id);
+    return res.status(200).json(events);
+  } catch (error) {
+    console.error("Error fetching organizsed events:", error);
+    return res.status(500).json({
+      error: "Failed to fetch organised events",
+      details: error.message,
+    });
+  }
 };
 
 /**
@@ -486,59 +482,56 @@ const getOrganizedEvents = async (req, res) => {
  * @route POST /reports/events/:id
  */
 const reportEvent = async (req, res) => {
-	const { id: eventId } = req.params;
-	const { reason } = req.body;
-	const userId = req.user.id;
+  // Function remains same as the original
+  const { id: eventId } = req.params;
+  const { reason } = req.body;
+  const userId = req.user.id;
 
-	try {
-		// Validate inputs
-		if (!eventId || isNaN(parseInt(eventId))) {
-			return res
-				.status(400)
-				.json({ message: "Valid event ID is required" });
-		}
+  try {
+    // Validate inputs
+    if (!eventId || isNaN(parseInt(eventId))) {
+      return res.status(400).json({ message: "Valid event ID is required" });
+    }
 
-		if (!reason) {
-			return res
-				.status(400)
-				.json({ message: "Reason for report is required" });
-		}
+    if (!reason) {
+      return res.status(400).json({ message: "Reason for report is required" });
+    }
 
-		// Check if event exists
-		const event = await eventOperations.getEventById(parseInt(eventId));
-		if (!event) {
-			return res.status(404).json({ message: "Event not found" });
-		}
+    // Check if event exists
+    const event = await eventOperations.getEventById(parseInt(eventId));
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
-		// Create the report
-		const report = await reportOperations.reportEvent(
-			userId,
-			parseInt(eventId),
-			reason
-		);
+    // Create the report
+    const report = await reportOperations.reportEvent(
+      userId,
+      parseInt(eventId),
+      reason
+    );
 
-		return res.status(201).json({
-			message: "Event reported successfully",
-			data: report[0],
-		});
-	} catch (error) {
-		console.error("Error reporting event:", error);
-		return res.status(500).json({
-			message: "Error reporting event",
-			error: error.message,
-		});
-	}
+    return res.status(201).json({
+      message: "Event reported successfully",
+      data: report[0],
+    });
+  } catch (error) {
+    console.error("Error reporting event:", error);
+    return res.status(500).json({
+      message: "Error reporting event",
+      error: error.message,
+    });
+  }
 };
 
 module.exports = {
-	createEvent,
-	getEvents,
-	getEventById,
-	updateEvent,
-	deleteEvent,
-	registerForEvent,
-	cancelRegistration,
-	getRegisteredEvents,
-	getOrganizedEvents,
-	reportEvent,
+  createEvent,
+  getEvents,
+  getEventById,
+  updateEvent,
+  deleteEvent,
+  registerForEvent,
+  cancelRegistration,
+  getRegisteredEvents,
+  getOrganizedEvents,
+  reportEvent,
 };
