@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { getCurrentUser, logoutUser } from "../helpers/authService";
 
 // Create AuthContext
 const AuthContext = createContext();
@@ -9,26 +10,33 @@ export const AuthProvider = ({ children }) => {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		const storedUser = localStorage.getItem("user");
+		// Check if user is already logged in from localStorage
+		const storedUser = getCurrentUser();
 		const token = localStorage.getItem("token");
 
 		if (storedUser && token) {
-			setUser(JSON.parse(storedUser));
+			setUser(storedUser);
 		}
 		setLoading(false);
-	});
+	}, []);
 
-	// Function to log in (Example: Normally, you'd use Firebase, Supabase, or an API)
+	// Function to log in
 	const login = (userData) => {
 		setUser(userData);
 		localStorage.setItem("user", JSON.stringify(userData));
 	};
 
 	// Function to log out
-	const logout = () => {
-		setUser(null);
-		localStorage.removeItem("user");
-		localStorage.removeItem("token");
+	const logout = async () => {
+		try {
+			await logoutUser();
+		} catch (error) {
+			console.error("Logout error:", error);
+		} finally {
+			setUser(null);
+			localStorage.removeItem("user");
+			localStorage.removeItem("token");
+		}
 	};
 
 	return (

@@ -15,6 +15,7 @@ const {
 	getRegisteredEvents,
 	getOrganizedEvents,
 	reportEvent,
+	getRecommendedEvents,
 } = require("../controllers/eventController");
 const { protectRoute } = require("../middleware/authMiddleware");
 
@@ -32,11 +33,14 @@ router.delete("/:id", deleteEvent);
 
 // Event registration routes - for volunteers
 router.post("/:id/register", registerForEvent);
-router.delete("/Lid/register", cancelRegistration);
+router.delete("/:id/register", cancelRegistration);
 
 // User-specific event lists
 router.get("/user/registered", getRegisteredEvents);
 router.get("/user/organized", getOrganizedEvents);
+
+// Event recommendations
+router.get("/recommendations", getRecommendedEvents);
 
 // Event reporting route
 router.post("/:id/report", reportEvent);

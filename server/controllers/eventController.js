@@ -530,6 +530,27 @@ const reportEvent = async (req, res) => {
 	}
 };
 
+const getRecommendedEvents = async (req, res) => {
+	try {
+		const userId = req.user.id; // Assuming user info is attached by auth middleware
+		const limit = parseInt(req.query.limit) || 10;
+
+		const recommendations =
+			await recommendationService.getRecommendedEvents(userId, limit);
+
+		res.status(200).json({
+			success: true,
+			data: recommendations,
+		});
+	} catch (error) {
+		console.error("Error getting recommended events:", error);
+		res.status(500).json({
+			success: false,
+			error: "Failed to get recommended events",
+		});
+	}
+};
+
 module.exports = {
 	createEvent,
 	getEvents,
@@ -541,4 +562,5 @@ module.exports = {
 	getRegisteredEvents,
 	getOrganizedEvents,
 	reportEvent,
+	getRecommendedEvents,
 };

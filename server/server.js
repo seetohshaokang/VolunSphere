@@ -2,12 +2,12 @@
  * Main server entry point
  * Configure Express app and initializes routes
  */
-
 require("dotenv").config({ path: "./.env.server" }); // Load environment variables from .env.server file
 const express = require("express");
 const cors = require("cors"); // Import CORS to enable cross-origin requests
 const authRoutes = require("./routes/authRoutes.js");
 const profileRoutes = require("./routes/profileRoutes.js");
+const eventRoutes = require("./routes/eventRoutes.js");
 const testRoutes = require("./routes/testRoutes.js");
 const { default: test } = require("node:test");
 

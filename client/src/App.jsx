@@ -1,6 +1,5 @@
-// Must need to connect to other jsx files
 import { BrowserRouter } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext"; // Import AuthProvider
+import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
 
 function App() {
