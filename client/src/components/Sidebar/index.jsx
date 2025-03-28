@@ -1,4 +1,15 @@
-import React from "react";
+// src/components/Sidebar/index.jsx
+import { Button } from "@/components/ui/button";
+import {
+	Calendar,
+	ClipboardList,
+	Home,
+	LogIn,
+	Plus,
+	Tasks,
+	User,
+	UserPlus,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -7,96 +18,116 @@ function Sidebar() {
 	const isOrganizer = user?.role === "organiser";
 
 	return (
-		<ul className="menu p-4 w-64 h-full bg-base-200 text-base-content">
-			<li className="mb-4">
-				<Link to="/" className="flex items-center py-2">
-					<i className="fas fa-home mr-2"></i>
-					<span>Home</span>
-				</Link>
-			</li>
-
-			<li className="menu-title">
-				<span>Events</span>
-			</li>
-			<li>
-				<Link to="/events" className="flex items-center py-2">
-					<i className="fas fa-calendar-alt mr-2"></i>
-					<span>Browse Events</span>
-				</Link>
-			</li>
-
-			{user && (
-				<>
-					<li>
-						<Link
-							to="/events/user/registered"
-							className="flex items-center py-2"
+		<div className="pb-12 h-full border-r">
+			<div className="space-y-4 py-4">
+				<div className="px-4 py-2">
+					<Link to="/">
+						<Button
+							variant="ghost"
+							className="w-full justify-start"
 						>
-							<i className="fas fa-clipboard-list mr-2"></i>
-							<span>My Registrations</span>
-						</Link>
-					</li>
+							<Home className="mr-2 h-4 w-4" />
+							Home
+						</Button>
+					</Link>
+				</div>
 
-					{isOrganizer && (
-						<>
-							<li className="menu-title">
-								<span>Organize</span>
-							</li>
-							<li>
-								<Link
-									to="/events/user/organized"
-									className="flex items-center py-2"
-								>
-									<i className="fas fa-tasks mr-2"></i>
-									<span>Manage Events</span>
-								</Link>
-							</li>
-							<li>
-								<Link
-									to="/events/create"
-									className="flex items-center py-2"
-								>
-									<i className="fas fa-plus-circle mr-2"></i>
-									<span>Create Event</span>
-								</Link>
-							</li>
-						</>
-					)}
-				</>
-			)}
+				<div className="px-4">
+					<h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">
+						Events
+					</h2>
+					<div className="space-y-1">
+						<Link to="/events">
+							<Button
+								variant="ghost"
+								className="w-full justify-start"
+							>
+								<Calendar className="mr-2 h-4 w-4" />
+								Browse Events
+							</Button>
+						</Link>
 
-			<li className="menu-title">
-				<span>Account</span>
-			</li>
-			{user ? (
-				<>
-					<li>
-						<Link to="/profile" className="flex items-center py-2">
-							<i className="fas fa-user mr-2"></i>
-							<span>Profile</span>
-						</Link>
-					</li>
-				</>
-			) : (
-				<>
-					<li>
-						<Link to="/login" className="flex items-center py-2">
-							<i className="fas fa-sign-in-alt mr-2"></i>
-							<span>Login</span>
-						</Link>
-					</li>
-					<li>
-						<Link
-							to="/registration"
-							className="flex items-center py-2"
-						>
-							<i className="fas fa-user-plus mr-2"></i>
-							<span>Register</span>
-						</Link>
-					</li>
-				</>
-			)}
-		</ul>
+						{user && (
+							<Link to="/events/user/registered">
+								<Button
+									variant="ghost"
+									className="w-full justify-start"
+								>
+									<ClipboardList className="mr-2 h-4 w-4" />
+									My Registrations
+								</Button>
+							</Link>
+						)}
+
+						{isOrganizer && (
+							<>
+								<h2 className="mt-4 mb-2 px-2 text-lg font-semibold tracking-tight">
+									Organize
+								</h2>
+								<Link to="/events/user/organized">
+									<Button
+										variant="ghost"
+										className="w-full justify-start"
+									>
+										<Tasks className="mr-2 h-4 w-4" />
+										Manage Events
+									</Button>
+								</Link>
+								<Link to="/events/create">
+									<Button
+										variant="ghost"
+										className="w-full justify-start"
+									>
+										<Plus className="mr-2 h-4 w-4" />
+										Create Event
+									</Button>
+								</Link>
+							</>
+						)}
+					</div>
+				</div>
+
+				<div className="px-4">
+					<h2 className="mb-2 px-2 text-lg font-semibold tracking-tight">
+						Account
+					</h2>
+					<div className="space-y-1">
+						{user ? (
+							<Link to="/profile">
+								<Button
+									variant="ghost"
+									className="w-full justify-start"
+								>
+									<User className="mr-2 h-4 w-4" />
+									Profile
+								</Button>
+							</Link>
+						) : (
+							<>
+								<Link to="/login">
+									<Button
+										variant="ghost"
+										className="w-full justify-start"
+									>
+										<LogIn className="mr-2 h-4 w-4" />
+										Login
+									</Button>
+								</Link>
+								<Link to="/registration">
+									<Button
+										variant="ghost"
+										className="w-full justify-start"
+									>
+										<UserPlus className="mr-2 h-4 w-4" />
+										Register
+									</Button>
+								</Link>
+							</>
+						)}
+					</div>
+				</div>
+			</div>
+		</div>
 	);
 }
 

@@ -1,4 +1,13 @@
-import React from "react";
+// src/components/EventCard/index.jsx
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+} from "@/components/ui/card";
+import { Calendar, MapPin, User } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function EventCard({ event }) {
@@ -14,8 +23,8 @@ function EventCard({ event }) {
 	};
 
 	return (
-		<div className="card bg-base-100 shadow-xl h-full">
-			<figure className="relative">
+		<Card className="h-full flex flex-col overflow-hidden">
+			<div className="relative">
 				<img
 					src={`https://source.unsplash.com/random/300x200/?${
 						event.cause || "volunteer"
@@ -24,48 +33,50 @@ function EventCard({ event }) {
 					className="h-48 w-full object-cover"
 				/>
 				<div className="absolute top-3 left-3">
-					<span className="badge badge-ghost bg-white text-gray-800">
+					<Badge
+						variant="secondary"
+						className="bg-white text-gray-800"
+					>
 						{getSpots()} spots left
-					</span>
+					</Badge>
 				</div>
-			</figure>
+			</div>
 
-			<div className="card-body">
-				<h2 className="card-title text-lg font-bold">{event.name}</h2>
+			<CardHeader className="px-4 py-3">
+				<h2 className="text-lg font-bold">{event.name}</h2>
+			</CardHeader>
 
+			<CardContent className="px-4 py-0 space-y-2 flex-grow">
 				{event.organiser_id && (
-					<p className="text-sm text-gray-500 flex items-center gap-2 mb-1">
-						<i className="fas fa-user"></i>
+					<p className="text-sm text-muted-foreground flex items-center gap-2">
+						<User className="h-4 w-4" />
 						{event.organiser_id}
 					</p>
 				)}
 
-				<p className="text-sm flex items-center gap-2 mb-1">
-					<i className="fas fa-calendar text-primary"></i>
+				<p className="text-sm flex items-center gap-2">
+					<Calendar className="h-4 w-4 text-primary" />
 					{new Date(
 						event.start_date || event.date
 					).toLocaleDateString()}
 				</p>
 
-				<p className="text-sm flex items-center gap-2 mb-1">
-					<i className="fas fa-map-marker-alt text-primary"></i>
+				<p className="text-sm flex items-center gap-2">
+					<MapPin className="h-4 w-4 text-primary" />
 					{event.location || "Various locations"}
 				</p>
 
 				{event.description && (
-					<p className="text-sm truncate mb-4">{event.description}</p>
+					<p className="text-sm truncate mt-2">{event.description}</p>
 				)}
+			</CardContent>
 
-				<div className="card-actions justify-end mt-auto">
-					<Link
-						to={`/events/${event.id}`}
-						className="btn btn-primary btn-block"
-					>
-						View Details
-					</Link>
-				</div>
-			</div>
-		</div>
+			<CardFooter className="px-4 py-3 mt-auto">
+				<Button asChild className="w-full">
+					<Link to={`/events/${event.id}`}>View Details</Link>
+				</Button>
+			</CardFooter>
+		</Card>
 	);
 }
 

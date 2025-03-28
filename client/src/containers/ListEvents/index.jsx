@@ -1,6 +1,21 @@
-import React, { useEffect, useState } from "react";
+// src/containers/ListEvents/index.jsx
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { AlertCircle, Edit, Plus, Search, Trash } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ContentHeader from "../../components/ContentHeader";
+import Api from "../../helpers/Api";
 
 function ListEvents() {
 	const [events, setEvents] = useState([]);
@@ -15,43 +30,9 @@ function ListEvents() {
 	const fetchEvents = async () => {
 		setLoading(true);
 		try {
-			// In a real implementation, use your Api helper
-			// const response = await Api.getAllEvents();
-			// const data = await response.json();
-
-			// Simulating API call with sample data for now
-			const data = [
-				{
-					id: 1,
-					title: "Beach Cleanup",
-					date: "2025-04-15",
-					location: "Miami Beach",
-					category: "Environment",
-					slots: 15,
-					registered: 8,
-					status: "active",
-				},
-				{
-					id: 2,
-					title: "Food Bank Assistance",
-					date: "2025-03-20",
-					location: "Downtown Community Center",
-					category: "Social Services",
-					slots: 10,
-					registered: 6,
-					status: "active",
-				},
-				{
-					id: 3,
-					title: "Senior Home Visit",
-					date: "2025-05-05",
-					location: "Sunshine Retirement Home",
-					category: "Healthcare",
-					slots: 8,
-					registered: 3,
-					status: "active",
-				},
-			];
+			// Using the API helper to fetch events
+			const response = await Api.getAllEvents();
+			const data = await response.json();
 
 			setEvents(data);
 			setLoading(false);
@@ -62,15 +43,16 @@ function ListEvents() {
 		}
 	};
 
-	const handleDelete = (eventId) => {
+	const handleDelete = async (eventId) => {
 		if (window.confirm("Are you sure you want to delete this event?")) {
-			// In real implementation, use your Api helper
-			// Api.deleteEvent(eventId).then(() => {
-			//   fetchEvents();
-			// });
-
-			// For now, just filter out the event
-			setEvents(events.filter((event) => event.id !== eventId));
+			try {
+				await Api.deleteEvent(eventId);
+				// Refresh the events list
+				fetchEvents();
+			} catch (err) {
+				console.error("Error deleting event:", err);
+				setError("Failed to delete event. Please try again.");
+			}
 		}
 	};
 
@@ -84,109 +66,126 @@ function ListEvents() {
 				]}
 			/>
 
-			<div className="card bg-base-100 shadow-xl">
-				<div className="card-body">
-					<div className="flex justify-between items-center mb-6">
-						<h2 className="card-title text-xl">All Events</h2>
-						<Link
-							to="/events/create"
-							className="btn btn-primary btn-sm"
-						>
-							<i className="fas fa-plus mr-2"></i> Create New
-							Event
+			<Card>
+				<CardHeader className="flex flex-row items-center justify-between pb-2">
+					<CardTitle className="text-xl">All Events</CardTitle>
+					<Button asChild size="sm">
+						<Link to="/events/create">
+							<Plus className="h-4 w-4 mr-2" /> Create New Event
 						</Link>
-					</div>
-
+					</Button>
+				</CardHeader>
+				<CardContent>
 					{loading ? (
 						<div className="flex justify-center py-8">
-							<div className="loading loading-spinner loading-lg text-primary"></div>
+							<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
 						</div>
 					) : error ? (
-						<div className="alert alert-error">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								className="stroke-current shrink-0 h-6 w-6"
-								fill="none"
-								viewBox="0 0 24 24"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth="2"
-									d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-								/>
-							</svg>
-							<span>{error}</span>
+						<Alert variant="destructive">
+							<AlertCircle className="h-4 w-4" />
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
+					) : events.length === 0 ? (
+						<div className="text-center py-8">
+							<p className="text-muted-foreground">
+								No events found. Create your first event!
+							</p>
 						</div>
 					) : (
-						<div className="overflow-x-auto">
-							<table className="table table-zebra w-full">
-								<thead>
-									<tr>
-										<th>Title</th>
-										<th>Date</th>
-										<th>Location</th>
-										<th>Category</th>
-										<th>Slots</th>
-										<th>Status</th>
-										<th>Actions</th>
-									</tr>
-								</thead>
-								<tbody>
+						<div className="rounded-md border">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Title</TableHead>
+										<TableHead>Date</TableHead>
+										<TableHead>Location</TableHead>
+										<TableHead>Category</TableHead>
+										<TableHead>Slots</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead>Actions</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
 									{events.map((event) => (
-										<tr key={event.id}>
-											<td>{event.title}</td>
-											<td>
+										<TableRow key={event.id}>
+											<TableCell className="font-medium">
+												{event.name || event.title}
+											</TableCell>
+											<TableCell>
 												{new Date(
-													event.date
+													event.start_date ||
+														event.date
 												).toLocaleDateString()}
-											</td>
-											<td>{event.location}</td>
-											<td>{event.category}</td>
-											<td>
-												{event.registered} /{" "}
-												{event.slots}
-											</td>
-											<td>
-												<span
-													className={`badge ${
+											</TableCell>
+											<TableCell>
+												{event.location}
+											</TableCell>
+											<TableCell>
+												{event.cause || event.category}
+											</TableCell>
+											<TableCell>
+												{event.registered || 0} /{" "}
+												{event.max_volunteers ||
+													event.slots ||
+													0}
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={
 														event.status ===
 														"active"
-															? "badge-success"
-															: "badge-ghost"
-													}`}
+															? "default"
+															: "secondary"
+													}
 												>
-													{event.status}
-												</span>
-											</td>
-											<td>
+													{event.status || "active"}
+												</Badge>
+											</TableCell>
+											<TableCell>
 												<div className="flex gap-2">
-													<Link
-														to={`/events/edit/${event.id}`}
-														className="btn btn-info btn-xs"
+													<Button
+														variant="outline"
+														size="icon"
+														asChild
 													>
-														<i className="fas fa-edit"></i>
-													</Link>
-													<button
-														className="btn btn-error btn-xs"
+														<Link
+															to={`/events/${event.id}`}
+														>
+															<Search className="h-4 w-4" />
+														</Link>
+													</Button>
+													<Button
+														variant="outline"
+														size="icon"
+														asChild
+													>
+														<Link
+															to={`/events/edit/${event.id}`}
+														>
+															<Edit className="h-4 w-4" />
+														</Link>
+													</Button>
+													<Button
+														variant="outline"
+														size="icon"
 														onClick={() =>
 															handleDelete(
 																event.id
 															)
 														}
 													>
-														<i className="fas fa-trash"></i>
-													</button>
+														<Trash className="h-4 w-4" />
+													</Button>
 												</div>
-											</td>
-										</tr>
+											</TableCell>
+										</TableRow>
 									))}
-								</tbody>
-							</table>
+								</TableBody>
+							</Table>
 						</div>
 					)}
-				</div>
-			</div>
+				</CardContent>
+			</Card>
 		</>
 	);
 }

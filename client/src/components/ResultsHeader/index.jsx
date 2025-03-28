@@ -1,14 +1,15 @@
-import React from "react";
+// src/components/ResultsHeader/index.jsx
+import { Card, CardContent } from "@/components/ui/card";
 
 function ResultsHeader({ eventCount }) {
 	return (
-		<div className="card bg-base-100 shadow mb-6">
-			<div className="card-body py-4">
-				<h2 className="card-title text-lg m-0">
+		<Card className="mb-6">
+			<CardContent className="py-4">
+				<h2 className="text-lg font-semibold">
 					Explore {eventCount} opportunities
 				</h2>
-			</div>
-		</div>
+			</CardContent>
+		</Card>
 	);
 }
 

@@ -1,4 +1,17 @@
-import React, { useState } from "react";
+// src/containers/Auth/ForgotPassword/index.jsx
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function ForgotPassword() {
@@ -11,7 +24,6 @@ function ForgotPassword() {
 	const [validated, setValidated] = useState(false);
 
 	const apiUrl = import.meta.env.VITE_API_URL;
-	console.log(`URL is: ${apiUrl}`);
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();
@@ -44,112 +56,100 @@ function ForgotPassword() {
 
 	return (
 		<div className="min-h-screen flex justify-center items-center p-4">
-			<div className="card bg-base-100 shadow-xl w-full max-w-md">
-				<div className="card-body p-6 md:p-8">
-					<h2 className="text-2xl font-bold text-center">
+			<Card className="w-full max-w-md">
+				<CardHeader className="space-y-1">
+					<CardTitle className="text-2xl font-bold text-center">
 						VolunSphere
-					</h2>
-					<h3 className="text-xl font-semibold text-center mb-4">
-						Forgot Password
-					</h3>
-
+					</CardTitle>
+					<CardDescription className="text-center">
+						Reset your password
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
 					{message && (
-						<div className="alert alert-success mb-4">
-							{message}
-						</div>
+						<Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
+							<AlertDescription>{message}</AlertDescription>
+						</Alert>
 					)}
 					{error && (
-						<div className="alert alert-error mb-4">{error}</div>
+						<Alert variant="destructive" className="mb-4">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
 					)}
 
 					<form onSubmit={handleSubmit} className="space-y-4">
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-semibold">
-									Email address
-								</span>
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="email">Email address</Label>
+							<Input
+								id="email"
 								type="email"
-								className="input input-bordered w-full"
 								placeholder="Enter your email"
-								required
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
+								required
 							/>
 							{validated && !email && (
-								<label className="label">
-									<span className="label-text-alt text-error">
-										Please enter a valid email.
-									</span>
-								</label>
+								<p className="text-sm text-destructive">
+									Please enter a valid email.
+								</p>
 							)}
 						</div>
 
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-semibold">
-									Current Password
-								</span>
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="currentPassword">
+								Current Password
+							</Label>
+							<Input
+								id="currentPassword"
 								type="password"
-								className="input input-bordered w-full"
 								placeholder="Enter current password"
-								required
 								value={currentPassword}
 								onChange={(e) =>
 									setCurrentPassword(e.target.value)
 								}
+								required
 							/>
 							{validated && !currentPassword && (
-								<label className="label">
-									<span className="label-text-alt text-error">
-										Current password is required.
-									</span>
-								</label>
+								<p className="text-sm text-destructive">
+									Current password is required.
+								</p>
 							)}
 						</div>
 
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-semibold">
-									New Password
-								</span>
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="newPassword">New Password</Label>
+							<Input
+								id="newPassword"
 								type="password"
-								className="input input-bordered w-full"
 								placeholder="Enter new password"
-								required
 								value={newPassword}
 								onChange={(e) => setNewPassword(e.target.value)}
+								required
 							/>
 							{validated && !newPassword && (
-								<label className="label">
-									<span className="label-text-alt text-error">
-										New password is required.
-									</span>
-								</label>
+								<p className="text-sm text-destructive">
+									New password is required.
+								</p>
 							)}
 						</div>
 
-						<button
-							type="submit"
-							className="btn btn-primary w-full"
-						>
+						<Button type="submit" className="w-full">
 							Reset Password
-						</button>
+						</Button>
 					</form>
-
-					<p className="text-center mt-6">
+				</CardContent>
+				<CardFooter className="flex justify-center">
+					<p className="text-center">
 						Remembered your password?{" "}
-						<a href="/login" className="text-primary font-semibold">
+						<a
+							href="/login"
+							className="text-primary font-semibold hover:underline"
+						>
 							Log in
 						</a>
 					</p>
-				</div>
-			</div>
+				</CardFooter>
+			</Card>
 		</div>
 	);
 }

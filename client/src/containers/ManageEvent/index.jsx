@@ -1,4 +1,25 @@
-import React, { useEffect, useState } from "react";
+// src/containers/ManageEvent/index.jsx
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../components/ContentHeader";
 
@@ -69,6 +90,13 @@ function ManageEvent() {
 		});
 	};
 
+	const handleSelectChange = (name, value) => {
+		setFormData({
+			...formData,
+			[name]: value,
+		});
+	};
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 
@@ -96,7 +124,7 @@ function ManageEvent() {
 	if (loading) {
 		return (
 			<div className="flex justify-center items-center p-12">
-				<div className="loading loading-spinner loading-lg text-primary"></div>
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
 			</div>
 		);
 	}
@@ -115,39 +143,25 @@ function ManageEvent() {
 				]}
 			/>
 
-			<div className="card bg-base-100 shadow-xl">
-				<div className="card-body">
-					<h2 className="card-title mb-6">
+			<Card>
+				<CardHeader>
+					<CardTitle>
 						{isEditMode ? "Edit Event Details" : "Create New Event"}
-					</h2>
-
+					</CardTitle>
+				</CardHeader>
+				<CardContent>
 					{error && (
-						<div className="alert alert-error mb-6">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								className="stroke-current shrink-0 h-6 w-6"
-								fill="none"
-								viewBox="0 0 24 24"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth="2"
-									d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-								/>
-							</svg>
-							<span>{error}</span>
-						</div>
+						<Alert variant="destructive" className="mb-6">
+							<AlertCircle className="h-4 w-4" />
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
 					)}
 
-					<form onSubmit={handleSubmit}>
-						<div className="form-control mb-4">
-							<label className="label">
-								<span className="label-text">Event Title</span>
-							</label>
-							<input
-								type="text"
-								className="input input-bordered"
+					<form onSubmit={handleSubmit} className="space-y-4">
+						<div className="space-y-2">
+							<Label htmlFor="title">Event Title</Label>
+							<Input
+								id="title"
 								name="title"
 								placeholder="Enter event title"
 								value={formData.title}
@@ -156,12 +170,10 @@ function ManageEvent() {
 							/>
 						</div>
 
-						<div className="form-control mb-4">
-							<label className="label">
-								<span className="label-text">Description</span>
-							</label>
-							<textarea
-								className="textarea textarea-bordered"
+						<div className="space-y-2">
+							<Label htmlFor="description">Description</Label>
+							<Textarea
+								id="description"
 								name="description"
 								rows="3"
 								placeholder="Event description"
@@ -171,27 +183,22 @@ function ManageEvent() {
 							/>
 						</div>
 
-						<div className="form-control mb-4">
-							<label className="label">
-								<span className="label-text">Event Date</span>
-							</label>
-							<input
-								type="date"
-								className="input input-bordered"
+						<div className="space-y-2">
+							<Label htmlFor="date">Event Date</Label>
+							<Input
+								id="date"
 								name="date"
+								type="date"
 								value={formData.date}
 								onChange={handleChange}
 								required
 							/>
 						</div>
 
-						<div className="form-control mb-4">
-							<label className="label">
-								<span className="label-text">Location</span>
-							</label>
-							<input
-								type="text"
-								className="input input-bordered"
+						<div className="space-y-2">
+							<Label htmlFor="location">Location</Label>
+							<Input
+								id="location"
 								name="location"
 								placeholder="Event location"
 								value={formData.location}
@@ -200,45 +207,47 @@ function ManageEvent() {
 							/>
 						</div>
 
-						<div className="form-control mb-4">
-							<label className="label">
-								<span className="label-text">Category</span>
-							</label>
-							<select
-								className="select select-bordered"
-								name="category"
+						<div className="space-y-2">
+							<Label htmlFor="category">Category</Label>
+							<Select
 								value={formData.category}
-								onChange={handleChange}
+								onValueChange={(value) =>
+									handleSelectChange("category", value)
+								}
 								required
 							>
-								<option value="" disabled>
-									Select a category
-								</option>
-								<option value="Environment">Environment</option>
-								<option value="Social Services">
-									Social Services
-								</option>
-								<option value="Education">Education</option>
-								<option value="Healthcare">Healthcare</option>
-								<option value="Animal Welfare">
-									Animal Welfare
-								</option>
-								<option value="Community Development">
-									Community Development
-								</option>
-							</select>
+								<SelectTrigger id="category">
+									<SelectValue placeholder="Select a category" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="Environment">
+										Environment
+									</SelectItem>
+									<SelectItem value="Social Services">
+										Social Services
+									</SelectItem>
+									<SelectItem value="Education">
+										Education
+									</SelectItem>
+									<SelectItem value="Healthcare">
+										Healthcare
+									</SelectItem>
+									<SelectItem value="Animal Welfare">
+										Animal Welfare
+									</SelectItem>
+									<SelectItem value="Community Development">
+										Community Development
+									</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 
-						<div className="form-control mb-4">
-							<label className="label">
-								<span className="label-text">
-									Volunteer Slots
-								</span>
-							</label>
-							<input
-								type="number"
-								className="input input-bordered"
+						<div className="space-y-2">
+							<Label htmlFor="slots">Volunteer Slots</Label>
+							<Input
+								id="slots"
 								name="slots"
+								type="number"
 								min="1"
 								value={formData.slots}
 								onChange={handleChange}
@@ -247,34 +256,43 @@ function ManageEvent() {
 						</div>
 
 						{isEditMode && (
-							<div className="form-control mb-4">
-								<label className="label">
-									<span className="label-text">Status</span>
-								</label>
-								<select
-									className="select select-bordered"
-									name="status"
+							<div className="space-y-2">
+								<Label htmlFor="status">Status</Label>
+								<Select
 									value={formData.status}
-									onChange={handleChange}
+									onValueChange={(value) =>
+										handleSelectChange("status", value)
+									}
 								>
-									<option value="active">Active</option>
-									<option value="cancelled">Cancelled</option>
-									<option value="completed">Completed</option>
-								</select>
+									<SelectTrigger id="status">
+										<SelectValue placeholder="Select status" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="active">
+											Active
+										</SelectItem>
+										<SelectItem value="cancelled">
+											Cancelled
+										</SelectItem>
+										<SelectItem value="completed">
+											Completed
+										</SelectItem>
+									</SelectContent>
+								</Select>
 							</div>
 						)}
 
-						<div className="flex justify-end gap-2 mt-8">
-							<Link to="/events" className="btn btn-ghost">
-								Cancel
-							</Link>
-							<button type="submit" className="btn btn-primary">
+						<CardFooter className="flex justify-end gap-2 px-0 pt-4">
+							<Button variant="outline" asChild>
+								<Link to="/events">Cancel</Link>
+							</Button>
+							<Button type="submit">
 								{isEditMode ? "Update Event" : "Create Event"}
-							</button>
-						</div>
+							</Button>
+						</CardFooter>
 					</form>
-				</div>
-			</div>
+				</CardContent>
+			</Card>
 		</>
 	);
 }

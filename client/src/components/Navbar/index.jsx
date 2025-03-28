@@ -1,12 +1,21 @@
 // src/components/Navbar/index.jsx
-import React, { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 function Navbar() {
 	const { user, logout } = useAuth();
 	const navigate = useNavigate();
-	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 	const handleLogin = () => {
 		navigate("/login");
@@ -16,85 +25,99 @@ function Navbar() {
 		navigate("/registration");
 	};
 
-	const handleProfileClick = () => {
-		navigate("/profile");
-	};
-
 	return (
-		<div className="navbar bg-base-100 shadow-md sticky top-0 z-50">
-			{/* Remove the hamburger menu section and start with the logo */}
-			<div className="navbar-start">
-				<Link to="/" className="btn btn-ghost normal-case text-xl">
-					<div className="flex items-center gap-2">
-						<div className="w-10 h-10 rounded-full overflow-hidden">
+		// The support backdrop keeps the navbar at the top of the screen as u scroll and the content blurs out behind it
+		<header className="sticky top-0 z-50 w-full border-b bg-[#c9ebff] backdrop-blur supports-[backdrop-filter]:bg-[#c9ebff]/60">
+			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+				{/* Added max-width constraint inside this div*/}
+				<div className="flex h-16 items-center justify-between">
+					{/* Container containing logo and text that is clickable */}
+					<Link to="/" className="flex items-center gap-2">
+						{/* Logo with white border behind */}
+						<div className="w-10 h-10 rounded-full overflow-hidden bg-white p-0.3 shadow-sm">
 							<img
 								src="/src/assets/volunsphere.png"
 								alt="VolunSphere Logo"
 								className="w-full h-full object-cover"
 							/>
 						</div>
-						<span className="hidden sm:inline-block">
+						{/* Text */}
+						<span className="hidden sm:inline-block font-bold text-xl">
 							VolunSphere
 						</span>
-					</div>
-				</Link>
-			</div>
+					</Link>
 
-			<div className="navbar-end">
-				{user ? (
-					<div className="dropdown dropdown-end">
-						<label
-							tabIndex={0}
-							className="btn btn-ghost btn-circle avatar"
-						>
-							<div className="w-10 rounded-full">
-								<img
-									src={
-										user.photoURL ||
-										"https://via.placeholder.com/40?text=User"
-									}
-									alt="Profile"
-								/>
+					<div className="flex items-center">
+						{user ? (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										className="relative h-10 w-10 rounded-full"
+									>
+										<Avatar>
+											<AvatarImage
+												src={
+													user.photoURL ||
+													"https://via.placeholder.com/40?text=User"
+												}
+												alt="Profile"
+											/>
+											<AvatarFallback>
+												{user.name?.charAt(0) || "U"}
+											</AvatarFallback>
+										</Avatar>
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuLabel>
+										My Account
+									</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem asChild>
+										<Link
+											to="/profile"
+											className="cursor-pointer flex items-center justify-between w-full"
+										>
+											Profile
+											<Badge
+												variant="secondary"
+												className="ml-2"
+											>
+												New
+											</Badge>
+										</Link>
+									</DropdownMenuItem>
+									<DropdownMenuItem asChild>
+										<Link
+											to="/events/user/registered"
+											className="cursor-pointer w-full"
+										>
+											My Events
+										</Link>
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										onClick={logout}
+										className="cursor-pointer"
+									>
+										Logout
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						) : (
+							// Display log in and sign up button when not authenticated
+							<div className="flex gap-2">
+								<Button variant="outline" onClick={handleLogin}>
+									Log In
+								</Button>
+								<Button onClick={handleSignup}>Sign Up</Button>
 							</div>
-						</label>
-						<ul
-							tabIndex={0}
-							className="menu menu-sm dropdown-content mt-3 p-2 shadow bg-base-100 rounded-box w-52 z-50"
-						>
-							<li>
-								<Link to="/profile" className="justify-between">
-									Profile
-									<span className="badge">New</span>
-								</Link>
-							</li>
-							<li>
-								<Link to="/events/user/registered">
-									My Events
-								</Link>
-							</li>
-							<li>
-								<button onClick={logout}>Logout</button>
-							</li>
-						</ul>
+						)}
 					</div>
-				) : (
-					<div className="flex gap-2">
-						<button
-							onClick={handleLogin}
-							className="btn btn-outline btn-primary"
-						>
-							Log In
-						</button>
-						<button
-							onClick={handleSignup}
-							className="btn btn-primary"
-						>
-							Sign Up
-						</button>
-					</div>
-				)}
+				</div>
 			</div>
-		</div>
+		</header>
 	);
 }
 

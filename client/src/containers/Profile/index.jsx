@@ -1,4 +1,21 @@
-import React, { useEffect, useState } from "react";
+// src/containers/Profile/index.jsx
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { Edit, Eye } from "lucide-react";
+import { useEffect, useState } from "react";
 import ContentHeader from "../../components/ContentHeader";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -60,195 +77,261 @@ function Profile() {
 				]}
 			/>
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				<div className="card bg-base-100 shadow-xl">
-					<div className="card-body items-center text-center">
-						<div className="avatar">
-							<div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-								<img src={profile.avatar} alt="User profile" />
-							</div>
-						</div>
-						<h2 className="card-title mt-2">
+				<Card className="md:col-span-1">
+					<CardContent className="p-6 flex flex-col items-center text-center">
+						<Avatar className="w-24 h-24 border-4 border-primary">
+							<AvatarImage
+								src={profile.avatar}
+								alt="User profile"
+							/>
+							<AvatarFallback>
+								{profile.firstName.charAt(0)}
+								{profile.lastName.charAt(0)}
+							</AvatarFallback>
+						</Avatar>
+						<h2 className="text-xl font-bold mt-4">
 							{profile.firstName} {profile.lastName}
 						</h2>
-						<p className="text-sm opacity-70">
+						<p className="text-sm text-muted-foreground">
 							{user?.role === "volunteer"
 								? "Volunteer"
 								: "Event Organizer"}
 						</p>
-					</div>
-				</div>
+					</CardContent>
+				</Card>
 
-				<div className="md:col-span-2">
-					<div className="card bg-base-100 shadow-xl">
-						<div className="card-body">
-							<div className="flex justify-between items-center mb-4">
-								<h2 className="card-title">
-									Personal Information
-								</h2>
-								{!isEditing && (
-									<button
-										className="btn btn-primary btn-sm"
-										onClick={() => setIsEditing(true)}
-									>
-										Edit Profile
-									</button>
-								)}
-							</div>
-
-							{!isEditing ? (
-								<div className="space-y-3">
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">Name:</span>
-										<span className="col-span-2">
-											{profile.firstName}{" "}
-											{profile.lastName}
-										</span>
-									</div>
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">
-											Email:
-										</span>
-										<span className="col-span-2">
-											{profile.email}
-										</span>
-									</div>
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">
-											Phone:
-										</span>
-										<span className="col-span-2">
-											{profile.phone}
-										</span>
-									</div>
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">
-											Date of Birth:
-										</span>
-										<span className="col-span-2">
-											{profile.dob}
-										</span>
-									</div>
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">Bio:</span>
-										<span className="col-span-2">
-											{profile.bio}
-										</span>
-									</div>
+				<Card className="md:col-span-2">
+					<CardHeader className="flex flex-row items-center justify-between pb-2">
+						<CardTitle>Personal Information</CardTitle>
+						{!isEditing && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setIsEditing(true)}
+							>
+								<Edit className="h-4 w-4 mr-2" /> Edit Profile
+							</Button>
+						)}
+					</CardHeader>
+					<CardContent>
+						{!isEditing ? (
+							<div className="space-y-3">
+								<div className="grid grid-cols-3 gap-4">
+									<span className="font-bold">Name:</span>
+									<span className="col-span-2">
+										{profile.firstName} {profile.lastName}
+									</span>
 								</div>
-							) : (
-								<form onSubmit={handleSubmit}>
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												Profile Picture
-											</span>
-										</label>
-										<input
+								<div className="grid grid-cols-3 gap-4">
+									<span className="font-bold">Email:</span>
+									<span className="col-span-2">
+										{profile.email}
+									</span>
+								</div>
+								<div className="grid grid-cols-3 gap-4">
+									<span className="font-bold">Phone:</span>
+									<span className="col-span-2">
+										{profile.phone}
+									</span>
+								</div>
+								<div className="grid grid-cols-3 gap-4">
+									<span className="font-bold">
+										Date of Birth:
+									</span>
+									<span className="col-span-2">
+										{profile.dob}
+									</span>
+								</div>
+								<div className="grid grid-cols-3 gap-4">
+									<span className="font-bold">Bio:</span>
+									<span className="col-span-2">
+										{profile.bio}
+									</span>
+								</div>
+							</div>
+						) : (
+							<form onSubmit={handleSubmit}>
+								<div className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="avatar">
+											Profile Picture
+										</Label>
+										<Input
+											id="avatar"
 											type="file"
-											className="file-input file-input-bordered w-full"
+											accept="image/*"
 											onChange={handleFileChange}
 										/>
 									</div>
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												First Name
-											</span>
-										</label>
-										<input
-											type="text"
-											className="input input-bordered"
+									<div className="space-y-2">
+										<Label htmlFor="firstName">
+											First Name
+										</Label>
+										<Input
+											id="firstName"
 											name="firstName"
 											value={profile.firstName}
 											onChange={handleChange}
 											required
 										/>
 									</div>
-									{/* Other form fields remain the same with Tailwind classes */}
-									<div className="flex justify-end gap-2">
-										<button
+									<div className="space-y-2">
+										<Label htmlFor="lastName">
+											Last Name
+										</Label>
+										<Input
+											id="lastName"
+											name="lastName"
+											value={profile.lastName}
+											onChange={handleChange}
+											required
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="email">Email</Label>
+										<Input
+											id="email"
+											name="email"
+											type="email"
+											value={profile.email}
+											onChange={handleChange}
+											required
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="phone">
+											Phone Number
+										</Label>
+										<Input
+											id="phone"
+											name="phone"
+											value={profile.phone}
+											onChange={handleChange}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="dob">
+											Date of Birth
+										</Label>
+										<Input
+											id="dob"
+											name="dob"
+											type="date"
+											value={profile.dob}
+											onChange={handleChange}
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="bio">Bio</Label>
+										<Textarea
+											id="bio"
+											name="bio"
+											value={profile.bio}
+											onChange={handleChange}
+											rows={4}
+										/>
+									</div>
+									<div className="flex justify-end gap-2 mt-4">
+										<Button
 											type="button"
-											className="btn btn-ghost"
+											variant="outline"
 											onClick={() => setIsEditing(false)}
 										>
 											Cancel
-										</button>
-										<button
-											type="submit"
-											className="btn btn-primary"
-										>
+										</Button>
+										<Button type="submit">
 											Save Changes
-										</button>
+										</Button>
 									</div>
-								</form>
-							)}
-						</div>
-					</div>
-				</div>
+								</div>
+							</form>
+						)}
+					</CardContent>
+				</Card>
 
-				<div className="md:col-span-3">
-					<div className="card bg-base-100 shadow-xl">
-						<div className="card-body">
-							<h2 className="card-title mb-4">
-								{user?.role === "volunteer"
-									? "My Volunteer Activities"
-									: "My Organized Events"}
-							</h2>
-							<div className="overflow-x-auto">
-								<table className="table">
-									<thead>
-										<tr>
-											<th>Event</th>
-											<th>Date</th>
-											<th>Status</th>
-											<th>Actions</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td>Beach Cleanup</td>
-											<td>Apr 15, 2025</td>
-											<td>
-												<div className="badge badge-success">
-													Active
-												</div>
-											</td>
-											<td>
-												<button className="btn btn-sm btn-info mr-2">
-													<i className="fas fa-eye"></i>
-												</button>
-												{user?.role !== "volunteer" && (
-													<button className="btn btn-sm btn-warning">
-														<i className="fas fa-edit"></i>
-													</button>
-												)}
-											</td>
-										</tr>
-										<tr>
-											<td>Food Bank Assistance</td>
-											<td>Mar 20, 2025</td>
-											<td>
-												<div className="badge badge-primary">
-													Upcoming
-												</div>
-											</td>
-											<td>
-												<button className="btn btn-sm btn-info mr-2">
-													<i className="fas fa-eye"></i>
-												</button>
-												{user?.role !== "volunteer" && (
-													<button className="btn btn-sm btn-warning">
-														<i className="fas fa-edit"></i>
-													</button>
-												)}
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</div>
-					</div>
-				</div>
+				<Card className="md:col-span-3">
+					<CardHeader>
+						<CardTitle>
+							{user?.role === "volunteer"
+								? "My Volunteer Activities"
+								: "My Organized Events"}
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Event</TableHead>
+									<TableHead>Date</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>Actions</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								<TableRow>
+									<TableCell className="font-medium">
+										Beach Cleanup
+									</TableCell>
+									<TableCell>Apr 15, 2025</TableCell>
+									<TableCell>
+										<Badge>Active</Badge>
+									</TableCell>
+									<TableCell>
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												className="h-8 w-8 p-0"
+											>
+												<Eye className="h-4 w-4" />
+											</Button>
+											{user?.role !== "volunteer" && (
+												<Button
+													variant="outline"
+													size="sm"
+													className="h-8 w-8 p-0"
+												>
+													<Edit className="h-4 w-4" />
+												</Button>
+											)}
+										</div>
+									</TableCell>
+								</TableRow>
+								<TableRow>
+									<TableCell className="font-medium">
+										Food Bank Assistance
+									</TableCell>
+									<TableCell>Mar 20, 2025</TableCell>
+									<TableCell>
+										<Badge variant="secondary">
+											Upcoming
+										</Badge>
+									</TableCell>
+									<TableCell>
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												className="h-8 w-8 p-0"
+											>
+												<Eye className="h-4 w-4" />
+											</Button>
+											{user?.role !== "volunteer" && (
+												<Button
+													variant="outline"
+													size="sm"
+													className="h-8 w-8 p-0"
+												>
+													<Edit className="h-4 w-4" />
+												</Button>
+											)}
+										</div>
+									</TableCell>
+								</TableRow>
+							</TableBody>
+						</Table>
+					</CardContent>
+				</Card>
 			</div>
 		</>
 	);

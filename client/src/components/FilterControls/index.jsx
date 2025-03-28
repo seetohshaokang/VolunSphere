@@ -1,4 +1,15 @@
-import React from "react";
+// src/components/FilterControls/index.jsx
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 function FilterControls({
 	filters,
@@ -7,58 +18,65 @@ function FilterControls({
 	handleFilterChange,
 }) {
 	return (
-		<div className="card bg-base-100 shadow mb-6">
-			<div className="card-body">
-				<h2 className="card-title text-lg mb-4">Filter Options</h2>
+		<Card className="mb-6">
+			<CardHeader className="pb-2">
+				<CardTitle className="text-lg">Filter Options</CardTitle>
+			</CardHeader>
+			<CardContent>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-					<div className="form-control">
-						<label className="label">
-							<span className="label-text">Category</span>
-						</label>
-						<select
-							className="select select-bordered w-full"
+					<div className="space-y-2">
+						<Label htmlFor="category">Category</Label>
+						<Select
 							value={filters.category}
-							onChange={(e) =>
-								handleFilterChange("category", e.target.value)
+							onValueChange={(value) =>
+								handleFilterChange("category", value)
 							}
 						>
-							<option value="">All Categories</option>
-							{categories.map((category) => (
-								<option key={category} value={category}>
-									{category}
-								</option>
-							))}
-						</select>
+							<SelectTrigger id="category">
+								<SelectValue placeholder="All Categories" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">
+									All Categories
+								</SelectItem>
+								{categories.map((category) => (
+									<SelectItem key={category} value={category}>
+										{category}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
-					<div className="form-control">
-						<label className="label">
-							<span className="label-text">Location</span>
-						</label>
-						<select
-							className="select select-bordered w-full"
+					<div className="space-y-2">
+						<Label htmlFor="location">Location</Label>
+						<Select
 							value={filters.location}
-							onChange={(e) =>
-								handleFilterChange("location", e.target.value)
+							onValueChange={(value) =>
+								handleFilterChange("location", value)
 							}
 						>
-							<option value="">All Locations</option>
-							{locations.map((location) => (
-								<option key={location} value={location}>
-									{location}
-								</option>
-							))}
-						</select>
+							<SelectTrigger id="location">
+								<SelectValue placeholder="All Locations" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">
+									All Locations
+								</SelectItem>
+								{locations.map((location) => (
+									<SelectItem key={location} value={location}>
+										{location}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 
-					<div className="form-control">
-						<label className="label">
-							<span className="label-text">Price Range</span>
-						</label>
+					<div className="space-y-2">
+						<Label>Price Range</Label>
 						<div className="flex gap-2 items-center">
-							<input
+							<Input
 								type="number"
-								className="input input-bordered w-full"
 								placeholder="Min"
 								value={filters.priceRange.min}
 								onChange={(e) =>
@@ -69,9 +87,8 @@ function FilterControls({
 								}
 							/>
 							<span>to</span>
-							<input
+							<Input
 								type="number"
-								className="input input-bordered w-full"
 								placeholder="Max"
 								value={filters.priceRange.max}
 								onChange={(e) =>
@@ -84,14 +101,11 @@ function FilterControls({
 						</div>
 					</div>
 
-					<div className="form-control">
-						<label className="label">
-							<span className="label-text">Date Range</span>
-						</label>
+					<div className="space-y-2">
+						<Label>Date Range</Label>
 						<div className="grid grid-cols-2 gap-2">
-							<input
+							<Input
 								type="date"
-								className="input input-bordered w-full"
 								value={filters.dateRange.start}
 								onChange={(e) =>
 									handleFilterChange(
@@ -100,9 +114,8 @@ function FilterControls({
 									)
 								}
 							/>
-							<input
+							<Input
 								type="date"
-								className="input input-bordered w-full"
 								value={filters.dateRange.end}
 								onChange={(e) =>
 									handleFilterChange(
@@ -116,12 +129,12 @@ function FilterControls({
 				</div>
 
 				<div className="flex justify-end mt-4">
-					<button
-						className="btn btn-outline btn-primary"
+					<Button
+						variant="outline"
 						onClick={() => {
 							// Reset all filters
-							handleFilterChange("category", "");
-							handleFilterChange("location", "");
+							handleFilterChange("category", "all");
+							handleFilterChange("location", "all");
 							handleFilterChange("priceMin", 0);
 							handleFilterChange("priceMax", 1000);
 							handleFilterChange("dateStart", "");
@@ -129,10 +142,10 @@ function FilterControls({
 						}}
 					>
 						Reset Filters
-					</button>
+					</Button>
 				</div>
-			</div>
-		</div>
+			</CardContent>
+		</Card>
 	);
 }
 

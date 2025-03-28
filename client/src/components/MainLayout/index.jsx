@@ -2,15 +2,15 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Footer from "../Footer";
 import Navbar from "../Navbar";
-// Remove the Sidebar import
 
 const MainLayout = () => {
 	const location = useLocation();
+	// Defines a list of routes whereby the navbar should be hidden
 	const hiddenNavbarRoutes = [
 		"/login",
 		"/LoginVolunteer",
-		"/RegistrationOrganiser",
-		"/RegistrationVolunteer",
+		"/registrationorganiser",
+		"/registrationvolunteer",
 		"/registration",
 		"/forgotPassword",
 	];
@@ -20,20 +20,18 @@ const MainLayout = () => {
 
 	return (
 		<div className="min-h-screen flex flex-col">
-			{showNavbarAndSidebar && (
+			{showNavbarAndSidebar ? (
 				<>
 					<Navbar />
-					<div className="flex-1 p-4 lg:p-6">
+					<main className="flex-1 container mx-auto py-6 px-4">
 						<Outlet />
-					</div>
+					</main>
 					<Footer />
 				</>
-			)}
-
-			{!showNavbarAndSidebar && (
-				<div className="flex flex-col min-h-screen">
+			) : (
+				<main className="flex-1">
 					<Outlet />
-				</div>
+				</main>
 			)}
 		</div>
 	);

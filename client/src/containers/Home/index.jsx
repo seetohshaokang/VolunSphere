@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from "react";
+// src/containers/Home/index.jsx
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
 import EventCard from "../../components/EventCard";
 import FilterControls from "../../components/FilterControls";
-import Navbar from "../../components/Navbar";
 import ResultsHeader from "../../components/ResultsHeader";
 
 function Home() {
@@ -11,8 +15,8 @@ function Home() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [loading, setLoading] = useState(true);
 	const [filters, setFilters] = useState({
-		category: "",
-		location: "",
+		category: "all",
+		location: "all",
 		dateRange: {
 			start: "",
 			end: "",
@@ -121,14 +125,14 @@ function Home() {
 		}
 
 		// Apply category filter
-		if (filters.category) {
+		if (filters.category && filters.category !== "all") {
 			results = results.filter(
 				(event) => event.cause === filters.category
 			);
 		}
 
 		// Apply location filter
-		if (filters.location) {
+		if (filters.location && filters.location !== "all") {
 			results = results.filter((event) =>
 				event.location.includes(filters.location)
 			);
@@ -198,37 +202,33 @@ function Home() {
 	return (
 		<>
 			<div className="min-h-screen flex flex-col">
-				{/* Navbar */}
-				<Navbar />
-
 				<div className="mb-6">
 					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
 						<h1 className="text-2xl font-bold mb-2 sm:mb-0 flex items-center">
 							Find Volunteer Opportunities
 						</h1>
 					</div>
-					<div className="divider mt-2 mb-4"></div>
+					<div className="h-px bg-border mt-2 mb-4"></div>
 				</div>
 
 				{/* Search bar */}
-				<div className="card bg-base-100 shadow mb-6">
-					<div className="card-body p-4">
-						<div className="form-control">
-							<div className="input-group w-full">
-								<input
-									type="text"
-									placeholder="Search for volunteer opportunities..."
-									className="input input-bordered flex-grow"
-									value={searchTerm}
-									onChange={handleSearch}
-								/>
-								<button className="btn btn-primary">
-									<i className="fas fa-search"></i>
-								</button>
-							</div>
+				<Card className="mb-6">
+					<CardContent className="p-4">
+						<div className="flex w-full items-center space-x-2">
+							<Input
+								type="text"
+								placeholder="Search for volunteer opportunities..."
+								value={searchTerm}
+								onChange={handleSearch}
+								className="flex-grow"
+							/>
+							<Button type="submit">
+								<Search className="h-4 w-4 mr-2" />
+								Search
+							</Button>
 						</div>
-					</div>
-				</div>
+					</CardContent>
+				</Card>
 
 				{/* Filter section */}
 				<FilterControls
@@ -244,7 +244,7 @@ function Home() {
 				{/* Event cards grid */}
 				{loading ? (
 					<div className="flex justify-center py-12">
-						<div className="loading loading-spinner loading-lg text-primary"></div>
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
 					</div>
 				) : filteredEvents.length > 0 ? (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -253,17 +253,17 @@ function Home() {
 						))}
 					</div>
 				) : (
-					<div className="card bg-base-100 shadow-xl">
-						<div className="card-body text-center py-12">
+					<Card>
+						<CardContent className="py-12 text-center">
 							<h2 className="text-xl font-semibold">
 								No events found
 							</h2>
-							<p className="text-gray-500">
+							<p className="text-muted-foreground mt-2">
 								Try adjusting your search or filters to find
 								more opportunities.
 							</p>
-						</div>
-					</div>
+						</CardContent>
+					</Card>
 				)}
 			</div>
 		</>

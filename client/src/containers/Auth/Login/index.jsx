@@ -1,4 +1,17 @@
-import React, { useEffect, useState } from "react";
+// src/containers/Auth/Login/index.jsx
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
@@ -73,102 +86,88 @@ function Login() {
 
 	return (
 		<div className="min-h-screen flex justify-center items-center p-4">
-			<div className="card bg-base-100 shadow-xl w-full max-w-md">
-				<div className="card-body p-6 md:p-8">
-					<h2 className="text-2xl font-bold text-center">
+			<Card className="w-full max-w-md">
+				<CardHeader className="space-y-1">
+					<CardTitle className="text-2xl font-bold text-center">
 						VolunSphere
-					</h2>
-					<h3 className="text-xl font-semibold text-center mb-2">
-						Log in
-					</h3>
-					<p className="text-center text-gray-500 mb-6">
+					</CardTitle>
+					<CardDescription className="text-center">
 						Continue your search for volunteer opportunities
-					</p>
-
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
 					{message && (
-						<div className="alert alert-success mb-4">
-							{message}
-						</div>
+						<Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
+							<AlertDescription>{message}</AlertDescription>
+						</Alert>
 					)}
 					{error && (
-						<div className="alert alert-error mb-4">{error}</div>
+						<Alert variant="destructive" className="mb-4">
+							<AlertDescription>{error}</AlertDescription>
+						</Alert>
 					)}
 
 					<form onSubmit={handleSubmit} className="space-y-4">
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-semibold">
-									Email address
-								</span>
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="email">Email address</Label>
+							<Input
+								id="email"
 								type="email"
-								className="input input-bordered w-full"
 								placeholder="Enter your email"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
 								required
 							/>
 							{validated && !email && (
-								<label className="label">
-									<span className="label-text-alt text-error">
-										Please enter a valid email.
-									</span>
-								</label>
+								<p className="text-sm text-destructive">
+									Please enter a valid email.
+								</p>
 							)}
 						</div>
 
-						<div className="form-control">
-							<label className="label">
-								<span className="label-text font-semibold">
-									Password
-								</span>
-							</label>
-							<input
+						<div className="space-y-2">
+							<Label htmlFor="password">Password</Label>
+							<Input
+								id="password"
 								type="password"
-								className="input input-bordered w-full"
 								placeholder="Enter your password"
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}
 								required
 							/>
 							{validated && !password && (
-								<label className="label">
-									<span className="label-text-alt text-error">
-										Password is required.
-									</span>
-								</label>
+								<p className="text-sm text-destructive">
+									Password is required.
+								</p>
 							)}
 						</div>
 
-						<button
-							type="submit"
-							className="btn btn-primary w-full py-3"
-						>
+						<Button type="submit" className="w-full">
 							Log in
-						</button>
+						</Button>
 
-						<div className="text-center mt-2">
+						<div className="text-center">
 							<a
 								href="/forgotPassword"
-								className="text-primary text-sm"
+								className="text-sm text-primary hover:underline"
 							>
 								Forgot password?
 							</a>
 						</div>
 					</form>
-
-					<p className="text-center mt-6">
+				</CardContent>
+				<CardFooter className="flex justify-center">
+					<p className="text-center">
 						Don't have an account?{" "}
 						<a
 							href="/registration"
-							className="text-primary font-semibold"
+							className="text-primary font-semibold hover:underline"
 						>
 							Register now
 						</a>
 					</p>
-				</div>
-			</div>
+				</CardFooter>
+			</Card>
 		</div>
 	);
 }

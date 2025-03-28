@@ -1,3 +1,4 @@
+import MainLayout from "@/components/MainLayout";
 import { Route, Routes } from "react-router-dom";
 import ForgotPassword from "../containers/Auth/ForgotPassword";
 import Login from "../containers/Auth/Login";
@@ -25,21 +26,22 @@ const AppRoutes = () => {
 	return (
 		<Routes>
 			{/* Public Routes */}
+			<Route element={<MainLayout />}>
+				<Route path="/" element={<Home />} />
 
-			<Route path="/" element={<Home />} />
-
-			<Route path="/login" element={<Login />} />
-			<Route path="/registration" element={<Registration />} />
-			<Route
-				path="/registrationorganiser"
-				element={<RegistrationOrganiser />}
-			/>
-			<Route
-				path="/registrationvolunteer"
-				element={<RegistrationVolunteer />}
-			/>
-			<Route path="/forgotpassword" element={<ForgotPassword />} />
-			<Route path="/events" element={<ListEvents />} />
+				<Route path="/login" element={<Login />} />
+				<Route path="/registration" element={<Registration />} />
+				<Route
+					path="/registrationorganiser"
+					element={<RegistrationOrganiser />}
+				/>
+				<Route
+					path="/registrationvolunteer"
+					element={<RegistrationVolunteer />}
+				/>
+				<Route path="/forgotpassword" element={<ForgotPassword />} />
+				<Route path="/events" element={<ListEvents />} />
+			</Route>
 
 			{/* Protected Routes */}
 			<Route
