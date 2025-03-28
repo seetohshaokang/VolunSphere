@@ -1,69 +1,13 @@
 import React, { useEffect, useState } from "react";
-import ContentHeader from "../../components/ContentHeader";
+import EventCard from "../../components/EventCard";
+import FilterControls from "../../components/FilterControls";
+import ResultsHeader from "../../components/ResultsHeader";
+import { useAuth } from "../../contexts/AuthContext";
+import Api from "../../helpers/Api";
 
 function Home() {
-	// Sample event data - replace with API call in production
-	const [events, setEvents] = useState([
-		{
-			id: 1,
-			title: "Tech Conference 2025",
-			date: "2025-03-15",
-			location: "San Francisco, CA",
-			category: "Technology",
-			price: 299,
-			description:
-				"Annual tech conference featuring the latest innovations.",
-		},
-		{
-			id: 2,
-			title: "Summer Music Festival",
-			date: "2025-07-10",
-			location: "Austin, TX",
-			category: "Music",
-			price: 150,
-			description: "Three days of live music across multiple stages.",
-		},
-		{
-			id: 3,
-			title: "Business Leadership Summit",
-			date: "2025-04-22",
-			location: "Chicago, IL",
-			category: "Business",
-			price: 450,
-			description:
-				"Connect with industry leaders and enhance your leadership skills.",
-		},
-		{
-			id: 4,
-			title: "Culinary Expo",
-			date: "2025-05-08",
-			location: "New York, NY",
-			category: "Food",
-			price: 75,
-			description:
-				"Explore culinary innovations from top chefs around the world.",
-		},
-		{
-			id: 5,
-			title: "Web Developer Bootcamp",
-			date: "2025-06-12",
-			location: "Seattle, WA",
-			category: "Technology",
-			price: 199,
-			description: "Intensive three-day workshop for web developers.",
-		},
-	]);
-
-	// **API call to fetch events once we have a backend
-	// useEffect(() => {
-	//     // Fetch all public events
-	//     // This API endpoint would be the same for all users
-	//     fetch('/api/events/public')
-	//       .then(res => res.json())
-	//       .then(data => setEvents(data))
-	//       .catch(err => console.error('Error fetching events:', err));
-	//   }, []);
-
+	const { user } = useAuth();
+	const [events, setEvents] = useState([]);
 	const [filteredEvents, setFilteredEvents] = useState([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [filters, setFilters] = useState({
@@ -78,9 +22,44 @@ function Home() {
 			end: "",
 		},
 	});
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 
-	const categories = [...new Set(events.map((event) => event.category))];
-	const locations = [...new Set(events.map((event) => event.location))];
+	// Fetch events from API
+	useEffect(() => {
+		const fetchEvents = async () => {
+			try {
+				setLoading(true);
+				const data = await Api.getAllEvents().then((response) => {
+					if (!response.ok) {
+						throw new Error("Network response was not ok");
+					}
+					return response.json();
+				});
+
+				setEvents(data || []);
+				setFilteredEvents(data || []);
+				setError(null);
+			} catch (error) {
+				console.error("Error fetching events:", error);
+				setError("Failed to load events.");
+				setEvents([]);
+				setFilteredEvents([]);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchEvents();
+	}, []);
+
+	// Extract unique categories and locations for filters
+	const categories = [
+		...new Set(events.map((event) => event.cause || "Other")),
+	];
+	const locations = [
+		...new Set(events.map((event) => event.location || "Unknown")),
+	];
 
 	// Apply search and filters
 	useEffect(() => {
@@ -90,19 +69,19 @@ function Home() {
 		if (searchTerm) {
 			results = results.filter(
 				(event) =>
-					event.title
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase()) ||
-					event.description
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase())
+					(event.name?.toLowerCase() || "").includes(
+						searchTerm.toLowerCase()
+					) ||
+					(event.description?.toLowerCase() || "").includes(
+						searchTerm.toLowerCase()
+					)
 			);
 		}
 
 		// Apply category filter
 		if (filters.category) {
 			results = results.filter(
-				(event) => event.category === filters.category
+				(event) => event.cause === filters.category
 			);
 		}
 
@@ -114,24 +93,33 @@ function Home() {
 		}
 
 		// Apply price range filter
-		results = results.filter(
-			(event) =>
-				event.price >= filters.priceRange.min &&
-				event.price <= filters.priceRange.max
-		);
+		if (
+			typeof filters.priceRange.min === "number" &&
+			typeof filters.priceRange.max === "number"
+		) {
+			results = results.filter((event) => {
+				const price = event.price || 0;
+				return (
+					price >= filters.priceRange.min &&
+					price <= filters.priceRange.max
+				);
+			});
+		}
 
 		// Apply date range filter
 		if (filters.dateRange.start) {
 			results = results.filter(
 				(event) =>
-					new Date(event.date) >= new Date(filters.dateRange.start)
+					new Date(event.start_date || event.date) >=
+					new Date(filters.dateRange.start)
 			);
 		}
 
 		if (filters.dateRange.end) {
 			results = results.filter(
 				(event) =>
-					new Date(event.date) <= new Date(filters.dateRange.end)
+					new Date(event.end_date || event.date) <=
+					new Date(filters.dateRange.end)
 			);
 		}
 
@@ -189,198 +177,116 @@ function Home() {
 
 	return (
 		<>
-			<ContentHeader
-				title="Upcoming Volunteer Opportunities"
-				links={[{ to: "/", label: "Home", isActive: true }]}
-			/>
 			<section className="content">
-				<div className="container mx-auto pb-4">
-					{/* Row that contains search and filter options */}
-					<div className="flex flex-wrap items-center p-4 rounded-md mb-6">
-						{/* Search Bar */}
-						<div className="flex items-center gap-2 flex-grow">
-							<input
-								type="text"
-								placeholder="Search using keywords..."
-								value={searchTerm}
-								onChange={handleSearchChange}
-								className="w-full p-2 border rounded"
-							/>
-							<button
-								onClick={resetFilters}
-								className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+				<div className="container-fluid">
+					{/* Combined Headline and Search with white background */}
+					<div className="row mb-4">
+						<div className="col-12">
+							<div
+								style={{
+									background: "white",
+									padding: "20px",
+									borderRadius: "5px",
+								}}
 							>
-								Reset
-							</button>
-						</div>
-
-						{/* Category Filter */}
-						<div className="w-48">
-							<label className="block text-sm font-medium">
-								Category
-							</label>
-							<select
-								value={filters.category}
-								onChange={(e) =>
-									handleFilterChange(
-										"category",
-										e.target.value
-									)
-								}
-								className="w-full p-2 border rounded"
-							>
-								<option value="">All Categories</option>
-								{categories.map((category) => (
-									<option key={category} value={category}>
-										{category}
-									</option>
-								))}
-							</select>
-						</div>
-
-						{/* Location Filter */}
-						<div className="w-48">
-							<label className="block text-sm font-medium">
-								Location
-							</label>
-							<select
-								value={filters.location}
-								onChange={(e) =>
-									handleFilterChange(
-										"location",
-										e.target.value
-									)
-								}
-								className="w-full p-2 border rounded"
-							>
-								<option value="">All Locations</option>
-								{locations.map((location) => (
-									<option key={location} value={location}>
-										{location}
-									</option>
-								))}
-							</select>
-						</div>
-
-						{/* Price Range Filter */}
-						<div className="w-60">
-							<label className="block text-sm font-medium">
-								Price Range
-							</label>
-							<div className="flex gap-2 items-center">
-								<input
-									type="number"
-									placeholder="Min"
-									value={filters.priceRange.min}
-									onChange={(e) =>
-										handleFilterChange(
-											"priceMin",
-											e.target.value
-										)
-									}
-									className="w-1/2 p-2 border rounded"
-								/>
-								<span>to</span>
-								<input
-									type="number"
-									placeholder="Max"
-									value={filters.priceRange.max}
-									onChange={(e) =>
-										handleFilterChange(
-											"priceMax",
-											e.target.value
-										)
-									}
-									className="w-1/2 p-2 border rounded"
-								/>
-							</div>
-						</div>
-
-						{/* Date Range Filter */}
-						<div className="w-60">
-							<label className="block text-sm font-medium">
-								Date Range
-							</label>
-							<div className="flex gap-2">
-								<input
-									type="date"
-									value={filters.dateRange.start}
-									onChange={(e) =>
-										handleFilterChange(
-											"dateStart",
-											e.target.value
-										)
-									}
-									className="w-1/2 p-2 border rounded"
-								/>
-								<input
-									type="date"
-									value={filters.dateRange.end}
-									onChange={(e) =>
-										handleFilterChange(
-											"dateEnd",
-											e.target.value
-										)
-									}
-									className="w-1/2 p-2 border rounded"
-								/>
-							</div>
-						</div>
-					</div>
-
-					{/* Events List */}
-					<div>
-						<div className="flex justify-between items-center mb-4">
-							<h2 className="text-lg font-semibold">
-								Events ({filteredEvents.length})
-							</h2>
-							<div className="text-sm text-gray-500">
-								{filteredEvents.length === 0 &&
-									"No events match your filters"}
-							</div>
-						</div>
-
-						<div className="grid grid-cols-1 gap-4">
-							{filteredEvents.map((event) => (
-								<div
-									key={event.id}
-									className="border p-4 rounded hover:shadow-md"
-								>
-									<div className="flex justify-between mb-2">
-										<h3 className="text-xl font-semibold">
-											{event.title}
-										</h3>
-										<span className="font-bold">
-											${event.price}
-										</span>
-									</div>
-									<div className="flex flex-wrap gap-2 mb-2">
-										<span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
-											{event.category}
-										</span>
-										<span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm">
-											{new Date(
-												event.date
-											).toLocaleDateString("en-US", {
-												year: "numeric",
-												month: "long",
-												day: "numeric",
-											})}
-										</span>
-									</div>
-									<p className="text-gray-600 mb-2">
-										{event.location}
+								<div className="mb-4">
+									<h2>Be a volunteer</h2>
+									<p className="text-muted">
+										Volunteerism is an enthralling, deeply
+										humbling way to leave the world a better
+										place than it was when you found it.
 									</p>
-									<p className="text-gray-700">
-										{event.description}
-									</p>
-									<button className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-										View Details
-									</button>
 								</div>
-							))}
+
+								{/* Search Bar embedded directly */}
+								<div>
+									<h5>Search opportunities</h5>
+									<div className="input-group">
+										<input
+											type="text"
+											className="form-control"
+											placeholder="Search using keywords..."
+											value={searchTerm}
+											onChange={handleSearchChange}
+										/>
+										<button
+											className="btn btn-outline-secondary"
+											type="button"
+											onClick={resetFilters}
+										>
+											Reset
+										</button>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
+
+					{/* Filter Controls */}
+					<FilterControls
+						filters={filters}
+						categories={categories}
+						locations={locations}
+						handleFilterChange={handleFilterChange}
+					/>
+
+					{/* Results Header */}
+					<ResultsHeader eventCount={filteredEvents.length} />
+
+					{/* Loading State */}
+					{loading && (
+						<div className="row">
+							<div className="col-12 text-center py-4">
+								<div
+									className="spinner-border text-primary"
+									role="status"
+								>
+									<span className="visually-hidden">
+										Loading...
+									</span>
+								</div>
+								<p className="mt-2">
+									Loading volunteer opportunities...
+								</p>
+							</div>
+						</div>
+					)}
+
+					{/* Error Message */}
+					{error && (
+						<div className="row">
+							<div className="col-12">
+								<div className="alert alert-warning">
+									<i className="fas fa-exclamation-triangle me-2"></i>
+									{error}
+								</div>
+							</div>
+						</div>
+					)}
+
+					{/* Event Cards */}
+					{!loading && (
+						<div className="row">
+							{filteredEvents.length > 0 ? (
+								filteredEvents.map((event) => (
+									<div
+										className="col-md-4 mb-4"
+										key={event.id}
+									>
+										<EventCard event={event} />
+									</div>
+								))
+							) : (
+								<div className="col-12">
+									<div className="alert alert-info">
+										<i className="fas fa-info-circle me-2"></i>
+										No events match your search criteria.
+										Please try different filters.
+									</div>
+								</div>
+							)}
+						</div>
+					)}
 				</div>
 			</section>
 		</>

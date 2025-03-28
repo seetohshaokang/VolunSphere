@@ -187,6 +187,12 @@ const eventOperations = {
 		return data;
 	},
 
+	getAllEvents: async () => {
+		const { data, error } = await supabase.from("events").select("*");
+		if (error) throw error;
+		return data;
+	},
+
 	// Get event by ID
 	getEventById: async (id) => {
 		const { data, error } = await supabase

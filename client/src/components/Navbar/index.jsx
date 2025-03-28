@@ -1,5 +1,7 @@
+// src/components/Navbar/index.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import logo from "../../assets/volunsphere.png";
 import { useAuth } from "../../contexts/AuthContext";
 
 function Navbar() {
@@ -62,7 +64,16 @@ function Navbar() {
 			style={{ backgroundColor: "#e3f2fd" }}
 		>
 			<div className="container">
-				<Link className="navbar-brand" to="/">
+				<Link className="navbar-brand d-flex align-items-center" to="/">
+					<img
+						src={logo}
+						alt="VolunSphere Logo"
+						className="img-circle me-2"
+						style={{
+							width: "40px",
+							height: "40px",
+						}}
+					/>
 					VolunSphere
 				</Link>
 				<button
