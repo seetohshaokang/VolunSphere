@@ -83,105 +83,110 @@ function ListEvents() {
 					{ label: "Events", isActive: true },
 				]}
 			/>
-			<section className="content">
-				<div className="container-fluid">
-					<div className="row">
-						<div className="col-12">
-							<div className="card">
-								<div className="card-header">
-									<h3 className="card-title">All Events</h3>
-									<div className="card-tools">
-										<Link
-											to="/events/create"
-											className="btn btn-primary btn-sm"
-										>
-											<i className="fas fa-plus"></i>{" "}
-											Create New Event
-										</Link>
-									</div>
-								</div>
-								<div className="card-body table-responsive p-0">
-									{loading ? (
-										<div className="text-center p-4">
-											Loading events...
-										</div>
-									) : error ? (
-										<div className="alert alert-danger m-3">
-											{error}
-										</div>
-									) : (
-										<table className="table table-hover text-nowrap">
-											<thead>
-												<tr>
-													<th>Title</th>
-													<th>Date</th>
-													<th>Location</th>
-													<th>Category</th>
-													<th>Slots</th>
-													<th>Status</th>
-													<th>Actions</th>
-												</tr>
-											</thead>
-											<tbody>
-												{events.map((event) => (
-													<tr key={event.id}>
-														<td>{event.title}</td>
-														<td>
-															{new Date(
-																event.date
-															).toLocaleDateString()}
-														</td>
-														<td>
-															{event.location}
-														</td>
-														<td>
-															{event.category}
-														</td>
-														<td>
-															{event.registered} /{" "}
-															{event.slots}
-														</td>
-														<td>
-															<span
-																className={`badge ${
-																	event.status ===
-																	"active"
-																		? "bg-success"
-																		: "bg-secondary"
-																}`}
-															>
-																{event.status}
-															</span>
-														</td>
-														<td>
-															<Link
-																to={`/events/edit/${event.id}`}
-																className="btn btn-info btn-sm mr-2"
-															>
-																<i className="fas fa-edit"></i>
-															</Link>
-															<button
-																className="btn btn-danger btn-sm"
-																onClick={() =>
-																	handleDelete(
-																		event.id
-																	)
-																}
-															>
-																<i className="fas fa-trash"></i>
-															</button>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									)}
-								</div>
-							</div>
-						</div>
+
+			<div className="card bg-base-100 shadow-xl">
+				<div className="card-body">
+					<div className="flex justify-between items-center mb-6">
+						<h2 className="card-title text-xl">All Events</h2>
+						<Link
+							to="/events/create"
+							className="btn btn-primary btn-sm"
+						>
+							<i className="fas fa-plus mr-2"></i> Create New
+							Event
+						</Link>
 					</div>
+
+					{loading ? (
+						<div className="flex justify-center py-8">
+							<div className="loading loading-spinner loading-lg text-primary"></div>
+						</div>
+					) : error ? (
+						<div className="alert alert-error">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="stroke-current shrink-0 h-6 w-6"
+								fill="none"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+							<span>{error}</span>
+						</div>
+					) : (
+						<div className="overflow-x-auto">
+							<table className="table table-zebra w-full">
+								<thead>
+									<tr>
+										<th>Title</th>
+										<th>Date</th>
+										<th>Location</th>
+										<th>Category</th>
+										<th>Slots</th>
+										<th>Status</th>
+										<th>Actions</th>
+									</tr>
+								</thead>
+								<tbody>
+									{events.map((event) => (
+										<tr key={event.id}>
+											<td>{event.title}</td>
+											<td>
+												{new Date(
+													event.date
+												).toLocaleDateString()}
+											</td>
+											<td>{event.location}</td>
+											<td>{event.category}</td>
+											<td>
+												{event.registered} /{" "}
+												{event.slots}
+											</td>
+											<td>
+												<span
+													className={`badge ${
+														event.status ===
+														"active"
+															? "badge-success"
+															: "badge-ghost"
+													}`}
+												>
+													{event.status}
+												</span>
+											</td>
+											<td>
+												<div className="flex gap-2">
+													<Link
+														to={`/events/edit/${event.id}`}
+														className="btn btn-info btn-xs"
+													>
+														<i className="fas fa-edit"></i>
+													</Link>
+													<button
+														className="btn btn-error btn-xs"
+														onClick={() =>
+															handleDelete(
+																event.id
+															)
+														}
+													>
+														<i className="fas fa-trash"></i>
+													</button>
+												</div>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					)}
 				</div>
-			</section>
+			</div>
 		</>
 	);
 }

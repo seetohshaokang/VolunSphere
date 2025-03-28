@@ -1,4 +1,3 @@
-// src/containers/Home/components/EventCard.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -15,56 +14,56 @@ function EventCard({ event }) {
 	};
 
 	return (
-		<div className="card h-100">
-			<div className="position-relative">
+		<div className="card bg-base-100 shadow-xl h-full">
+			<figure className="relative">
 				<img
 					src={`https://source.unsplash.com/random/300x200/?${
 						event.cause || "volunteer"
 					}`}
-					className="card-img-top"
 					alt={event.name || "Event"}
-					style={{ height: "200px", objectFit: "cover" }}
+					className="h-48 w-full object-cover"
 				/>
-				<div
-					className="position-absolute"
-					style={{ top: "10px", left: "10px" }}
-				>
-					<span className="badge bg-light text-dark">
+				<div className="absolute top-3 left-3">
+					<span className="badge badge-ghost bg-white text-gray-800">
 						{getSpots()} spots left
 					</span>
 				</div>
-			</div>
+			</figure>
+
 			<div className="card-body">
-				<h5 className="card-title">{event.name}</h5>
+				<h2 className="card-title text-lg font-bold">{event.name}</h2>
+
 				{event.organiser_id && (
-					<p className="card-text text-muted mb-2">
-						<i className="fas fa-user me-2"></i>
+					<p className="text-sm text-gray-500 flex items-center gap-2 mb-1">
+						<i className="fas fa-user"></i>
 						{event.organiser_id}
 					</p>
 				)}
-				<p className="card-text mb-2">
-					<i className="fas fa-calendar me-2"></i>
+
+				<p className="text-sm flex items-center gap-2 mb-1">
+					<i className="fas fa-calendar text-primary"></i>
 					{new Date(
 						event.start_date || event.date
 					).toLocaleDateString()}
 				</p>
-				<p className="card-text mb-2">
-					<i className="fas fa-map-marker-alt me-2"></i>
+
+				<p className="text-sm flex items-center gap-2 mb-1">
+					<i className="fas fa-map-marker-alt text-primary"></i>
 					{event.location || "Various locations"}
 				</p>
+
 				{event.description && (
-					<p className="card-text text-truncate">
-						{event.description}
-					</p>
+					<p className="text-sm truncate mb-4">{event.description}</p>
 				)}
-			</div>
-			<div className="card-footer bg-white border-top-0">
-				<Link
-					to={`/events/${event.id}`}
-					className="btn btn-primary w-100"
-				>
-					View Details
-				</Link>
+
+				<div className="card-actions justify-end mt-auto">
+					<Link
+						to={`/events/${event.id}`}
+						className="btn btn-primary btn-block"
+					>
+						View Details
+					</Link>
+				</div>
 			</div>
 		</div>
 	);

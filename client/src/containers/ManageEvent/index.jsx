@@ -94,7 +94,11 @@ function ManageEvent() {
 	};
 
 	if (loading) {
-		return <div className="content">Loading event data...</div>;
+		return (
+			<div className="flex justify-center items-center p-12">
+				<div className="loading loading-spinner loading-lg text-primary"></div>
+			</div>
+		);
 	}
 
 	return (
@@ -110,190 +114,167 @@ function ManageEvent() {
 					},
 				]}
 			/>
-			<section className="content">
-				<div className="container-fluid">
-					<div className="row">
-						<div className="col-md-12">
-							<div className="card card-primary">
-								<div className="card-header">
-									<h3 className="card-title">
-										{isEditMode
-											? "Edit Event Details"
-											: "Create New Event"}
-									</h3>
-								</div>
 
-								{error && (
-									<div className="alert alert-danger m-3">
-										{error}
-									</div>
-								)}
+			<div className="card bg-base-100 shadow-xl">
+				<div className="card-body">
+					<h2 className="card-title mb-6">
+						{isEditMode ? "Edit Event Details" : "Create New Event"}
+					</h2>
 
-								<form onSubmit={handleSubmit}>
-									<div className="card-body">
-										<div className="form-group">
-											<label htmlFor="title">
-												Event Title
-											</label>
-											<input
-												type="text"
-												className="form-control"
-												id="title"
-												name="title"
-												placeholder="Enter event title"
-												value={formData.title}
-												onChange={handleChange}
-												required
-											/>
-										</div>
-
-										<div className="form-group">
-											<label htmlFor="description">
-												Description
-											</label>
-											<textarea
-												className="form-control"
-												id="description"
-												name="description"
-												rows="3"
-												placeholder="Event description"
-												value={formData.description}
-												onChange={handleChange}
-												required
-											/>
-										</div>
-
-										<div className="form-group">
-											<label htmlFor="date">
-												Event Date
-											</label>
-											<input
-												type="date"
-												className="form-control"
-												id="date"
-												name="date"
-												value={formData.date}
-												onChange={handleChange}
-												required
-											/>
-										</div>
-
-										<div className="form-group">
-											<label htmlFor="location">
-												Location
-											</label>
-											<input
-												type="text"
-												className="form-control"
-												id="location"
-												name="location"
-												placeholder="Event location"
-												value={formData.location}
-												onChange={handleChange}
-												required
-											/>
-										</div>
-
-										<div className="form-group">
-											<label htmlFor="category">
-												Category
-											</label>
-											<select
-												className="form-control"
-												id="category"
-												name="category"
-												value={formData.category}
-												onChange={handleChange}
-												required
-											>
-												<option value="">
-													Select a category
-												</option>
-												<option value="Environment">
-													Environment
-												</option>
-												<option value="Social Services">
-													Social Services
-												</option>
-												<option value="Education">
-													Education
-												</option>
-												<option value="Healthcare">
-													Healthcare
-												</option>
-												<option value="Animal Welfare">
-													Animal Welfare
-												</option>
-												<option value="Community Development">
-													Community Development
-												</option>
-											</select>
-										</div>
-
-										<div className="form-group">
-											<label htmlFor="slots">
-												Volunteer Slots
-											</label>
-											<input
-												type="number"
-												className="form-control"
-												id="slots"
-												name="slots"
-												min="1"
-												value={formData.slots}
-												onChange={handleChange}
-												required
-											/>
-										</div>
-
-										{isEditMode && (
-											<div className="form-group">
-												<label htmlFor="status">
-													Status
-												</label>
-												<select
-													className="form-control"
-													id="status"
-													name="status"
-													value={formData.status}
-													onChange={handleChange}
-												>
-													<option value="active">
-														Active
-													</option>
-													<option value="cancelled">
-														Cancelled
-													</option>
-													<option value="completed">
-														Completed
-													</option>
-												</select>
-											</div>
-										)}
-									</div>
-
-									<div className="card-footer">
-										<button
-											type="submit"
-											className="btn btn-primary"
-										>
-											{isEditMode
-												? "Update Event"
-												: "Create Event"}
-										</button>
-										<Link
-											to="/events"
-											className="btn btn-default ml-2"
-										>
-											Cancel
-										</Link>
-									</div>
-								</form>
-							</div>
+					{error && (
+						<div className="alert alert-error mb-6">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								className="stroke-current shrink-0 h-6 w-6"
+								fill="none"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth="2"
+									d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+							<span>{error}</span>
 						</div>
-					</div>
+					)}
+
+					<form onSubmit={handleSubmit}>
+						<div className="form-control mb-4">
+							<label className="label">
+								<span className="label-text">Event Title</span>
+							</label>
+							<input
+								type="text"
+								className="input input-bordered"
+								name="title"
+								placeholder="Enter event title"
+								value={formData.title}
+								onChange={handleChange}
+								required
+							/>
+						</div>
+
+						<div className="form-control mb-4">
+							<label className="label">
+								<span className="label-text">Description</span>
+							</label>
+							<textarea
+								className="textarea textarea-bordered"
+								name="description"
+								rows="3"
+								placeholder="Event description"
+								value={formData.description}
+								onChange={handleChange}
+								required
+							/>
+						</div>
+
+						<div className="form-control mb-4">
+							<label className="label">
+								<span className="label-text">Event Date</span>
+							</label>
+							<input
+								type="date"
+								className="input input-bordered"
+								name="date"
+								value={formData.date}
+								onChange={handleChange}
+								required
+							/>
+						</div>
+
+						<div className="form-control mb-4">
+							<label className="label">
+								<span className="label-text">Location</span>
+							</label>
+							<input
+								type="text"
+								className="input input-bordered"
+								name="location"
+								placeholder="Event location"
+								value={formData.location}
+								onChange={handleChange}
+								required
+							/>
+						</div>
+
+						<div className="form-control mb-4">
+							<label className="label">
+								<span className="label-text">Category</span>
+							</label>
+							<select
+								className="select select-bordered"
+								name="category"
+								value={formData.category}
+								onChange={handleChange}
+								required
+							>
+								<option value="" disabled>
+									Select a category
+								</option>
+								<option value="Environment">Environment</option>
+								<option value="Social Services">
+									Social Services
+								</option>
+								<option value="Education">Education</option>
+								<option value="Healthcare">Healthcare</option>
+								<option value="Animal Welfare">
+									Animal Welfare
+								</option>
+								<option value="Community Development">
+									Community Development
+								</option>
+							</select>
+						</div>
+
+						<div className="form-control mb-4">
+							<label className="label">
+								<span className="label-text">
+									Volunteer Slots
+								</span>
+							</label>
+							<input
+								type="number"
+								className="input input-bordered"
+								name="slots"
+								min="1"
+								value={formData.slots}
+								onChange={handleChange}
+								required
+							/>
+						</div>
+
+						{isEditMode && (
+							<div className="form-control mb-4">
+								<label className="label">
+									<span className="label-text">Status</span>
+								</label>
+								<select
+									className="select select-bordered"
+									name="status"
+									value={formData.status}
+									onChange={handleChange}
+								>
+									<option value="active">Active</option>
+									<option value="cancelled">Cancelled</option>
+									<option value="completed">Completed</option>
+								</select>
+							</div>
+						)}
+
+						<div className="flex justify-end gap-2 mt-8">
+							<Link to="/events" className="btn btn-ghost">
+								Cancel
+							</Link>
+							<button type="submit" className="btn btn-primary">
+								{isEditMode ? "Update Event" : "Create Event"}
+							</button>
+						</div>
+					</form>
 				</div>
-			</section>
+			</div>
 		</>
 	);
 }

@@ -16,7 +16,11 @@ const AppRoutes = () => {
 	const { loading } = useAuth();
 
 	if (loading) {
-		return <div>Loading...</div>;
+		return (
+			<div className="h-screen flex justify-center items-center">
+				<div className="loading loading-spinner loading-lg text-primary"></div>
+			</div>
+		);
 	}
 
 	return (

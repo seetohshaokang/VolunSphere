@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { Button, Modal } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
-import styles from "../../../styles/RegistrationVolunteer.module.css";
+import { Link, useNavigate } from "react-router-dom";
 
 function RegistrationVolunteer() {
 	const navigate = useNavigate();
@@ -21,14 +19,10 @@ function RegistrationVolunteer() {
 
 	const handleChange = (e) => {
 		const { name, value, type, checked } = e.target;
-
-		// Prevent the modal click from affecting the checkbox state
-		if (name !== "terms") {
-			setFormData({
-				...formData,
-				[name]: type === "checkbox" ? checked : value,
-			});
-		}
+		setFormData({
+			...formData,
+			[name]: type === "checkbox" ? checked : value,
+		});
 	};
 
 	const validateForm = () => {
@@ -79,248 +73,277 @@ function RegistrationVolunteer() {
 	};
 
 	return (
-		<div className={`container-fluid ${styles.wrapper}`}>
-			<div className="row vh-100">
-				{/* Organization Description */}
-				<div
-					className={`col-12 col-md-6 d-flex flex-column justify-content-center align-items-center text-white text-center p-5 ${styles.bgPrimary}`}
-				>
-					<h1 className="fw-bold">VolunSphere</h1>
-					<p className="mt-3">
-						We connect passionate individuals with meaningful
-						volunteer opportunities.
-					</p>
-					<p>
-						Make an impact, give back, and be part of a community
-						that cares.
-					</p>
-					<p>
-						Join us in creating positive change—one volunteer at a
-						time.
-					</p>
-				</div>
+		<div className="min-h-screen flex flex-col md:flex-row">
+			{/* Organization Description */}
+			<div className="w-full md:w-1/2 bg-primary text-white p-10 flex flex-col justify-center items-center text-center">
+				<h1 className="text-3xl font-bold mb-6">VolunSphere</h1>
+				<p className="mb-4">
+					We connect passionate individuals with meaningful volunteer
+					opportunities.
+				</p>
+				<p className="mb-4">
+					Make an impact, give back, and be part of a community that
+					cares.
+				</p>
+				<p>
+					Join us in creating positive change—one volunteer at a time.
+				</p>
+			</div>
 
-				{/* Registration Form */}
-				<div className="col-12 col-md-6 d-flex justify-content-center align-items-center">
-					<div className={`card p-4 shadow ${styles.formContainer}`}>
-						<h3 className="text-center">Volunteer Registration</h3>
+			{/* Registration Form */}
+			<div className="w-full md:w-1/2 p-6 flex justify-center items-center">
+				<div className="card bg-base-100 shadow-xl w-full max-w-md">
+					<div className="card-body">
+						<h3 className="text-xl font-bold text-center mb-6">
+							Volunteer Registration
+						</h3>
 						<form onSubmit={handleSubmit}>
-							<div className="mb-3">
-								<label className="form-label">
-									First Name *
+							<div className="form-control mb-4">
+								<label className="label">
+									<span className="label-text">
+										First Name *
+									</span>
 								</label>
 								<input
 									type="text"
 									name="firstName"
-									className="form-control"
+									className="input input-bordered"
 									placeholder="First Name"
 									value={formData.firstName}
 									onChange={handleChange}
 								/>
 							</div>
 
-							<div className="mb-3">
-								<label className="form-label">
-									Last Name *
+							<div className="form-control mb-4">
+								<label className="label">
+									<span className="label-text">
+										Last Name *
+									</span>
 								</label>
 								<input
 									type="text"
 									name="lastName"
-									className="form-control"
+									className="input input-bordered"
 									placeholder="Last Name"
 									value={formData.lastName}
 									onChange={handleChange}
 								/>
 							</div>
 
-							<div className="mb-3">
-								<label className="form-label">Email *</label>
+							<div className="form-control mb-4">
+								<label className="label">
+									<span className="label-text">Email *</span>
+								</label>
 								<input
 									type="email"
 									name="email"
-									className="form-control"
+									className="input input-bordered"
 									placeholder="name@example.com"
 									value={formData.email}
 									onChange={handleChange}
 								/>
 							</div>
 
-							<div className="mb-3">
-								<label className="form-label">
-									Phone Number *
+							<div className="form-control mb-4">
+								<label className="label">
+									<span className="label-text">
+										Phone Number *
+									</span>
 								</label>
 								<input
 									type="tel"
 									name="phone"
-									className="form-control"
+									className="input input-bordered"
 									placeholder="Phone Number"
 									value={formData.phone}
 									onChange={handleChange}
 								/>
 							</div>
 
-							<div className="mb-3">
-								<label className="form-label">
-									Date of Birth *
+							<div className="form-control mb-4">
+								<label className="label">
+									<span className="label-text">
+										Date of Birth *
+									</span>
 								</label>
 								<input
 									type="date"
 									name="dateOfBirth"
-									className="form-control"
+									className="input input-bordered"
 									value={formData.dateOfBirth}
 									onChange={handleChange}
 								/>
 							</div>
 
-							<div className="mb-3">
-								<label className="form-label">Password *</label>
+							<div className="form-control mb-4">
+								<label className="label">
+									<span className="label-text">
+										Password *
+									</span>
+								</label>
 								<input
 									type="password"
 									name="password"
-									className="form-control"
+									className="input input-bordered"
+									placeholder="Create a secure password"
 									value={formData.password}
 									onChange={handleChange}
 								/>
 							</div>
 
-							<div className="mb-3 form-check">
-								<input
-									type="checkbox"
-									name="terms"
-									className="form-check-input"
-									id="terms"
-									checked={formData.terms}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											terms: e.target.checked,
-										})
-									}
-								/>
-								<label
-									className="form-check-label"
-									htmlFor="terms"
-								>
-									I agree to the{" "}
-									<span
-										className="text-primary"
-										style={{ cursor: "pointer" }}
-										onClick={(e) => {
-											e.preventDefault();
-											setShowTermsModal(true);
-										}}
-									>
-										terms and conditions
+							<div className="form-control mb-6">
+								<label className="label cursor-pointer justify-start gap-2">
+									<input
+										type="checkbox"
+										name="terms"
+										className="checkbox checkbox-primary"
+										checked={formData.terms}
+										onChange={(e) =>
+											setFormData({
+												...formData,
+												terms: e.target.checked,
+											})
+										}
+									/>
+									<span className="label-text">
+										I agree to the{" "}
+										<span
+											className="text-primary underline cursor-pointer"
+											onClick={(e) => {
+												e.preventDefault();
+												setShowTermsModal(true);
+											}}
+										>
+											terms and conditions
+										</span>
 									</span>
 								</label>
 							</div>
 
 							<button
 								type="submit"
-								className="btn btn-primary w-100"
+								className="btn btn-primary w-full"
 							>
 								Sign up
 							</button>
 						</form>
 
 						{/* Already have an account? Login here */}
-						<p className="text-center mt-3">
+						<p className="text-center mt-6">
 							Already have an account?{" "}
-							<a href="/login" className="text-primary">
+							<Link
+								to="/login"
+								className="text-primary font-semibold"
+							>
 								Login here
-							</a>
+							</Link>
 						</p>
 					</div>
 				</div>
 			</div>
 
-			{/* Bootstrap Validation Modal */}
-			<Modal show={showModal} onHide={() => setShowModal(false)} centered>
-				<Modal.Header closeButton>
-					<Modal.Title>
-						{modalMessages.length > 1
-							? "Validation Error"
-							: "Registration"}
-					</Modal.Title>
-				</Modal.Header>
-				<Modal.Body>
-					{modalMessages.length > 1 ? (
-						<>
-							<h5 className="text-danger">
-								Please fill out the following fields:
-							</h5>
-							<ul className="text-start">
-								{modalMessages.map((msg, index) => (
-									<li key={index} className="text-danger">
-										{msg}
-									</li>
-								))}
-							</ul>
-						</>
-					) : (
-						<h5 className="text-success">{modalMessages[0]}</h5>
-					)}
-				</Modal.Body>
-				<Modal.Footer>
-					<Button
-						variant="primary"
+			{/* Validation Modal */}
+			{showModal && (
+				<div className="modal modal-open">
+					<div className="modal-box">
+						<h3 className="font-bold text-lg">
+							{modalMessages.length > 1
+								? "Validation Error"
+								: "Registration"}
+						</h3>
+						<div className="py-4">
+							{modalMessages.length > 1 ? (
+								<>
+									<h5 className="text-error font-semibold mb-2">
+										Please fill out the following fields:
+									</h5>
+									<ul className="list-disc pl-5">
+										{modalMessages.map((msg, index) => (
+											<li
+												key={index}
+												className="text-error"
+											>
+												{msg}
+											</li>
+										))}
+									</ul>
+								</>
+							) : (
+								<p className="text-success font-semibold">
+									{modalMessages[0]}
+								</p>
+							)}
+						</div>
+						<div className="modal-action">
+							<button
+								className="btn btn-primary"
+								onClick={() => setShowModal(false)}
+							>
+								OK
+							</button>
+						</div>
+					</div>
+					<div
+						className="modal-backdrop"
 						onClick={() => setShowModal(false)}
-					>
-						OK
-					</Button>
-				</Modal.Footer>
-			</Modal>
+					></div>
+				</div>
+			)}
 
 			{/* Terms and Conditions Modal */}
-			<Modal
-				show={showTermsModal}
-				onHide={() => setShowTermsModal(false)}
-				centered
-				size="lg"
-			>
-				<Modal.Header closeButton>
-					<Modal.Title>Terms and Conditions</Modal.Title>
-				</Modal.Header>
-				<Modal.Body
-					className="overflow-auto"
-					style={{ maxHeight: "400px" }}
-				>
-					<p>
-						Welcome to VolunSphere. Please read the following terms
-						and conditions carefully:
-					</p>
-					<ul>
-						<li>
-							You must provide accurate and complete information.
-						</li>
-						<li>
-							Your data will be used in compliance with privacy
-							laws.
-						</li>
-						<li>
-							VolunSphere is not liable for any damages caused by
-							volunteering activities.
-						</li>
-						<li>
-							By registering, you agree to receive communications
-							about volunteering opportunities.
-						</li>
-						<li>
-							Failure to comply with our guidelines may result in
-							account suspension.
-						</li>
-					</ul>
-					<p>For further inquiries, contact our support team.</p>
-				</Modal.Body>
-				<Modal.Footer>
-					<Button
-						variant="primary"
+			{showTermsModal && (
+				<div className="modal modal-open">
+					<div className="modal-box max-w-3xl">
+						<h3 className="font-bold text-lg">
+							Terms and Conditions
+						</h3>
+						<div className="py-4 max-h-96 overflow-y-auto">
+							<p className="mb-4">
+								Welcome to VolunSphere. Please read the
+								following terms and conditions carefully:
+							</p>
+							<ul className="list-disc pl-5 space-y-2">
+								<li>
+									You must provide accurate and complete
+									information.
+								</li>
+								<li>
+									Your data will be used in compliance with
+									privacy laws.
+								</li>
+								<li>
+									VolunSphere is not liable for any damages
+									caused by volunteering activities.
+								</li>
+								<li>
+									By registering, you agree to receive
+									communications about volunteering
+									opportunities.
+								</li>
+								<li>
+									Failure to comply with our guidelines may
+									result in account suspension.
+								</li>
+							</ul>
+							<p className="mt-4">
+								For further inquiries, contact our support team.
+							</p>
+						</div>
+						<div className="modal-action">
+							<button
+								className="btn btn-primary"
+								onClick={() => setShowTermsModal(false)}
+							>
+								Done
+							</button>
+						</div>
+					</div>
+					<div
+						className="modal-backdrop"
 						onClick={() => setShowTermsModal(false)}
-					>
-						Done
-					</Button>
-				</Modal.Footer>
-			</Modal>
+					></div>
+				</div>
+			)}
 		</div>
 	);
 }

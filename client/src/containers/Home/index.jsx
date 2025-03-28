@@ -1,296 +1,366 @@
 import React, { useEffect, useState } from "react";
-import EventCard from "../../components/EventCard";
-import FilterControls from "../../components/FilterControls";
-import ResultsHeader from "../../components/ResultsHeader";
+import ContentHeader from "../../components/ContentHeader";
 import { useAuth } from "../../contexts/AuthContext";
-import Api from "../../helpers/Api";
 
-function Home() {
+function Profile() {
 	const { user } = useAuth();
-	const [events, setEvents] = useState([]);
-	const [filteredEvents, setFilteredEvents] = useState([]);
-	const [searchTerm, setSearchTerm] = useState("");
-	const [filters, setFilters] = useState({
-		category: "",
-		location: "",
-		priceRange: {
-			min: 0,
-			max: 1000,
-		},
-		dateRange: {
-			start: "",
-			end: "",
-		},
+	const [isEditing, setIsEditing] = useState(false);
+	const [profile, setProfile] = useState({
+		firstName: "John",
+		lastName: "Lim",
+		email: "john.lim@gmail.com",
+		phone: "9123 4567",
+		dob: "2000-01-01",
+		bio: "I am always looking for ways to help out the community",
+		avatar: "https://via.placeholder.com/150",
 	});
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
 
-	// Fetch events from API
 	useEffect(() => {
-		const fetchEvents = async () => {
-			try {
-				setLoading(true);
-				const data = await Api.getAllEvents().then((response) => {
-					if (!response.ok) {
-						throw new Error("Network response was not ok");
-					}
-					return response.json();
-				});
+		// Fetch user profile from API
+		// In real implementation, use your Api helper
+		// Api.getUserProfile()
+		//   .then(res => res.json())
+		//   .then(data => {
+		//     setProfile(data);
+		//   })
+		//   .catch(err => {
+		//     console.error("Error fetching profile:", err);
+		//   });
 
-				setEvents(data || []);
-				setFilteredEvents(data || []);
-				setError(null);
-			} catch (error) {
-				console.error("Error fetching events:", error);
-				setError("Failed to load events.");
-				setEvents([]);
-				setFilteredEvents([]);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchEvents();
-	}, []);
-
-	// Extract unique categories and locations for filters
-	const categories = [
-		...new Set(events.map((event) => event.cause || "Other")),
-	];
-	const locations = [
-		...new Set(events.map((event) => event.location || "Unknown")),
-	];
-
-	// Apply search and filters
-	useEffect(() => {
-		let results = events;
-
-		// Apply search term
-		if (searchTerm) {
-			results = results.filter(
-				(event) =>
-					(event.name?.toLowerCase() || "").includes(
-						searchTerm.toLowerCase()
-					) ||
-					(event.description?.toLowerCase() || "").includes(
-						searchTerm.toLowerCase()
-					)
-			);
-		}
-
-		// Apply category filter
-		if (filters.category) {
-			results = results.filter(
-				(event) => event.cause === filters.category
-			);
-		}
-
-		// Apply location filter
-		if (filters.location) {
-			results = results.filter(
-				(event) => event.location === filters.location
-			);
-		}
-
-		// Apply price range filter
-		if (
-			typeof filters.priceRange.min === "number" &&
-			typeof filters.priceRange.max === "number"
-		) {
-			results = results.filter((event) => {
-				const price = event.price || 0;
-				return (
-					price >= filters.priceRange.min &&
-					price <= filters.priceRange.max
-				);
+		// Simulated profile data - in a real app, remove this
+		if (user) {
+			setProfile({
+				...profile,
+				email: user.email || profile.email,
+				firstName: user.name
+					? user.name.split(" ")[0]
+					: profile.firstName,
+				lastName: user.name
+					? user.name.split(" ")[1] || ""
+					: profile.lastName,
 			});
 		}
+	}, [user]);
 
-		// Apply date range filter
-		if (filters.dateRange.start) {
-			results = results.filter(
-				(event) =>
-					new Date(event.start_date || event.date) >=
-					new Date(filters.dateRange.start)
-			);
-		}
-
-		if (filters.dateRange.end) {
-			results = results.filter(
-				(event) =>
-					new Date(event.end_date || event.date) <=
-					new Date(filters.dateRange.end)
-			);
-		}
-
-		setFilteredEvents(results);
-	}, [searchTerm, filters, events]);
-
-	// Handle search input change
-	const handleSearchChange = (e) => {
-		setSearchTerm(e.target.value);
+	const handleChange = (e) => {
+		const { name, value } = e.target;
+		setProfile({ ...profile, [name]: value });
 	};
 
-	// Handle filter changes
-	const handleFilterChange = (filterType, value) => {
-		if (filterType === "priceMin" || filterType === "priceMax") {
-			setFilters({
-				...filters,
-				priceRange: {
-					...filters.priceRange,
-					[filterType === "priceMin" ? "min" : "max"]:
-						parseInt(value) || 0,
-				},
-			});
-		} else if (filterType === "dateStart" || filterType === "dateEnd") {
-			setFilters({
-				...filters,
-				dateRange: {
-					...filters.dateRange,
-					[filterType === "dateStart" ? "start" : "end"]: value,
-				},
-			});
-		} else {
-			setFilters({
-				...filters,
-				[filterType]: value,
-			});
+	const handleFileChange = (e) => {
+		const file = e.target.files[0];
+		if (file) {
+			const imageUrl = URL.createObjectURL(file);
+			setProfile({ ...profile, avatar: imageUrl });
 		}
 	};
 
-	// Reset all filters
-	const resetFilters = () => {
-		setSearchTerm("");
-		setFilters({
-			category: "",
-			location: "",
-			priceRange: {
-				min: 0,
-				max: 1000,
-			},
-			dateRange: {
-				start: "",
-				end: "",
-			},
-		});
+	const handleSubmit = (e) => {
+		e.preventDefault();
+		// In real implementation, use your Api helper
+		// Api.updateUserProfile(profile)
+		//   .then(res => res.json())
+		//   .then(data => {
+		//     setIsEditing(false);
+		//   })
+		//   .catch(err => {
+		//     console.error("Error updating profile:", err);
+		//   });
+
+		// For now, just toggle editing mode
+		setIsEditing(false);
+		alert("Profile updated successfully!");
 	};
 
 	return (
 		<>
-			<section className="content">
-				<div className="container-fluid">
-					{/* Combined Headline and Search with white background */}
-					<div className="row mb-4">
-						<div className="col-12">
-							<div
-								style={{
-									background: "white",
-									padding: "20px",
-									borderRadius: "5px",
-								}}
-							>
-								<div className="mb-4">
-									<h2>Be a volunteer</h2>
-									<p className="text-muted">
-										Volunteerism is an enthralling, deeply
-										humbling way to leave the world a better
-										place than it was when you found it.
-									</p>
-								</div>
+			<ContentHeader
+				title="My Profile"
+				links={[
+					{ to: "/", label: "Home" },
+					{ label: "Profile", isActive: true },
+				]}
+			/>
 
-								{/* Search Bar embedded directly */}
-								<div>
-									<h5>Search opportunities</h5>
-									<div className="input-group">
-										<input
-											type="text"
-											className="form-control"
-											placeholder="Search using keywords..."
-											value={searchTerm}
-											onChange={handleSearchChange}
-										/>
-										<button
-											className="btn btn-outline-secondary"
-											type="button"
-											onClick={resetFilters}
-										>
-											Reset
-										</button>
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+				{/* Profile Summary Card */}
+				<div className="card bg-base-100 shadow-xl">
+					<div className="card-body items-center text-center">
+						<div className="avatar">
+							<div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+								<img src={profile.avatar} alt="User profile" />
+							</div>
+						</div>
+						<h2 className="card-title mt-2">
+							{profile.firstName} {profile.lastName}
+						</h2>
+						<p className="text-sm opacity-70">
+							{user?.role === "volunteer"
+								? "Volunteer"
+								: "Event Organizer"}
+						</p>
+					</div>
+				</div>
+
+				{/* Profile Details */}
+				<div className="md:col-span-2">
+					<div className="card bg-base-100 shadow-xl">
+						<div className="card-body">
+							<div className="flex justify-between items-center mb-4">
+								<h2 className="card-title">
+									Personal Information
+								</h2>
+								{!isEditing && (
+									<button
+										className="btn btn-primary btn-sm"
+										onClick={() => setIsEditing(true)}
+									>
+										Edit Profile
+									</button>
+								)}
+							</div>
+
+							{!isEditing ? (
+								<div className="space-y-3">
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">Name:</span>
+										<span className="col-span-2">
+											{profile.firstName}{" "}
+											{profile.lastName}
+										</span>
+									</div>
+
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Email:
+										</span>
+										<span className="col-span-2">
+											{profile.email}
+										</span>
+									</div>
+
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Phone:
+										</span>
+										<span className="col-span-2">
+											{profile.phone}
+										</span>
+									</div>
+
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Date of Birth:
+										</span>
+										<span className="col-span-2">
+											{profile.dob}
+										</span>
+									</div>
+
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">Bio:</span>
+										<span className="col-span-2">
+											{profile.bio}
+										</span>
 									</div>
 								</div>
+							) : (
+								<form onSubmit={handleSubmit}>
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												Profile Picture
+											</span>
+										</label>
+										<input
+											type="file"
+											className="file-input file-input-bordered w-full"
+											onChange={handleFileChange}
+										/>
+									</div>
+
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												First Name
+											</span>
+										</label>
+										<input
+											type="text"
+											className="input input-bordered"
+											name="firstName"
+											value={profile.firstName}
+											onChange={handleChange}
+											required
+										/>
+									</div>
+
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												Last Name
+											</span>
+										</label>
+										<input
+											type="text"
+											className="input input-bordered"
+											name="lastName"
+											value={profile.lastName}
+											onChange={handleChange}
+											required
+										/>
+									</div>
+
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												Email
+											</span>
+										</label>
+										<input
+											type="email"
+											className="input input-bordered"
+											name="email"
+											value={profile.email}
+											onChange={handleChange}
+											required
+										/>
+									</div>
+
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												Phone Number
+											</span>
+										</label>
+										<input
+											type="tel"
+											className="input input-bordered"
+											name="phone"
+											value={profile.phone}
+											onChange={handleChange}
+										/>
+									</div>
+
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												Date of Birth
+											</span>
+										</label>
+										<input
+											type="date"
+											className="input input-bordered"
+											name="dob"
+											value={profile.dob}
+											onChange={handleChange}
+										/>
+									</div>
+
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												Bio
+											</span>
+										</label>
+										<textarea
+											className="textarea textarea-bordered"
+											name="bio"
+											value={profile.bio}
+											onChange={handleChange}
+											rows="3"
+										/>
+									</div>
+
+									<div className="flex justify-end gap-2">
+										<button
+											type="button"
+											className="btn btn-ghost"
+											onClick={() => setIsEditing(false)}
+										>
+											Cancel
+										</button>
+										<button
+											type="submit"
+											className="btn btn-primary"
+										>
+											Save Changes
+										</button>
+									</div>
+								</form>
+							)}
+						</div>
+					</div>
+				</div>
+
+				{/* Activity Section - Volunteer or Organizer specific */}
+				<div className="md:col-span-3">
+					<div className="card bg-base-100 shadow-xl">
+						<div className="card-body">
+							<h2 className="card-title mb-4">
+								{user?.role === "volunteer"
+									? "My Volunteer Activities"
+									: "My Organized Events"}
+							</h2>
+
+							<div className="overflow-x-auto">
+								<table className="table">
+									<thead>
+										<tr>
+											<th>Event</th>
+											<th>Date</th>
+											<th>Status</th>
+											<th>Actions</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr>
+											<td>Beach Cleanup</td>
+											<td>Apr 15, 2025</td>
+											<td>
+												<div className="badge badge-success">
+													Active
+												</div>
+											</td>
+											<td>
+												<button className="btn btn-sm btn-info mr-2">
+													<i className="fas fa-eye"></i>
+												</button>
+												{user?.role !== "volunteer" && (
+													<button className="btn btn-sm btn-warning">
+														<i className="fas fa-edit"></i>
+													</button>
+												)}
+											</td>
+										</tr>
+										<tr>
+											<td>Food Bank Assistance</td>
+											<td>Mar 20, 2025</td>
+											<td>
+												<div className="badge badge-primary">
+													Upcoming
+												</div>
+											</td>
+											<td>
+												<button className="btn btn-sm btn-info mr-2">
+													<i className="fas fa-eye"></i>
+												</button>
+												{user?.role !== "volunteer" && (
+													<button className="btn btn-sm btn-warning">
+														<i className="fas fa-edit"></i>
+													</button>
+												)}
+											</td>
+										</tr>
+									</tbody>
+								</table>
 							</div>
 						</div>
 					</div>
-
-					{/* Filter Controls */}
-					<FilterControls
-						filters={filters}
-						categories={categories}
-						locations={locations}
-						handleFilterChange={handleFilterChange}
-					/>
-
-					{/* Results Header */}
-					<ResultsHeader eventCount={filteredEvents.length} />
-
-					{/* Loading State */}
-					{loading && (
-						<div className="row">
-							<div className="col-12 text-center py-4">
-								<div
-									className="spinner-border text-primary"
-									role="status"
-								>
-									<span className="visually-hidden">
-										Loading...
-									</span>
-								</div>
-								<p className="mt-2">
-									Loading volunteer opportunities...
-								</p>
-							</div>
-						</div>
-					)}
-
-					{/* Error Message */}
-					{error && (
-						<div className="row">
-							<div className="col-12">
-								<div className="alert alert-warning">
-									<i className="fas fa-exclamation-triangle me-2"></i>
-									{error}
-								</div>
-							</div>
-						</div>
-					)}
-
-					{/* Event Cards */}
-					{!loading && (
-						<div className="row">
-							{filteredEvents.length > 0 ? (
-								filteredEvents.map((event) => (
-									<div
-										className="col-md-4 mb-4"
-										key={event.id}
-									>
-										<EventCard event={event} />
-									</div>
-								))
-							) : (
-								<div className="col-12">
-									<div className="alert alert-info">
-										<i className="fas fa-info-circle me-2"></i>
-										No events match your search criteria.
-										Please try different filters.
-									</div>
-								</div>
-							)}
-						</div>
-					)}
 				</div>
-			</section>
+			</div>
 		</>
 	);
 }
 
-export default Home;
+export default Profile;
