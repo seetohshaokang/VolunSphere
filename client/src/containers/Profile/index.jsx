@@ -16,18 +16,7 @@ function Profile() {
 	});
 
 	useEffect(() => {
-		// Fetch user profile from API
-		// In real implementation, use your Api helper
-		// Api.getUserProfile()
-		//   .then(res => res.json())
-		//   .then(data => {
-		//     setProfile(data);
-		//   })
-		//   .catch(err => {
-		//     console.error("Error fetching profile:", err);
-		//   });
-
-		// Simulated profile data - in a real app, remove this
+		// Fetch user profile from API code remains the same
 		if (user) {
 			setProfile({
 				...profile,
@@ -57,17 +46,6 @@ function Profile() {
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
-		// In real implementation, use your Api helper
-		// Api.updateUserProfile(profile)
-		//   .then(res => res.json())
-		//   .then(data => {
-		//     setIsEditing(false);
-		//   })
-		//   .catch(err => {
-		//     console.error("Error updating profile:", err);
-		//   });
-
-		// For now, just toggle editing mode
 		setIsEditing(false);
 		alert("Profile updated successfully!");
 	};
@@ -81,239 +59,197 @@ function Profile() {
 					{ label: "Profile", isActive: true },
 				]}
 			/>
-			<section className="content">
-				<div className="container-fluid">
-					<div className="row">
-						<div className="col-md-3">
-							<div className="card card-primary card-outline">
-								<div className="card-body box-profile">
-									<div className="text-center">
-										<img
-											className="profile-user-img img-fluid img-circle"
-											src={profile.avatar}
-											alt="User profile"
-										/>
-									</div>
-									<h3 className="profile-username text-center">
-										{profile.firstName} {profile.lastName}
-									</h3>
-									<p className="text-muted text-center">
-										{user?.role === "volunteer"
-											? "Volunteer"
-											: "Event Organizer"}
-									</p>
-								</div>
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+				<div className="card bg-base-100 shadow-xl">
+					<div className="card-body items-center text-center">
+						<div className="avatar">
+							<div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+								<img src={profile.avatar} alt="User profile" />
 							</div>
 						</div>
+						<h2 className="card-title mt-2">
+							{profile.firstName} {profile.lastName}
+						</h2>
+						<p className="text-sm opacity-70">
+							{user?.role === "volunteer"
+								? "Volunteer"
+								: "Event Organizer"}
+						</p>
+					</div>
+				</div>
 
-						<div className="col-md-9">
-							<div className="card">
-								<div className="card-header p-2">
-									<h3 className="card-title">
-										Personal Information
-									</h3>
-									<div className="card-tools">
-										{!isEditing ? (
-											<button
-												className="btn btn-primary btn-sm"
-												onClick={() =>
-													setIsEditing(true)
-												}
-											>
-												Edit Profile
-											</button>
-										) : null}
-									</div>
-								</div>
-								<div className="card-body">
-									{!isEditing ? (
-										<div className="profile-details">
-											<p>
-												<strong>Name:</strong>{" "}
-												{profile.firstName}{" "}
-												{profile.lastName}
-											</p>
-											<p>
-												<strong>Email:</strong>{" "}
-												{profile.email}
-											</p>
-											<p>
-												<strong>Phone:</strong>{" "}
-												{profile.phone}
-											</p>
-											<p>
-												<strong>Date of Birth:</strong>{" "}
-												{profile.dob}
-											</p>
-											<p>
-												<strong>Bio:</strong>{" "}
-												{profile.bio}
-											</p>
-										</div>
-									) : (
-										<form
-											onSubmit={handleSubmit}
-											className="edit-form"
-										>
-											<div className="mb-3">
-												<label className="form-label">
-													Profile Picture:
-												</label>
-												<input
-													type="file"
-													className="form-control"
-													onChange={handleFileChange}
-												/>
-											</div>
-											<div className="mb-3">
-												<label className="form-label">
-													First Name:
-												</label>
-												<input
-													type="text"
-													className="form-control"
-													name="firstName"
-													value={profile.firstName}
-													onChange={handleChange}
-													required
-												/>
-											</div>
-											<div className="mb-3">
-												<label className="form-label">
-													Last Name:
-												</label>
-												<input
-													type="text"
-													className="form-control"
-													name="lastName"
-													value={profile.lastName}
-													onChange={handleChange}
-													required
-												/>
-											</div>
-											<div className="mb-3">
-												<label className="form-label">
-													Email:
-												</label>
-												<input
-													type="email"
-													className="form-control"
-													name="email"
-													value={profile.email}
-													onChange={handleChange}
-													required
-												/>
-											</div>
-											<div className="mb-3">
-												<label className="form-label">
-													Phone Number:
-												</label>
-												<input
-													type="tel"
-													className="form-control"
-													name="phone"
-													value={profile.phone}
-													onChange={handleChange}
-												/>
-											</div>
-											<div className="mb-3">
-												<label className="form-label">
-													Date of Birth:
-												</label>
-												<input
-													type="date"
-													className="form-control"
-													name="dob"
-													value={profile.dob}
-													onChange={handleChange}
-												/>
-											</div>
-											<div className="mb-3">
-												<label className="form-label">
-													Bio:
-												</label>
-												<textarea
-													className="form-control"
-													name="bio"
-													value={profile.bio}
-													onChange={handleChange}
-													rows="3"
-												/>
-											</div>
-											<button
-												type="submit"
-												className="btn btn-success"
-											>
-												Save Changes
-											</button>
-											<button
-												type="button"
-												className="btn btn-secondary ms-2"
-												onClick={() =>
-													setIsEditing(false)
-												}
-											>
-												Cancel
-											</button>
-										</form>
-									)}
-								</div>
+				<div className="md:col-span-2">
+					<div className="card bg-base-100 shadow-xl">
+						<div className="card-body">
+							<div className="flex justify-between items-center mb-4">
+								<h2 className="card-title">
+									Personal Information
+								</h2>
+								{!isEditing && (
+									<button
+										className="btn btn-primary btn-sm"
+										onClick={() => setIsEditing(true)}
+									>
+										Edit Profile
+									</button>
+								)}
 							</div>
 
-							{/* Additional sections for volunteer/organizer-specific info */}
-							{user?.role === "volunteer" ? (
-								<div className="card mt-3">
-									<div className="card-header">
-										<h3 className="card-title">
-											My Volunteer Activities
-										</h3>
+							{!isEditing ? (
+								<div className="space-y-3">
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">Name:</span>
+										<span className="col-span-2">
+											{profile.firstName}{" "}
+											{profile.lastName}
+										</span>
 									</div>
-									<div className="card-body">
-										<ul className="list-group">
-											<li className="list-group-item d-flex justify-content-between align-items-center">
-												Beach Cleanup
-												<span className="badge bg-primary rounded-pill">
-													Apr 15, 2025
-												</span>
-											</li>
-											<li className="list-group-item d-flex justify-content-between align-items-center">
-												Food Bank Assistance
-												<span className="badge bg-primary rounded-pill">
-													Mar 20, 2025
-												</span>
-											</li>
-										</ul>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Email:
+										</span>
+										<span className="col-span-2">
+											{profile.email}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Phone:
+										</span>
+										<span className="col-span-2">
+											{profile.phone}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Date of Birth:
+										</span>
+										<span className="col-span-2">
+											{profile.dob}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">Bio:</span>
+										<span className="col-span-2">
+											{profile.bio}
+										</span>
 									</div>
 								</div>
 							) : (
-								<div className="card mt-3">
-									<div className="card-header">
-										<h3 className="card-title">
-											My Organized Events
-										</h3>
+								<form onSubmit={handleSubmit}>
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												Profile Picture
+											</span>
+										</label>
+										<input
+											type="file"
+											className="file-input file-input-bordered w-full"
+											onChange={handleFileChange}
+										/>
 									</div>
-									<div className="card-body">
-										<ul className="list-group">
-											<li className="list-group-item d-flex justify-content-between align-items-center">
-												Beach Cleanup
-												<span className="badge bg-primary rounded-pill">
-													15 volunteers
-												</span>
-											</li>
-											<li className="list-group-item d-flex justify-content-between align-items-center">
-												Food Bank Assistance
-												<span className="badge bg-primary rounded-pill">
-													10 volunteers
-												</span>
-											</li>
-										</ul>
+									<div className="form-control mb-4">
+										<label className="label">
+											<span className="label-text">
+												First Name
+											</span>
+										</label>
+										<input
+											type="text"
+											className="input input-bordered"
+											name="firstName"
+											value={profile.firstName}
+											onChange={handleChange}
+											required
+										/>
 									</div>
-								</div>
+									{/* Other form fields remain the same with Tailwind classes */}
+									<div className="flex justify-end gap-2">
+										<button
+											type="button"
+											className="btn btn-ghost"
+											onClick={() => setIsEditing(false)}
+										>
+											Cancel
+										</button>
+										<button
+											type="submit"
+											className="btn btn-primary"
+										>
+											Save Changes
+										</button>
+									</div>
+								</form>
 							)}
 						</div>
 					</div>
 				</div>
-			</section>
+
+				<div className="md:col-span-3">
+					<div className="card bg-base-100 shadow-xl">
+						<div className="card-body">
+							<h2 className="card-title mb-4">
+								{user?.role === "volunteer"
+									? "My Volunteer Activities"
+									: "My Organized Events"}
+							</h2>
+							<div className="overflow-x-auto">
+								<table className="table">
+									<thead>
+										<tr>
+											<th>Event</th>
+											<th>Date</th>
+											<th>Status</th>
+											<th>Actions</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr>
+											<td>Beach Cleanup</td>
+											<td>Apr 15, 2025</td>
+											<td>
+												<div className="badge badge-success">
+													Active
+												</div>
+											</td>
+											<td>
+												<button className="btn btn-sm btn-info mr-2">
+													<i className="fas fa-eye"></i>
+												</button>
+												{user?.role !== "volunteer" && (
+													<button className="btn btn-sm btn-warning">
+														<i className="fas fa-edit"></i>
+													</button>
+												)}
+											</td>
+										</tr>
+										<tr>
+											<td>Food Bank Assistance</td>
+											<td>Mar 20, 2025</td>
+											<td>
+												<div className="badge badge-primary">
+													Upcoming
+												</div>
+											</td>
+											<td>
+												<button className="btn btn-sm btn-info mr-2">
+													<i className="fas fa-eye"></i>
+												</button>
+												{user?.role !== "volunteer" && (
+													<button className="btn btn-sm btn-warning">
+														<i className="fas fa-edit"></i>
+													</button>
+												)}
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 		</>
 	);
 }

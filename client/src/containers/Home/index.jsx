@@ -1,366 +1,273 @@
 import React, { useEffect, useState } from "react";
-import ContentHeader from "../../components/ContentHeader";
-import { useAuth } from "../../contexts/AuthContext";
+import EventCard from "../../components/EventCard";
+import FilterControls from "../../components/FilterControls";
+import Navbar from "../../components/Navbar";
+import ResultsHeader from "../../components/ResultsHeader";
 
-function Profile() {
-	const { user } = useAuth();
-	const [isEditing, setIsEditing] = useState(false);
-	const [profile, setProfile] = useState({
-		firstName: "John",
-		lastName: "Lim",
-		email: "john.lim@gmail.com",
-		phone: "9123 4567",
-		dob: "2000-01-01",
-		bio: "I am always looking for ways to help out the community",
-		avatar: "https://via.placeholder.com/150",
+function Home() {
+	// State management
+	const [events, setEvents] = useState([]);
+	const [filteredEvents, setFilteredEvents] = useState([]);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [loading, setLoading] = useState(true);
+	const [filters, setFilters] = useState({
+		category: "",
+		location: "",
+		dateRange: {
+			start: "",
+			end: "",
+		},
+		priceRange: {
+			min: 0,
+			max: 1000,
+		},
 	});
 
+	// Mock data - replace with API call
 	useEffect(() => {
-		// Fetch user profile from API
-		// In real implementation, use your Api helper
-		// Api.getUserProfile()
-		//   .then(res => res.json())
-		//   .then(data => {
-		//     setProfile(data);
-		//   })
-		//   .catch(err => {
-		//     console.error("Error fetching profile:", err);
-		//   });
+		// Simulate API call
+		setTimeout(() => {
+			const mockEvents = [
+				{
+					id: 1,
+					name: "Beach Cleanup Drive",
+					organiser_id: "ECO Guardians",
+					start_date: "2025-04-15",
+					location: "Changi Beach",
+					description:
+						"Join us for a community beach cleanup event. Help keep our beaches clean!",
+					cause: "Environment",
+					max_volunteers: 20,
+				},
+				{
+					id: 2,
+					name: "Elderly Home Visit",
+					organiser_id: "Silver Care Society",
+					start_date: "2025-04-22",
+					location: "Sunshine Retirement Home",
+					description:
+						"Spend a day brightening the lives of elderly residents through companionship and activities.",
+					cause: "Healthcare",
+					max_volunteers: 15,
+				},
+				{
+					id: 3,
+					name: "Food Distribution Drive",
+					organiser_id: "Hunger Heroes",
+					start_date: "2025-04-10",
+					location: "Central Community Center",
+					description:
+						"Help pack and distribute food packages to families in need in our community.",
+					cause: "Social Services",
+					max_volunteers: 25,
+				},
+				{
+					id: 4,
+					name: "Tree Planting Initiative",
+					organiser_id: "Green Earth Alliance",
+					start_date: "2025-05-05",
+					location: "City Park",
+					description:
+						"Be part of our city's greening efforts by planting trees in local parks.",
+					cause: "Environment",
+					max_volunteers: 30,
+				},
+				{
+					id: 5,
+					name: "Animal Shelter Support",
+					organiser_id: "Paws & Care",
+					start_date: "2025-04-18",
+					location: "Happy Tails Shelter",
+					description:
+						"Help walk, groom, and care for shelter animals awaiting their forever homes.",
+					cause: "Animal Welfare",
+					max_volunteers: 12,
+				},
+				{
+					id: 6,
+					name: "Literacy Program",
+					organiser_id: "Education Matters",
+					start_date: "2025-04-25",
+					location: "Public Library",
+					description:
+						"Volunteer to read with children and support literacy skills development.",
+					cause: "Education",
+					max_volunteers: 10,
+				},
+			];
 
-		// Simulated profile data - in a real app, remove this
-		if (user) {
-			setProfile({
-				...profile,
-				email: user.email || profile.email,
-				firstName: user.name
-					? user.name.split(" ")[0]
-					: profile.firstName,
-				lastName: user.name
-					? user.name.split(" ")[1] || ""
-					: profile.lastName,
-			});
+			setEvents(mockEvents);
+			setFilteredEvents(mockEvents);
+			setLoading(false);
+		}, 1000);
+	}, []);
+
+	// Filter events based on search term and filter settings
+	useEffect(() => {
+		if (events.length === 0) return;
+
+		let results = [...events];
+
+		// Apply search filter
+		if (searchTerm) {
+			const term = searchTerm.toLowerCase();
+			results = results.filter(
+				(event) =>
+					event.name.toLowerCase().includes(term) ||
+					event.description.toLowerCase().includes(term) ||
+					event.location.toLowerCase().includes(term) ||
+					event.cause.toLowerCase().includes(term)
+			);
 		}
-	}, [user]);
 
-	const handleChange = (e) => {
-		const { name, value } = e.target;
-		setProfile({ ...profile, [name]: value });
-	};
-
-	const handleFileChange = (e) => {
-		const file = e.target.files[0];
-		if (file) {
-			const imageUrl = URL.createObjectURL(file);
-			setProfile({ ...profile, avatar: imageUrl });
+		// Apply category filter
+		if (filters.category) {
+			results = results.filter(
+				(event) => event.cause === filters.category
+			);
 		}
+
+		// Apply location filter
+		if (filters.location) {
+			results = results.filter((event) =>
+				event.location.includes(filters.location)
+			);
+		}
+
+		// Apply date filters
+		if (filters.dateRange.start) {
+			results = results.filter(
+				(event) =>
+					new Date(event.start_date) >=
+					new Date(filters.dateRange.start)
+			);
+		}
+
+		if (filters.dateRange.end) {
+			results = results.filter(
+				(event) =>
+					new Date(event.start_date) <=
+					new Date(filters.dateRange.end)
+			);
+		}
+
+		setFilteredEvents(results);
+	}, [searchTerm, filters, events]);
+
+	// Handle search input
+	const handleSearch = (e) => {
+		setSearchTerm(e.target.value);
 	};
 
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		// In real implementation, use your Api helper
-		// Api.updateUserProfile(profile)
-		//   .then(res => res.json())
-		//   .then(data => {
-		//     setIsEditing(false);
-		//   })
-		//   .catch(err => {
-		//     console.error("Error updating profile:", err);
-		//   });
+	// Handle filter changes
+	const handleFilterChange = (filterName, value) => {
+		setFilters((prevFilters) => {
+			const newFilters = { ...prevFilters };
 
-		// For now, just toggle editing mode
-		setIsEditing(false);
-		alert("Profile updated successfully!");
+			switch (filterName) {
+				case "category":
+					newFilters.category = value;
+					break;
+				case "location":
+					newFilters.location = value;
+					break;
+				case "dateStart":
+					newFilters.dateRange.start = value;
+					break;
+				case "dateEnd":
+					newFilters.dateRange.end = value;
+					break;
+				case "priceMin":
+					newFilters.priceRange.min = value;
+					break;
+				case "priceMax":
+					newFilters.priceRange.max = value;
+					break;
+				default:
+					break;
+			}
+
+			return newFilters;
+		});
 	};
+
+	// Get unique categories and locations for filter options
+	const categories = [...new Set(events.map((event) => event.cause))];
+	const locations = [...new Set(events.map((event) => event.location))];
 
 	return (
 		<>
-			<ContentHeader
-				title="My Profile"
-				links={[
-					{ to: "/", label: "Home" },
-					{ label: "Profile", isActive: true },
-				]}
-			/>
+			<div className="min-h-screen flex flex-col">
+				{/* Navbar */}
+				<Navbar />
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				{/* Profile Summary Card */}
-				<div className="card bg-base-100 shadow-xl">
-					<div className="card-body items-center text-center">
-						<div className="avatar">
-							<div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-								<img src={profile.avatar} alt="User profile" />
-							</div>
-						</div>
-						<h2 className="card-title mt-2">
-							{profile.firstName} {profile.lastName}
-						</h2>
-						<p className="text-sm opacity-70">
-							{user?.role === "volunteer"
-								? "Volunteer"
-								: "Event Organizer"}
-						</p>
+				<div className="mb-6">
+					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+						<h1 className="text-2xl font-bold mb-2 sm:mb-0 flex items-center">
+							Find Volunteer Opportunities
+						</h1>
 					</div>
+					<div className="divider mt-2 mb-4"></div>
 				</div>
 
-				{/* Profile Details */}
-				<div className="md:col-span-2">
-					<div className="card bg-base-100 shadow-xl">
-						<div className="card-body">
-							<div className="flex justify-between items-center mb-4">
-								<h2 className="card-title">
-									Personal Information
-								</h2>
-								{!isEditing && (
-									<button
-										className="btn btn-primary btn-sm"
-										onClick={() => setIsEditing(true)}
-									>
-										Edit Profile
-									</button>
-								)}
+				{/* Search bar */}
+				<div className="card bg-base-100 shadow mb-6">
+					<div className="card-body p-4">
+						<div className="form-control">
+							<div className="input-group w-full">
+								<input
+									type="text"
+									placeholder="Search for volunteer opportunities..."
+									className="input input-bordered flex-grow"
+									value={searchTerm}
+									onChange={handleSearch}
+								/>
+								<button className="btn btn-primary">
+									<i className="fas fa-search"></i>
+								</button>
 							</div>
-
-							{!isEditing ? (
-								<div className="space-y-3">
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">Name:</span>
-										<span className="col-span-2">
-											{profile.firstName}{" "}
-											{profile.lastName}
-										</span>
-									</div>
-
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">
-											Email:
-										</span>
-										<span className="col-span-2">
-											{profile.email}
-										</span>
-									</div>
-
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">
-											Phone:
-										</span>
-										<span className="col-span-2">
-											{profile.phone}
-										</span>
-									</div>
-
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">
-											Date of Birth:
-										</span>
-										<span className="col-span-2">
-											{profile.dob}
-										</span>
-									</div>
-
-									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">Bio:</span>
-										<span className="col-span-2">
-											{profile.bio}
-										</span>
-									</div>
-								</div>
-							) : (
-								<form onSubmit={handleSubmit}>
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												Profile Picture
-											</span>
-										</label>
-										<input
-											type="file"
-											className="file-input file-input-bordered w-full"
-											onChange={handleFileChange}
-										/>
-									</div>
-
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												First Name
-											</span>
-										</label>
-										<input
-											type="text"
-											className="input input-bordered"
-											name="firstName"
-											value={profile.firstName}
-											onChange={handleChange}
-											required
-										/>
-									</div>
-
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												Last Name
-											</span>
-										</label>
-										<input
-											type="text"
-											className="input input-bordered"
-											name="lastName"
-											value={profile.lastName}
-											onChange={handleChange}
-											required
-										/>
-									</div>
-
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												Email
-											</span>
-										</label>
-										<input
-											type="email"
-											className="input input-bordered"
-											name="email"
-											value={profile.email}
-											onChange={handleChange}
-											required
-										/>
-									</div>
-
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												Phone Number
-											</span>
-										</label>
-										<input
-											type="tel"
-											className="input input-bordered"
-											name="phone"
-											value={profile.phone}
-											onChange={handleChange}
-										/>
-									</div>
-
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												Date of Birth
-											</span>
-										</label>
-										<input
-											type="date"
-											className="input input-bordered"
-											name="dob"
-											value={profile.dob}
-											onChange={handleChange}
-										/>
-									</div>
-
-									<div className="form-control mb-4">
-										<label className="label">
-											<span className="label-text">
-												Bio
-											</span>
-										</label>
-										<textarea
-											className="textarea textarea-bordered"
-											name="bio"
-											value={profile.bio}
-											onChange={handleChange}
-											rows="3"
-										/>
-									</div>
-
-									<div className="flex justify-end gap-2">
-										<button
-											type="button"
-											className="btn btn-ghost"
-											onClick={() => setIsEditing(false)}
-										>
-											Cancel
-										</button>
-										<button
-											type="submit"
-											className="btn btn-primary"
-										>
-											Save Changes
-										</button>
-									</div>
-								</form>
-							)}
 						</div>
 					</div>
 				</div>
 
-				{/* Activity Section - Volunteer or Organizer specific */}
-				<div className="md:col-span-3">
+				{/* Filter section */}
+				<FilterControls
+					filters={filters}
+					categories={categories}
+					locations={locations}
+					handleFilterChange={handleFilterChange}
+				/>
+
+				{/* Results count */}
+				<ResultsHeader eventCount={filteredEvents.length} />
+
+				{/* Event cards grid */}
+				{loading ? (
+					<div className="flex justify-center py-12">
+						<div className="loading loading-spinner loading-lg text-primary"></div>
+					</div>
+				) : filteredEvents.length > 0 ? (
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						{filteredEvents.map((event) => (
+							<EventCard key={event.id} event={event} />
+						))}
+					</div>
+				) : (
 					<div className="card bg-base-100 shadow-xl">
-						<div className="card-body">
-							<h2 className="card-title mb-4">
-								{user?.role === "volunteer"
-									? "My Volunteer Activities"
-									: "My Organized Events"}
+						<div className="card-body text-center py-12">
+							<h2 className="text-xl font-semibold">
+								No events found
 							</h2>
-
-							<div className="overflow-x-auto">
-								<table className="table">
-									<thead>
-										<tr>
-											<th>Event</th>
-											<th>Date</th>
-											<th>Status</th>
-											<th>Actions</th>
-										</tr>
-									</thead>
-									<tbody>
-										<tr>
-											<td>Beach Cleanup</td>
-											<td>Apr 15, 2025</td>
-											<td>
-												<div className="badge badge-success">
-													Active
-												</div>
-											</td>
-											<td>
-												<button className="btn btn-sm btn-info mr-2">
-													<i className="fas fa-eye"></i>
-												</button>
-												{user?.role !== "volunteer" && (
-													<button className="btn btn-sm btn-warning">
-														<i className="fas fa-edit"></i>
-													</button>
-												)}
-											</td>
-										</tr>
-										<tr>
-											<td>Food Bank Assistance</td>
-											<td>Mar 20, 2025</td>
-											<td>
-												<div className="badge badge-primary">
-													Upcoming
-												</div>
-											</td>
-											<td>
-												<button className="btn btn-sm btn-info mr-2">
-													<i className="fas fa-eye"></i>
-												</button>
-												{user?.role !== "volunteer" && (
-													<button className="btn btn-sm btn-warning">
-														<i className="fas fa-edit"></i>
-													</button>
-												)}
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
+							<p className="text-gray-500">
+								Try adjusting your search or filters to find
+								more opportunities.
+							</p>
 						</div>
 					</div>
-				</div>
+				)}
 			</div>
 		</>
 	);
 }
 
-export default Profile;
+export default Home;

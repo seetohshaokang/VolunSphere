@@ -1,5 +1,4 @@
 import { Route, Routes } from "react-router-dom";
-import MainLayout from "../components/MainLayout";
 import ForgotPassword from "../containers/Auth/ForgotPassword";
 import Login from "../containers/Auth/Login";
 import Registration from "../containers/Auth/Registration";
@@ -25,48 +24,48 @@ const AppRoutes = () => {
 
 	return (
 		<Routes>
-			<Route element={<MainLayout />}>
-				{/* Public Routes */}
-				<Route path="/" element={<Home />} />
-				<Route path="/login" element={<Login />} />
-				<Route path="/registration" element={<Registration />} />
-				<Route
-					path="/registrationorganiser"
-					element={<RegistrationOrganiser />}
-				/>
-				<Route
-					path="/registrationvolunteer"
-					element={<RegistrationVolunteer />}
-				/>
-				<Route path="/forgotpassword" element={<ForgotPassword />} />
-				<Route path="/events" element={<ListEvents />} />
+			{/* Public Routes */}
 
-				{/* Protected Routes */}
-				<Route
-					path="/profile"
-					element={
-						<ProtectedRoute>
-							<Profile />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/events/create"
-					element={
-						<ProtectedRoute>
-							<ManageEvent />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
-					path="/events/edit/:id"
-					element={
-						<ProtectedRoute>
-							<ManageEvent />
-						</ProtectedRoute>
-					}
-				/>
-			</Route>
+			<Route path="/" element={<Home />} />
+
+			<Route path="/login" element={<Login />} />
+			<Route path="/registration" element={<Registration />} />
+			<Route
+				path="/registrationorganiser"
+				element={<RegistrationOrganiser />}
+			/>
+			<Route
+				path="/registrationvolunteer"
+				element={<RegistrationVolunteer />}
+			/>
+			<Route path="/forgotpassword" element={<ForgotPassword />} />
+			<Route path="/events" element={<ListEvents />} />
+
+			{/* Protected Routes */}
+			<Route
+				path="/profile"
+				element={
+					<ProtectedRoute>
+						<Profile />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/events/create"
+				element={
+					<ProtectedRoute>
+						<ManageEvent />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/events/edit/:id"
+				element={
+					<ProtectedRoute>
+						<ManageEvent />
+					</ProtectedRoute>
+				}
+			/>
 		</Routes>
 	);
 };

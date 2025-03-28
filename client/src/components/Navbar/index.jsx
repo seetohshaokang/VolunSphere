@@ -1,3 +1,4 @@
+// src/components/Navbar/index.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -21,13 +22,8 @@ function Navbar() {
 
 	return (
 		<div className="navbar bg-base-100 shadow-md sticky top-0 z-50">
+			{/* Remove the hamburger menu section and start with the logo */}
 			<div className="navbar-start">
-				<label
-					htmlFor="drawer-toggle"
-					className="btn btn-ghost drawer-button lg:hidden"
-				>
-					<i className="fas fa-bars"></i>
-				</label>
 				<Link to="/" className="btn btn-ghost normal-case text-xl">
 					<div className="flex items-center gap-2">
 						<div className="w-10 h-10 rounded-full overflow-hidden">
@@ -42,16 +38,6 @@ function Navbar() {
 						</span>
 					</div>
 				</Link>
-			</div>
-
-			<div className="navbar-center hidden lg:flex">
-				<div className="form-control w-64">
-					<input
-						type="text"
-						placeholder="Search opportunities..."
-						className="input input-bordered"
-					/>
-				</div>
 			</div>
 
 			<div className="navbar-end">

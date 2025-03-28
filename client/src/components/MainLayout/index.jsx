@@ -1,7 +1,8 @@
+// src/components/MainLayout/index.jsx
 import { Outlet, useLocation } from "react-router-dom";
 import Footer from "../Footer";
 import Navbar from "../Navbar";
-import Sidebar from "../Sidebar";
+// Remove the Sidebar import
 
 const MainLayout = () => {
 	const location = useLocation();
@@ -18,28 +19,14 @@ const MainLayout = () => {
 	);
 
 	return (
-		<div className="drawer lg:drawer-open" data-theme="volunsphere">
+		<div className="min-h-screen flex flex-col">
 			{showNavbarAndSidebar && (
 				<>
-					<input
-						id="drawer-toggle"
-						type="checkbox"
-						className="drawer-toggle"
-					/>
-					<div className="drawer-content flex flex-col">
-						<Navbar />
-						<div className="flex-1 p-4 lg:p-6">
-							<Outlet />
-						</div>
-						<Footer />
+					<Navbar />
+					<div className="flex-1 p-4 lg:p-6">
+						<Outlet />
 					</div>
-					<div className="drawer-side">
-						<label
-							htmlFor="drawer-toggle"
-							className="drawer-overlay"
-						></label>
-						<Sidebar />
-					</div>
+					<Footer />
 				</>
 			)}
 

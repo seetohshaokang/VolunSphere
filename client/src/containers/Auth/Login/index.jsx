@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
-import styles from "../../../styles/Login.module.css";
 
 function Login() {
 	const [email, setEmail] = useState("");
@@ -56,10 +55,6 @@ function Login() {
 		}
 
 		try {
-			// In a real implementation, use your Api helper
-			// const response = await Api.loginUser({ email, password });
-			// const data = await response.json();
-
 			// For now, simulate successful login
 			const userData = {
 				id: "12345",
@@ -68,8 +63,8 @@ function Login() {
 				role: "volunteer",
 			};
 
-			login(userData); // Update auth context
-			navigate("/"); // Redirect to home page
+			login(userData);
+			navigate("/");
 		} catch (err) {
 			console.error("Login error:", err);
 			setError("Invalid email or password");
@@ -77,82 +72,102 @@ function Login() {
 	};
 
 	return (
-		<div
-			className={`d-flex justify-content-center align-items-center ${styles.container}`}
-		>
-			<div className={`card p-5 ${styles.card}`}>
-				<h2 className="text-center fw-bold">VolunSphere</h2>
-				<h3 className="text-center fw-semibold mb-3">Log in</h3>
-				<p className="text-center text-muted mb-4">
-					Continue your search for volunteer opportunities
-				</p>
-
-				{message && (
-					<div className="alert alert-success">{message}</div>
-				)}
-				{error && <div className="alert alert-danger">{error}</div>}
-
-				<form
-					noValidate
-					className={`needs-validation ${
-						validated ? "was-validated" : ""
-					}`}
-					onSubmit={handleSubmit}
-				>
-					<div className="mb-4">
-						<label className="form-label fw-semibold">
-							Email address
-						</label>
-						<input
-							type="email"
-							className="form-control form-control-lg"
-							placeholder="Enter your email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							required
-						/>
-						<div className="invalid-feedback">
-							Please enter a valid email.
-						</div>
-					</div>
-
-					<div className="mb-4">
-						<label className="form-label fw-semibold">
-							Password
-						</label>
-						<input
-							type="password"
-							className="form-control form-control-lg"
-							placeholder="Enter your password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							required
-						/>
-						<div className="invalid-feedback">
-							Password is required.
-						</div>
-					</div>
-
-					<button type="submit" className="btn btn-dark w-100 py-3">
+		<div className="min-h-screen flex justify-center items-center p-4">
+			<div className="card bg-base-100 shadow-xl w-full max-w-md">
+				<div className="card-body p-6 md:p-8">
+					<h2 className="text-2xl font-bold text-center">
+						VolunSphere
+					</h2>
+					<h3 className="text-xl font-semibold text-center mb-2">
 						Log in
-					</button>
+					</h3>
+					<p className="text-center text-gray-500 mb-6">
+						Continue your search for volunteer opportunities
+					</p>
 
-					<div className="text-center mt-3">
-						<a
-							href="/forgotPassword"
-							className="text-primary small"
+					{message && (
+						<div className="alert alert-success mb-4">
+							{message}
+						</div>
+					)}
+					{error && (
+						<div className="alert alert-error mb-4">{error}</div>
+					)}
+
+					<form onSubmit={handleSubmit} className="space-y-4">
+						<div className="form-control">
+							<label className="label">
+								<span className="label-text font-semibold">
+									Email address
+								</span>
+							</label>
+							<input
+								type="email"
+								className="input input-bordered w-full"
+								placeholder="Enter your email"
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								required
+							/>
+							{validated && !email && (
+								<label className="label">
+									<span className="label-text-alt text-error">
+										Please enter a valid email.
+									</span>
+								</label>
+							)}
+						</div>
+
+						<div className="form-control">
+							<label className="label">
+								<span className="label-text font-semibold">
+									Password
+								</span>
+							</label>
+							<input
+								type="password"
+								className="input input-bordered w-full"
+								placeholder="Enter your password"
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								required
+							/>
+							{validated && !password && (
+								<label className="label">
+									<span className="label-text-alt text-error">
+										Password is required.
+									</span>
+								</label>
+							)}
+						</div>
+
+						<button
+							type="submit"
+							className="btn btn-primary w-full py-3"
 						>
-							Forgot password?
-						</a>
-					</div>
-				</form>
+							Log in
+						</button>
 
-				<p className="text-center mt-4">
-					Don't have an account?{" "}
-					<a href="/registration" className="text-primary">
-						Register now
-					</a>
-				</p>
+						<div className="text-center mt-2">
+							<a
+								href="/forgotPassword"
+								className="text-primary text-sm"
+							>
+								Forgot password?
+							</a>
+						</div>
+					</form>
+
+					<p className="text-center mt-6">
+						Don't have an account?{" "}
+						<a
+							href="/registration"
+							className="text-primary font-semibold"
+						>
+							Register now
+						</a>
+					</p>
+				</div>
 			</div>
 		</div>
 	);
