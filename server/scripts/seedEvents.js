@@ -9,7 +9,7 @@ async function seedEvents() {
 		// Get a random organiser ID to use for the events
 		const { data: organisers, error: organiserError } = await supabase
 			.from("users")
-			.select("id")
+			.select("auth_id") // ✅ UUID
 			.eq("role", "organiser")
 			.limit(1);
 
@@ -23,7 +23,7 @@ async function seedEvents() {
 			);
 		}
 
-		const organiser_id = organisers[0].id;
+		const organiser_id = organisers[0].auth_id; // ✅ assign UUID
 
 		// Sample event data
 		const events = [
