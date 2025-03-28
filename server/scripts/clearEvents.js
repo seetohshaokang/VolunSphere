@@ -1,45 +1,38 @@
 // clearEvents.js
-const { supabase } = require("./config/database");
+const { supabase } = require("../config/database");
 
 async function clearEvents() {
 	try {
-		console.log("Clearing all event data...");
+		console.log("Clearing all event-related data...");
 
-		// First clear all event_registrations that reference events
-		const { error: registrationsError } = await supabase
-			.from("event_registrations")
-			.delete()
-			.neq("event_id", 0); // Delete all registrations
-
-		if (registrationsError) {
-			throw registrationsError;
-		}
-
-		// Then clear all event_reports that reference events
+		// Step 1: Delete all reports with id > 0
 		const { error: reportsError } = await supabase
-			.from("event_reports")
+			.from("reports")
 			.delete()
-			.neq("event_id", 0); // Delete all reports
+			.gt("id", 0); // Match all reports
 
 		if (reportsError) {
-			throw reportsError;
+			throw new Error(
+				`Failed to delete reports: ${reportsError.message}`
+			);
 		}
+		console.log("✔ All reports deleted.");
 
-		// Finally delete all events
+		// Step 2: Delete all events with id > 0
 		const { error: eventsError } = await supabase
 			.from("events")
 			.delete()
-			.neq("id", 0); // Delete all events
+			.gt("id", 0); // Match all events
 
 		if (eventsError) {
-			throw eventsError;
+			throw new Error(`Failed to delete events: ${eventsError.message}`);
 		}
+		console.log("✔ All events deleted.");
 
-		console.log("All event data has been cleared successfully!");
+		console.log("✅ All event data has been cleared successfully!");
 	} catch (error) {
-		console.error("Error clearing event data:", error);
+		console.error("❌ Error clearing event data:", error);
 	}
 }
 
-// Execute the function
 clearEvents();
