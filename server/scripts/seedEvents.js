@@ -1,5 +1,5 @@
 // seedEvents.js
-const { supabase } = require("./config/database");
+const { supabase } = require("../config/database");
 require("dotenv").config({ path: "./.env.server" });
 
 async function seedEvents() {
