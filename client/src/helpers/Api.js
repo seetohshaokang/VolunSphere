@@ -153,6 +153,9 @@ const Api = {
 	},
 
 	getOrganizedEvents() {
+		const token = localStorage.getItem("token");
+		console.log("Using token for auth:", token);
+
 		return fetch(`${SERVER_PREFIX}/events/user/organized`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,

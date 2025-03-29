@@ -1,7 +1,15 @@
 // src/containers/Organizer/Dashboard/index.jsx
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Clock, MapPin, Plus, Users } from "lucide-react";
+import {
+	AlertCircle,
+	Calendar,
+	Clock,
+	MapPin,
+	Plus,
+	Users,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
@@ -9,11 +17,12 @@ import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 
 function OrganizerDashboard() {
-	const { user } = useAuth();
+	const { user, logout } = useAuth();
 	const navigate = useNavigate();
 	const [events, setEvents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [authError, setAuthError] = useState(false);
 
 	useEffect(() => {
 		const fetchOrganizedEvents = async () => {
@@ -21,42 +30,24 @@ function OrganizerDashboard() {
 				setLoading(true);
 				const response = await Api.getOrganizedEvents();
 
-				// For demo purposes, using mock data
-				// In production, use: const data = await response.json();
-				const mockEvents = [
-					{
-						id: 1,
-						name: "Beach Cleanup Drive",
-						start_date: "2025-04-15",
-						location: "Changi Beach",
-						cause: "Environment",
-						registered_count: 12,
-						max_volunteers: 20,
-						status: "active",
-					},
-					{
-						id: 2,
-						name: "Elderly Home Visit",
-						start_date: "2025-04-22",
-						location: "Sunshine Retirement Home",
-						cause: "Healthcare",
-						registered_count: 8,
-						max_volunteers: 15,
-						status: "active",
-					},
-					{
-						id: 3,
-						name: "Food Distribution Drive",
-						start_date: "2025-04-10",
-						location: "Central Community Center",
-						cause: "Social Services",
-						registered_count: 20,
-						max_volunteers: 25,
-						status: "completed",
-					},
-				];
+				// Check if response is OK
+				if (!response.ok) {
+					// Handle different error status codes
+					if (response.status === 401) {
+						console.error(
+							"Authentication error: Token may be invalid or expired"
+						);
+						setAuthError(true);
+						return;
+					}
 
-				setEvents(mockEvents);
+					throw new Error(`API error: ${response.status}`);
+				}
+
+				// Parse the response data
+				const data = await response.json();
+				console.log("Fetched events:", data);
+				setEvents(data || []);
 				setLoading(false);
 			} catch (err) {
 				console.error("Error fetching organized events:", err);
@@ -67,6 +58,43 @@ function OrganizerDashboard() {
 
 		fetchOrganizedEvents();
 	}, []);
+
+	// If auth error, show a message with login button
+	if (authError) {
+		return (
+			<div className="container mx-auto px-4 py-6">
+				<ContentHeader
+					title="Authentication Error"
+					links={[
+						{ to: "/", label: "Home" },
+						{ label: "Dashboard", isActive: true },
+					]}
+				/>
+
+				<Alert variant="destructive" className="mb-6">
+					<AlertCircle className="h-4 w-4 mr-2" />
+					<AlertDescription>
+						Your session has expired or you don't have permission to
+						view this page.
+					</AlertDescription>
+				</Alert>
+
+				<div className="flex gap-4 justify-center">
+					<Button variant="outline" onClick={() => navigate("/")}>
+						Go to Home
+					</Button>
+					<Button
+						onClick={() => {
+							logout();
+							navigate("/login");
+						}}
+					>
+						Log in Again
+					</Button>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="container mx-auto px-4 py-6">
@@ -178,6 +206,7 @@ function OrganizerDashboard() {
 									<div className="relative">
 										<img
 											src={
+												event.image_url ||
 												"/src/assets/default-event.jpg"
 											}
 											alt={event.name}

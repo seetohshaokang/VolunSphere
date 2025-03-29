@@ -106,21 +106,40 @@ const loginUser = async (req, res) => {
 	const { email, password } = req.body;
 
 	try {
+		// Authenticate with Supabase
 		const { data, error } = await supabase.auth.signInWithPassword({
 			email,
 			password,
 		});
+
 		if (error) {
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
-		const { session } = data;
+
+		const { session, user: authUser } = data;
+
+		// Get the complete user profile from your database using the auth ID
+		const { data: userData, error: userError } = await supabase
+			.from("users")
+			.select("*")
+			.eq("auth_id", authUser.id)
+			.single();
+
+		if (userError) {
+			return res.status(500).json({
+				message: "Error fetching user data",
+				error: userError.message,
+			});
+		}
+
+		// Return combined auth and user data
 		return res.status(200).json({
 			message: "Login successful",
-			user: data,
+			user: userData, // Send the complete user data with role
 			token: session.access_token,
 		});
 	} catch (err) {
-		console.error("Error loggin in:", err.message);
+		console.error("Error logging in:", err.message);
 		return res
 			.status(500)
 			.json({ message: "Server error", error: err.message });

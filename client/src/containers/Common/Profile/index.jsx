@@ -1,4 +1,5 @@
 // src/containers/Profile/index.jsx
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,39 +15,113 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Eye } from "lucide-react";
+import { Edit, Eye, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import ContentHeader from "../../../components/ContentHeader";
 import { useAuth } from "../../../contexts/AuthContext";
+import Api from "../../../helpers/Api";
 
 function Profile() {
 	const { user } = useAuth();
 	const [isEditing, setIsEditing] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const [success, setSuccess] = useState(null);
+	const [events, setEvents] = useState([]);
 	const [profile, setProfile] = useState({
-		firstName: "John",
-		lastName: "Lim",
-		email: "john.lim@gmail.com",
-		phone: "9123 4567",
-		dob: "2000-01-01",
-		bio: "I am always looking for ways to help out the community",
-		avatar: "https://via.placeholder.com/150",
+		firstName: "",
+		lastName: "",
+		email: "",
+		phone: "",
+		dob: "",
+		bio: "",
+		avatar: null,
+		skills: [],
+		address: "",
 	});
 
+	// Format date for input field (YYYY-MM-DD)
+	const formatDateForInput = (dateString) => {
+		if (!dateString) return "";
+		const date = new Date(dateString);
+		return date.toISOString().split("T")[0];
+	};
+
 	useEffect(() => {
-		// Fetch user profile from API code remains the same
-		if (user) {
-			setProfile({
-				...profile,
-				email: user.email || profile.email,
-				firstName: user.name
-					? user.name.split(" ")[0]
-					: profile.firstName,
-				lastName: user.name
-					? user.name.split(" ")[1] || ""
-					: profile.lastName,
-			});
-		}
+		fetchUserProfile();
+		fetchUserEvents();
 	}, [user]);
+
+	const fetchUserProfile = async () => {
+		if (!user) return;
+
+		setLoading(true);
+		try {
+			const response = await Api.getUserProfile();
+
+			if (!response.ok) {
+				throw new Error("Failed to fetch profile data");
+			}
+
+			const data = await response.json();
+
+			// Parse name (assuming it comes as full name)
+			let firstName = data.name || "";
+			let lastName = "";
+
+			if (firstName.includes(" ")) {
+				const nameParts = firstName.split(" ");
+				firstName = nameParts[0];
+				lastName = nameParts.slice(1).join(" ");
+			}
+
+			setProfile({
+				firstName,
+				lastName,
+				email: data.email || "",
+				phone: data.phone || "",
+				dob: data.dob ? formatDateForInput(data.dob) : "",
+				bio: data.bio || "",
+				avatar: data.profile_picture_url,
+				address: data.address || "",
+				skills:
+					data.volunteer_skills?.map((skill) => skill.skill_name) ||
+					[],
+			});
+		} catch (err) {
+			console.error("Error fetching profile:", err);
+			setError("Failed to load profile data. Please try again.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const fetchUserEvents = async () => {
+		if (!user) return;
+
+		try {
+			let response;
+			if (user.role === "organiser") {
+				response = await Api.getOrganizedEvents();
+			} else {
+				response = await Api.getRegisteredEvents();
+			}
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch ${
+						user.role === "organiser" ? "organized" : "registered"
+					} events`
+				);
+			}
+
+			const data = await response.json();
+			setEvents(data || []);
+		} catch (err) {
+			console.error("Error fetching events:", err);
+			// Non-critical error, don't show to user
+		}
+	};
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -56,16 +131,73 @@ function Profile() {
 	const handleFileChange = (e) => {
 		const file = e.target.files[0];
 		if (file) {
+			// Create FormData in the submission function instead of here
+			// Just store the file reference for preview
 			const imageUrl = URL.createObjectURL(file);
-			setProfile({ ...profile, avatar: imageUrl });
+			setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
 		}
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
-		setIsEditing(false);
-		alert("Profile updated successfully!");
+		setLoading(true);
+		setError(null);
+		setSuccess(null);
+
+		try {
+			// Create FormData for the API call
+			const formData = new FormData();
+			formData.append(
+				"name",
+				`${profile.firstName} ${profile.lastName}`.trim()
+			);
+			formData.append("email", profile.email);
+			formData.append("phone", profile.phone);
+			formData.append("bio", profile.bio);
+			formData.append("dob", profile.dob);
+			formData.append("address", profile.address);
+
+			if (profile.avatarFile) {
+				formData.append("profile_picture", profile.avatarFile);
+			}
+
+			// If the user is a volunteer and has skills
+			if (
+				user.role === "volunteer" &&
+				profile.skills &&
+				profile.skills.length > 0
+			) {
+				formData.append("skills", JSON.stringify(profile.skills));
+			}
+
+			const response = await Api.updateUserProfile(formData);
+
+			if (!response.ok) {
+				throw new Error("Failed to update profile");
+			}
+
+			const data = await response.json();
+
+			setSuccess("Profile updated successfully!");
+			setIsEditing(false);
+			// Refetch the profile to get the updated data
+			fetchUserProfile();
+		} catch (err) {
+			console.error("Error updating profile:", err);
+			setError("Failed to update profile. Please try again.");
+		} finally {
+			setLoading(false);
+		}
 	};
+
+	if (loading && !profile.email) {
+		return (
+			<div className="flex justify-center items-center h-64">
+				<Loader2 className="h-8 w-8 animate-spin text-primary" />
+				<span className="ml-2">Loading profile...</span>
+			</div>
+		);
+	}
 
 	return (
 		<>
@@ -76,17 +208,35 @@ function Profile() {
 					{ label: "Profile", isActive: true },
 				]}
 			/>
+
+			{error && (
+				<Alert variant="destructive" className="mb-6">
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
+			)}
+
+			{success && (
+				<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
+					<AlertDescription>{success}</AlertDescription>
+				</Alert>
+			)}
+
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 				<Card className="md:col-span-1">
 					<CardContent className="p-6 flex flex-col items-center text-center">
 						<Avatar className="w-24 h-24 border-4 border-primary">
 							<AvatarImage
-								src={profile.avatar}
+								src={
+									profile.avatar ||
+									(user?.role === "organiser"
+										? "/src/assets/default-avatar-red.png"
+										: "/src/assets/default-avatar-blue.png")
+								}
 								alt="User profile"
 							/>
 							<AvatarFallback>
-								{profile.firstName.charAt(0)}
-								{profile.lastName.charAt(0)}
+								{profile.firstName?.charAt(0) || ""}
+								{profile.lastName?.charAt(0) || ""}
 							</AvatarFallback>
 						</Avatar>
 						<h2 className="text-xl font-bold mt-4">
@@ -97,6 +247,25 @@ function Profile() {
 								? "Volunteer"
 								: "Event Organizer"}
 						</p>
+						{user?.role === "volunteer" &&
+							profile.skills &&
+							profile.skills.length > 0 && (
+								<div className="mt-4">
+									<h3 className="text-sm font-semibold mb-2">
+										Skills
+									</h3>
+									<div className="flex flex-wrap gap-1 justify-center">
+										{profile.skills.map((skill, index) => (
+											<Badge
+												key={index}
+												variant="secondary"
+											>
+												{skill}
+											</Badge>
+										))}
+									</div>
+								</div>
+							)}
 					</CardContent>
 				</Card>
 
@@ -108,6 +277,7 @@ function Profile() {
 								variant="outline"
 								size="sm"
 								onClick={() => setIsEditing(true)}
+								disabled={loading}
 							>
 								<Edit className="h-4 w-4 mr-2" /> Edit Profile
 							</Button>
@@ -131,7 +301,7 @@ function Profile() {
 								<div className="grid grid-cols-3 gap-4">
 									<span className="font-bold">Phone:</span>
 									<span className="col-span-2">
-										{profile.phone}
+										{profile.phone || "Not provided"}
 									</span>
 								</div>
 								<div className="grid grid-cols-3 gap-4">
@@ -139,13 +309,23 @@ function Profile() {
 										Date of Birth:
 									</span>
 									<span className="col-span-2">
-										{profile.dob}
+										{profile.dob
+											? new Date(
+													profile.dob
+											  ).toLocaleDateString()
+											: "Not provided"}
+									</span>
+								</div>
+								<div className="grid grid-cols-3 gap-4">
+									<span className="font-bold">Address:</span>
+									<span className="col-span-2">
+										{profile.address || "Not provided"}
 									</span>
 								</div>
 								<div className="grid grid-cols-3 gap-4">
 									<span className="font-bold">Bio:</span>
 									<span className="col-span-2">
-										{profile.bio}
+										{profile.bio || "No bio provided"}
 									</span>
 								</div>
 							</div>
@@ -196,7 +376,11 @@ function Profile() {
 											value={profile.email}
 											onChange={handleChange}
 											required
+											disabled
 										/>
+										<p className="text-sm text-muted-foreground">
+											Email cannot be changed
+										</p>
 									</div>
 									<div className="space-y-2">
 										<Label htmlFor="phone">
@@ -222,6 +406,15 @@ function Profile() {
 										/>
 									</div>
 									<div className="space-y-2">
+										<Label htmlFor="address">Address</Label>
+										<Input
+											id="address"
+											name="address"
+											value={profile.address}
+											onChange={handleChange}
+										/>
+									</div>
+									<div className="space-y-2">
 										<Label htmlFor="bio">Bio</Label>
 										<Textarea
 											id="bio"
@@ -236,11 +429,22 @@ function Profile() {
 											type="button"
 											variant="outline"
 											onClick={() => setIsEditing(false)}
+											disabled={loading}
 										>
 											Cancel
 										</Button>
-										<Button type="submit">
-											Save Changes
+										<Button
+											type="submit"
+											disabled={loading}
+										>
+											{loading ? (
+												<>
+													<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+													Saving...
+												</>
+											) : (
+												"Save Changes"
+											)}
 										</Button>
 									</div>
 								</div>
@@ -258,78 +462,98 @@ function Profile() {
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Event</TableHead>
-									<TableHead>Date</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Actions</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								<TableRow>
-									<TableCell className="font-medium">
-										Beach Cleanup
-									</TableCell>
-									<TableCell>Apr 15, 2025</TableCell>
-									<TableCell>
-										<Badge>Active</Badge>
-									</TableCell>
-									<TableCell>
-										<div className="flex gap-2">
-											<Button
-												variant="outline"
-												size="sm"
-												className="h-8 w-8 p-0"
-											>
-												<Eye className="h-4 w-4" />
-											</Button>
-											{user?.role !== "volunteer" && (
-												<Button
-													variant="outline"
-													size="sm"
-													className="h-8 w-8 p-0"
+						{events.length > 0 ? (
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Event</TableHead>
+										<TableHead>Date</TableHead>
+										<TableHead>Status</TableHead>
+										<TableHead>Actions</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{events.map((event) => (
+										<TableRow key={event.id}>
+											<TableCell className="font-medium">
+												{event.name ||
+													event.event?.name ||
+													"Unnamed Event"}
+											</TableCell>
+											<TableCell>
+												{event.start_date ||
+												event.event?.start_date
+													? new Date(
+															event.start_date ||
+																event.event
+																	?.start_date
+													  ).toLocaleDateString()
+													: "No date specified"}
+											</TableCell>
+											<TableCell>
+												<Badge
+													variant={
+														(event.status ||
+															event.event
+																?.status) ===
+														"active"
+															? "default"
+															: "secondary"
+													}
 												>
-													<Edit className="h-4 w-4" />
-												</Button>
-											)}
-										</div>
-									</TableCell>
-								</TableRow>
-								<TableRow>
-									<TableCell className="font-medium">
-										Food Bank Assistance
-									</TableCell>
-									<TableCell>Mar 20, 2025</TableCell>
-									<TableCell>
-										<Badge variant="secondary">
-											Upcoming
-										</Badge>
-									</TableCell>
-									<TableCell>
-										<div className="flex gap-2">
-											<Button
-												variant="outline"
-												size="sm"
-												className="h-8 w-8 p-0"
-											>
-												<Eye className="h-4 w-4" />
-											</Button>
-											{user?.role !== "volunteer" && (
-												<Button
-													variant="outline"
-													size="sm"
-													className="h-8 w-8 p-0"
-												>
-													<Edit className="h-4 w-4" />
-												</Button>
-											)}
-										</div>
-									</TableCell>
-								</TableRow>
-							</TableBody>
-						</Table>
+													{(
+														event.status ||
+														event.event?.status ||
+														"active"
+													).toUpperCase()}
+												</Badge>
+											</TableCell>
+											<TableCell>
+												<div className="flex gap-2">
+													<Button
+														variant="outline"
+														size="sm"
+														className="h-8 w-8 p-0"
+														asChild
+													>
+														<a
+															href={`/events/${
+																event.id ||
+																event.event_id ||
+																event.event?.id
+															}`}
+														>
+															<Eye className="h-4 w-4" />
+														</a>
+													</Button>
+													{user?.role ===
+														"organiser" && (
+														<Button
+															variant="outline"
+															size="sm"
+															className="h-8 w-8 p-0"
+															asChild
+														>
+															<a
+																href={`/events/edit/${event.id}`}
+															>
+																<Edit className="h-4 w-4" />
+															</a>
+														</Button>
+													)}
+												</div>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						) : (
+							<div className="text-center py-6 text-muted-foreground">
+								{user?.role === "volunteer"
+									? "You haven't registered for any events yet."
+									: "You haven't created any events yet."}
+							</div>
+						)}
 					</CardContent>
 				</Card>
 			</div>

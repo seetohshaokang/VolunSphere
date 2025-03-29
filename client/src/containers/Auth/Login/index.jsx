@@ -56,34 +56,31 @@ function Login() {
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();
-		const form = event.currentTarget;
-
-		if (form.checkValidity() === false) {
-			event.stopPropagation();
-			setValidated(true);
-			return;
-		}
 
 		try {
-			// For now, simulate successful login
-			const userData = {
-				id: "12345",
-				name: "Test User",
-				email: email,
-				role: "organiser", // You can switch between 'volunteer' and 'organiser' for testing
-			};
+			// Send credentials to the server
+			const response = await Api.loginUser({ email, password });
+			const data = await response.json();
 
-			login(userData);
+			if (response.ok) {
+				// Make sure you're storing the token properly
+				localStorage.setItem("token", data.token);
 
-			// Redirect based on user role
-			if (userData.role === "organiser") {
-				navigate("/organizer");
+				// Then call your context login function
+				login(data.user);
+
+				// Navigate based on role
+				if (data.user.role === "organiser") {
+					navigate("/organizer");
+				} else {
+					navigate("/");
+				}
 			} else {
-				navigate("/");
+				setError(data.message || "Login failed");
 			}
 		} catch (err) {
 			console.error("Login error:", err);
-			setError("Invalid email or password");
+			setError("An error occurred during login");
 		}
 	};
 

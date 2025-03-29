@@ -1,4 +1,4 @@
-// src/containers/ManageEvent/index.jsx
+// src/containers/Organizer/ManageEvent/index.jsx - with real API integration
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
+import Api from "../../../helpers/Api";
 
 function OrganizerManageEvent() {
 	const { id } = useParams();
@@ -29,56 +30,52 @@ function OrganizerManageEvent() {
 	const isEditMode = Boolean(id);
 
 	const [formData, setFormData] = useState({
-		title: "",
+		name: "",
 		description: "",
-		date: "",
+		start_date: "",
+		end_date: "",
+		start_time: "",
+		end_time: "",
 		location: "",
-		category: "",
-		slots: 10,
+		cause: "",
+		max_volunteers: 10,
 		status: "active",
 	});
 
 	const [loading, setLoading] = useState(isEditMode);
 	const [error, setError] = useState(null);
+	const [submitLoading, setSubmitLoading] = useState(false);
 
 	useEffect(() => {
 		if (isEditMode) {
 			// Fetch event data for editing
-			// In real implementation, use your Api helper
-			// Api.getEvent(id)
-			//   .then(res => res.json())
-			//   .then(data => {
-			//     setFormData({
-			//       title: data.title,
-			//       description: data.description,
-			//       date: data.date.substring(0, 10), // YYYY-MM-DD format for input[type="date"]
-			//       location: data.location,
-			//       category: data.category,
-			//       slots: data.slots,
-			//       status: data.status
-			//     });
-			//     setLoading(false);
-			//   })
-			//   .catch(err => {
-			//     console.error("Error fetching event:", err);
-			//     setError("Failed to load event data");
-			//     setLoading(false);
-			//   });
+			const fetchEventDetails = async () => {
+				try {
+					const response = await Api.getEvent(id);
+					const eventData = await response.json();
 
-			// Simulating API call with sample data
-			setTimeout(() => {
-				setFormData({
-					title: "Beach Cleanup",
-					description:
-						"Join us for a community beach cleanup event. Help keep our beaches clean!",
-					date: "2025-04-15",
-					location: "Miami Beach",
-					category: "Environment",
-					slots: 15,
-					status: "active",
-				});
-				setLoading(false);
-			}, 500);
+					// Update form with event data
+					setFormData({
+						name: eventData.name || "",
+						description: eventData.description || "",
+						start_date: eventData.start_date || "",
+						end_date: eventData.end_date || "",
+						start_time: eventData.start_time || "",
+						end_time: eventData.end_time || "",
+						location: eventData.location || "",
+						cause: eventData.cause || "",
+						max_volunteers: eventData.max_volunteers || 10,
+						status: eventData.status || "active",
+					});
+				} catch (err) {
+					console.error("Error fetching event:", err);
+					setError("Failed to load event data. Please try again.");
+				} finally {
+					setLoading(false);
+				}
+			};
+
+			fetchEventDetails();
 		}
 	}, [id, isEditMode]);
 
@@ -99,25 +96,36 @@ function OrganizerManageEvent() {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
+		setSubmitLoading(true);
+		setError(null);
 
 		try {
 			if (isEditMode) {
 				// Update existing event
-				// In real implementation, use your Api helper
-				// await Api.updateEvent(id, formData);
-				console.log("Updating event:", id, formData);
+				const response = await Api.updateEvent(id, formData);
+				const data = await response.json();
+
+				if (response.ok) {
+					navigate("/organizer");
+				} else {
+					setError(data.message || "Failed to update event");
+				}
 			} else {
 				// Create new event
-				// In real implementation, use your Api helper
-				// await Api.createEvent(formData);
-				console.log("Creating new event:", formData);
-			}
+				const response = await Api.createEvent(formData);
+				const data = await response.json();
 
-			// Navigate back to events list
-			navigate("/events");
+				if (response.ok) {
+					navigate("/organizer");
+				} else {
+					setError(data.message || "Failed to create event");
+				}
+			}
 		} catch (err) {
 			console.error("Error saving event:", err);
 			setError("Failed to save event. Please try again.");
+		} finally {
+			setSubmitLoading(false);
 		}
 	};
 
@@ -135,7 +143,7 @@ function OrganizerManageEvent() {
 				title={isEditMode ? "Edit Event" : "Create New Event"}
 				links={[
 					{ to: "/", label: "Home" },
-					{ to: "/events", label: "Events" },
+					{ to: "/organizer", label: "Events" },
 					{
 						label: isEditMode ? "Edit Event" : "Create Event",
 						isActive: true,
@@ -159,12 +167,12 @@ function OrganizerManageEvent() {
 
 					<form onSubmit={handleSubmit} className="space-y-4">
 						<div className="space-y-2">
-							<Label htmlFor="title">Event Title</Label>
+							<Label htmlFor="name">Event Title</Label>
 							<Input
-								id="title"
-								name="title"
+								id="name"
+								name="name"
 								placeholder="Enter event title"
-								value={formData.title}
+								value={formData.name}
 								onChange={handleChange}
 								required
 							/>
@@ -183,16 +191,52 @@ function OrganizerManageEvent() {
 							/>
 						</div>
 
-						<div className="space-y-2">
-							<Label htmlFor="date">Event Date</Label>
-							<Input
-								id="date"
-								name="date"
-								type="date"
-								value={formData.date}
-								onChange={handleChange}
-								required
-							/>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="start_date">Start Date</Label>
+								<Input
+									id="start_date"
+									name="start_date"
+									type="date"
+									value={formData.start_date}
+									onChange={handleChange}
+									required
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="end_date">End Date</Label>
+								<Input
+									id="end_date"
+									name="end_date"
+									type="date"
+									value={formData.end_date}
+									onChange={handleChange}
+									required
+								/>
+							</div>
+						</div>
+
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="space-y-2">
+								<Label htmlFor="start_time">Start Time</Label>
+								<Input
+									id="start_time"
+									name="start_time"
+									type="time"
+									value={formData.start_time}
+									onChange={handleChange}
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="end_time">End Time</Label>
+								<Input
+									id="end_time"
+									name="end_time"
+									type="time"
+									value={formData.end_time}
+									onChange={handleChange}
+								/>
+							</div>
 						</div>
 
 						<div className="space-y-2">
@@ -208,15 +252,15 @@ function OrganizerManageEvent() {
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="category">Category</Label>
+							<Label htmlFor="cause">Category</Label>
 							<Select
-								value={formData.category}
+								value={formData.cause}
 								onValueChange={(value) =>
-									handleSelectChange("category", value)
+									handleSelectChange("cause", value)
 								}
 								required
 							>
-								<SelectTrigger id="category">
+								<SelectTrigger id="cause">
 									<SelectValue placeholder="Select a category" />
 								</SelectTrigger>
 								<SelectContent>
@@ -243,13 +287,15 @@ function OrganizerManageEvent() {
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="slots">Volunteer Slots</Label>
+							<Label htmlFor="max_volunteers">
+								Volunteer Slots
+							</Label>
 							<Input
-								id="slots"
-								name="slots"
+								id="max_volunteers"
+								name="max_volunteers"
 								type="number"
 								min="1"
-								value={formData.slots}
+								value={formData.max_volunteers}
 								onChange={handleChange}
 								required
 							/>
@@ -284,10 +330,23 @@ function OrganizerManageEvent() {
 
 						<CardFooter className="flex justify-end gap-2 px-0 pt-4">
 							<Button variant="outline" asChild>
-								<Link to="/events">Cancel</Link>
+								<Link to="/organizer">Cancel</Link>
 							</Button>
-							<Button type="submit">
-								{isEditMode ? "Update Event" : "Create Event"}
+							<Button type="submit" disabled={submitLoading}>
+								{submitLoading ? (
+									<div className="flex items-center">
+										<div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
+										{isEditMode
+											? "Updating..."
+											: "Creating..."}
+									</div>
+								) : (
+									<>
+										{isEditMode
+											? "Update Event"
+											: "Create Event"}
+									</>
+								)}
 							</Button>
 						</CardFooter>
 					</form>

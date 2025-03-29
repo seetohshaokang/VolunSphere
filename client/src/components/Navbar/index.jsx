@@ -59,7 +59,9 @@ function Navbar() {
 											<AvatarImage
 												src={
 													user.photoURL ||
-													"https://via.placeholder.com/40?text=User"
+													(user.role === "organiser"
+														? "/src/assets/default-avatar-red.png"
+														: "/src/assets/default-avatar-blue.png")
 												}
 												alt="Profile"
 											/>

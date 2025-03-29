@@ -16,6 +16,9 @@ export const AuthProvider = ({ children }) => {
 
 		if (storedUser && token) {
 			setUser(storedUser);
+		} else {
+			localStorage.removeItem("user");
+			localStorage.removeItem("token");
 		}
 		setLoading(false);
 	}, []);
