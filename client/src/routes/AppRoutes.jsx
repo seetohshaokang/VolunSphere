@@ -20,6 +20,7 @@ import VolunteerEventDetail from "../containers/Volunteer/EventDetail";
 
 // Organizer
 // import OrganizerCreateEvent from "../containers/Organizer/CreateEvent";
+import OrganizerDashboard from "../containers/Organizer/Dashboard";
 import OrganizerEventDetail from "../containers/Organizer/EventDetail";
 import OrganizerManageEvent from "../containers/Organizer/ManageEvent";
 
@@ -61,6 +62,24 @@ const AppRoutes = () => {
 					path="/events/:eventId"
 					element={<VolunteerEventDetail />}
 				/>
+
+				{/* Event creation and edit routes */}
+				<Route
+					path="/events/create"
+					element={
+						<ProtectedRoute roleRequired="organiser">
+							<OrganizerManageEvent />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/events/edit/:id"
+					element={
+						<ProtectedRoute roleRequired="organiser">
+							<OrganizerManageEvent />
+						</ProtectedRoute>
+					}
+				/>
 			</Route>
 
 			{/* Protected Routes */}
@@ -92,7 +111,7 @@ const AppRoutes = () => {
 					</ProtectedRoute>
 				}
 			>
-				<Route path="events" element={<OrganizerManageEvent />} />
+				<Route index element={<OrganizerDashboard />} />
 				<Route
 					path="events/:eventId"
 					element={<OrganizerEventDetail />}

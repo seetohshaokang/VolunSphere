@@ -26,9 +26,6 @@ function Login() {
 	const { login } = useAuth();
 	const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-	// Get the API URL from environment variables
-	const apiUrl = import.meta.env.VITE_API_URL;
-
 	// Function to fetch data from the backend
 	const fetchData = async () => {
 		try {
@@ -73,11 +70,17 @@ function Login() {
 				id: "12345",
 				name: "Test User",
 				email: email,
-				role: "volunteer",
+				role: "organiser", // You can switch between 'volunteer' and 'organiser' for testing
 			};
 
 			login(userData);
-			navigate("/");
+
+			// Redirect based on user role
+			if (userData.role === "organiser") {
+				navigate("/organizer");
+			} else {
+				navigate("/");
+			}
 		} catch (err) {
 			console.error("Login error:", err);
 			setError("Invalid email or password");

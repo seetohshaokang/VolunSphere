@@ -844,7 +844,9 @@ function OrganizerEventDetail() {
 									{/* Banner image */}
 									<div className="mb-6">
 										<img
-											src={event.imageUrl}
+											src={
+												"/src/assets/default-event.jpg"
+											}
 											alt={event.title}
 											className="w-full h-64 object-cover rounded-md shadow-sm"
 										/>

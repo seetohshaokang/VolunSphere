@@ -26,9 +26,7 @@ function EventCard({ event }) {
 		<Card className="h-full flex flex-col overflow-hidden">
 			<div className="relative">
 				<img
-					src={`https://source.unsplash.com/random/300x200/?${
-						event.cause || "volunteer"
-					}`}
+					src={"/src/assets/default-event.jpg"}
 					alt={event.name || "Event"}
 					className="h-48 w-full object-cover"
 				/>
