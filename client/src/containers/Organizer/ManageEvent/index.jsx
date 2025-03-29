@@ -21,9 +21,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import ContentHeader from "../../components/ContentHeader";
+import ContentHeader from "../../../components/ContentHeader";
 
-function ManageEvent() {
+function OrganizerManageEvent() {
 	const { id } = useParams();
 	const navigate = useNavigate();
 	const isEditMode = Boolean(id);
@@ -297,4 +297,4 @@ function ManageEvent() {
 	);
 }
 
-export default ManageEvent;
+export default OrganizerManageEvent;

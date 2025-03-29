@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import EventCard from "../../components/EventCard";
-import FilterControls from "../../components/FilterControls";
-import ResultsHeader from "../../components/ResultsHeader";
+import EventCard from "../../../components/EventCard";
+import FilterControls from "../../../components/FilterControls";
+import ResultsHeader from "../../../components/ResultsHeader";
 
 function Home() {
 	// State management

@@ -16,8 +16,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Edit, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
-import ContentHeader from "../../components/ContentHeader";
-import { useAuth } from "../../contexts/AuthContext";
+import ContentHeader from "../../../components/ContentHeader";
+import { useAuth } from "../../../contexts/AuthContext";
 
 function Profile() {
 	const { user } = useAuth();

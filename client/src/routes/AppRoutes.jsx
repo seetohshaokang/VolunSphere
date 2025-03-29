@@ -1,14 +1,28 @@
+// src/routes/AppRoutes.jsx
 import MainLayout from "@/components/MainLayout";
 import { Route, Routes } from "react-router-dom";
+
+// Auth
 import ForgotPassword from "../containers/Auth/ForgotPassword";
 import Login from "../containers/Auth/Login";
 import Registration from "../containers/Auth/Registration";
 import RegistrationOrganiser from "../containers/Auth/RegistrationOrganiser";
 import RegistrationVolunteer from "../containers/Auth/RegistrationVolunteer";
-import Home from "../containers/Home";
-import ListEvents from "../containers/ListEvents";
-import ManageEvent from "../containers/ManageEvent";
-import Profile from "../containers/Profile";
+
+// Common
+import Home from "../containers/Common/Home";
+// import NotFound from "../containers/Common/NotFound";
+import Profile from "../containers/Common/Profile";
+
+// Volunteer
+import VolunteerEventDetail from "../containers/Volunteer/EventDetail";
+// import VolunteerMyEvents from "../containers/Volunteer/MyEvents";
+
+// Organizer
+// import OrganizerCreateEvent from "../containers/Organizer/CreateEvent";
+import OrganizerEventDetail from "../containers/Organizer/EventDetail";
+import OrganizerManageEvent from "../containers/Organizer/ManageEvent";
+
 import { useAuth } from "../contexts/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -29,6 +43,7 @@ const AppRoutes = () => {
 			<Route element={<MainLayout />}>
 				<Route path="/" element={<Home />} />
 
+				{/* Auth Routes */}
 				<Route path="/login" element={<Login />} />
 				<Route path="/registration" element={<Registration />} />
 				<Route
@@ -40,7 +55,12 @@ const AppRoutes = () => {
 					element={<RegistrationVolunteer />}
 				/>
 				<Route path="/forgotpassword" element={<ForgotPassword />} />
-				<Route path="/events" element={<ListEvents />} />
+
+				{/* Events (Public View) */}
+				<Route
+					path="/events/:eventId"
+					element={<VolunteerEventDetail />}
+				/>
 			</Route>
 
 			{/* Protected Routes */}
@@ -52,22 +72,32 @@ const AppRoutes = () => {
 					</ProtectedRoute>
 				}
 			/>
+
+			{/* Volunteer Routes */}
 			<Route
-				path="/events/create"
+				path="/volunteer"
 				element={
 					<ProtectedRoute>
-						<ManageEvent />
+						<MainLayout />
 					</ProtectedRoute>
 				}
-			/>
+			></Route>
+
+			{/* Organizer Routes */}
 			<Route
-				path="/events/edit/:id"
+				path="/organizer"
 				element={
-					<ProtectedRoute>
-						<ManageEvent />
+					<ProtectedRoute roleRequired="organiser">
+						<MainLayout />
 					</ProtectedRoute>
 				}
-			/>
+			>
+				<Route path="events" element={<OrganizerManageEvent />} />
+				<Route
+					path="events/:eventId"
+					element={<OrganizerEventDetail />}
+				/>
+			</Route>
 		</Routes>
 	);
 };
