@@ -456,24 +456,18 @@ const getOrganizedEvents = async (req, res) => {
 	const user = req.user; // From auth middleware
 
 	try {
-		// First check if the user is an organiser
-		const userData = await baseUserOperations.getUserByAuthId(user.id);
-
-		if (!userData) {
-			return res.status(404).json({ error: "User profile not found" });
+		// Use auth_id directly since that's what we store in events table
+		if (!user || !user.id) {
+			return res.status(400).json({
+				error: "User ID missing from request",
+			});
 		}
 
-		if (userData.role !== "organiser") {
-			return res
-				.status(403)
-				.json({ message: "Only organisers can access this endpoint" });
-		}
-		const events = await organiserOperations.getOrganiserEvents(
-			userData.id
-		);
+		console.log("Getting events for organiser with ID:", user.id);
+		const events = await organiserOperations.getOrganiserEvents(user.id);
 		return res.status(200).json(events);
 	} catch (error) {
-		console.error("Error fetching organizsed events:", error);
+		console.error("Error fetching organized events:", error);
 		return res.status(500).json({
 			error: "Failed to fetch organised events",
 			details: error.message,

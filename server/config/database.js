@@ -164,12 +164,18 @@ const organiserOperations = {
 	},
 
 	// Get all events created by an organiser
-	getOrganiserEvents: async (userId) => {
+	getOrganiserEvents: async (authId) => {
+		// Instead of relying on user_id to find auth_id, let's use the auth_id directly
+		// since that's what's stored in the events table as organiser_id
+		console.log("Fetching events for organiser with auth_id:", authId);
+
 		const { data, error } = await supabase
-			.from("event")
+			.from("events")
 			.select("*")
-			.eq("orgnaiser_id", userId);
+			.eq("organiser_id", authId);
+
 		if (error) throw error;
+		console.log(`Found ${data?.length || 0} events for this organiser`);
 		return data;
 	},
 };
@@ -250,7 +256,7 @@ const eventOperations = {
 			query = query.lte("end_date", filters.dateEnd);
 		}
 
-		const { ddata, error } = await query;
+		const { data, error } = await query;
 		if (error) throw error;
 		return data;
 	},
