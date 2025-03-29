@@ -9,8 +9,10 @@ const supabase = createClient(
 
 const tableKeyMap = {
 	reports: "id",
+	event_registrations: "id",
 	events: "id",
 	volunteer_skills: "id",
+	organisation_details: "id",
 	volunteers: "id",
 	users: "user_id",
 };
@@ -30,14 +32,26 @@ async function resetDatabase() {
 		}
 
 		// Step 2: Clear relational tables in order
-		const tables = ["reports", "events", "volunteers", "users"];
+		const tables = [
+			"reports",
+			"event_registrations",
+			"events",
+			"volunteer_skills",
+			"organisation_details",
+			"volunteers",
+			"users",
+		];
 
 		for (const table of tables) {
 			const pk = tableKeyMap[table] || "id";
 			console.log(`⛔ Deleting rows from "${table}"...`);
 			const { error } = await supabase.from(table).delete().gt(pk, 0);
-			if (error)
-				throw new Error(`❌ Failed on ${table}: ${error.message}`);
+			if (error) {
+				console.warn(`⚠️ Issue clearing ${table}: ${error.message}`);
+				// Continue instead of throwing error to handle non-existent tables
+			} else {
+				console.log(`✅ Cleared ${table} successfully`);
+			}
 		}
 
 		console.log("✅ Database and Auth reset complete.");
