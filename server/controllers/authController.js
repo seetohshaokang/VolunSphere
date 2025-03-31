@@ -1,191 +1,416 @@
-/**
- * Authentication Controller
- * Handles user authentication operations including signup, login and logout
- */
-
-const { createClient } = require("@supabase/supabase-js");
-const {
-	baseUserOperations,
-	volunteerOperations,
-	organiserOperations,
-	supabase,
-} = require("../config/database");
-require("dotenv").config({ path: "./.env.server" });
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const Volunteer = require("../models/Volunteer");
+const Organiser = require("../models/Organiser");
 
 /**
- * User signup handler
- * Creates a user in both Auth and Database with appropriate role
+ * Register a new volunteer
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.email - Volunteer's email
+ * @param {string} req.body.password - Volunteer's password
+ * @param {string} req.body.confirmPassword - Password confirmation
+ * @param {string} req.body.name - Volunteer's name (optional, default provided)
+ * @param {string} req.body.phone - Volunteer's phone (optional, default provided)
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with registration status
+ * @throws {Error} If server error occurs during registration
  */
-
-const signUpUser = async (req, res) => {
-	const { email, password, confirmpassword, role } = req.body;
-
+exports.registerVolunteer = async (req, res) => {
 	try {
+		const { email, password, confirmPassword, name, phone } = req.body;
+
 		// Validate input
-		if (!email || !password || !confirmpassword || !role) {
+		if (!email || !password || !confirmPassword) {
 			return res.status(400).json({ message: "All fields are required" });
 		}
 
-		// Validate passwords match
-		if (confirmpassword !== password) {
+		if (password !== confirmPassword) {
 			return res.status(400).json({ message: "Passwords do not match" });
 		}
 
-		// Validate role is one of the accepted roles
-		if (!["volunteer", "organiser"].includes(role)) {
-			return res.status(400).json({ message: "Invalid user role" });
-		}
-
 		// Check if email already exists
-		const emailExists = await baseUserOperations.checkEmailExists(email);
-		if (emailExists) {
+		const existingUser = await User.findOne({ email });
+		if (existingUser) {
 			return res.status(400).json({ message: "Email already in use" });
 		}
 
-		// Start transaction-like process(Supabase doesn't support true transactions across Auth and DB)
-		let authUser = null;
+		// Hash password
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(password, salt);
 
-		try {
-			// Step 1: Create auth user in Supabase Auth
-			const userResponse = await createAuthUser(email, password);
-			if (!userResponse || !userResponse.user) {
-				throw new Error("Failed to create auth user");
-			}
+		// Create user
+		const newUser = new User({
+			email,
+			password: hashedPassword,
+			role: "volunteer",
+			status: "active",
+			created_at: new Date(),
+		});
 
-			authUser = userResponse.user;
-			const authId = authUser.id; // Supabase Auth UID
+		const savedUser = await newUser.save();
 
-			// Step 2 Create database user with the appropriate role
-			let insertedUser;
-			const userData = { auth_id: authId, email, role };
-			if (role === "volunteer") {
-				insertedUser = await volunteerOperations.createVolunteer(
-					userData
-				);
-			} else {
-				insertedUser = await organiserOperations.createOrganiser(
-					userData
-				);
-			}
+		// Create volunteer profile
+		const volunteer = new Volunteer({
+			user_id: savedUser._id,
+			name: name || "New Volunteer", // Default value if not provided
+			phone: phone || "Not provided", // Default value if not provided
+			dob: new Date(),
+			nric_image: {
+				data: null,
+				contentType: null,
+				verified: false,
+			},
+			skills: [],
+			preferred_causes: [],
+		});
 
-			if (!insertedUser) {
-				throw new Error("User database entry creation failed");
-			}
-			return res.status(201).json({
-				message: "Registration successful, please confirm your email",
-			});
-		} catch (innerError) {
-			// If we created an auth user but database user creation failed
-			// attempt to clean up the orphaned auth user
-			if (authUser) {
-				try {
-					await supabase.auth.admin.deleteUser(authUser.id);
-					console.log(
-						`Cleaned up orphaned auth user: ${authUser.id}`
-					);
-				} catch (cleanupError) {
-					console.error(
-						"Failed to clean up orphaned auth user:",
-						cleanupError
-					);
-					// Log this for administrative attention
-				}
-			}
-			throw innerError;
-		}
-	} catch (err) {
-		console.error("Error signing up:", err.message);
-		return res
-			.status(500)
-			.json({ message: "Server error", error: err.message });
+		await volunteer.save();
+
+		return res.status(201).json({
+			message: "Volunteer registration successful, please login",
+		});
+	} catch (error) {
+		console.error("Error registering volunteer:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
 	}
 };
 
-// Login
-const loginUser = async (req, res) => {
-	const { email, password } = req.body;
-
+/**
+ * Register a new organiser
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.email - Organiser's email
+ * @param {string} req.body.password - Organiser's password
+ * @param {string} req.body.confirmPassword - Password confirmation
+ * @param {string} req.body.organisation_name - Organisation name (optional, default provided)
+ * @param {string} req.body.phone - Organiser's phone (optional, default provided)
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with registration status
+ * @throws {Error} If server error occurs during registration
+ */
+exports.registerOrganiser = async (req, res) => {
 	try {
-		// Authenticate with Supabase
-		const { data, error } = await supabase.auth.signInWithPassword({
+		const { email, password, confirmPassword, organisation_name, phone } =
+			req.body;
+
+		// Validate input
+		if (!email || !password || !confirmPassword) {
+			return res.status(400).json({ message: "All fields are required" });
+		}
+
+		if (password !== confirmPassword) {
+			return res.status(400).json({ message: "Passwords do not match" });
+		}
+
+		// Check if email already exists
+		const existingUser = await User.findOne({ email });
+		if (existingUser) {
+			return res.status(400).json({ message: "Email already in use" });
+		}
+
+		// Hash password
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(password, salt);
+
+		// Create user
+		const newUser = new User({
 			email,
-			password,
+			password: hashedPassword,
+			role: "organiser",
+			status: "active",
+			created_at: new Date(),
 		});
 
-		if (error) {
+		const savedUser = await newUser.save();
+
+		// Create organiser profile
+		const organiser = new Organiser({
+			user_id: savedUser._id,
+			organisation_name: organisation_name || "New Organisation", // Default value if not provided
+			phone: phone || "Not provided", // Default value if not provided
+			verification_status: "pending",
+		});
+
+		await organiser.save();
+
+		return res.status(201).json({
+			message: "Organiser registration successful, please login",
+		});
+	} catch (error) {
+		console.error("Error registering organiser:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+// Keep the old method temporarily for backward compatibility
+exports.registerUser = async (req, res) => {
+	// Original implementation with default values for name and phone
+	// ...
+};
+
+/**
+ * Authenticate a user and provide access token
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body containing login credentials
+ * @param {string} req.body.email - User's email address
+ * @param {string} req.body.password - User's password
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with token and user information
+ * @throws {Error} If server error occurs during authentication
+ *
+ * Steps:
+ * 1. Validate input (email, password)
+ * 2. Find user by email
+ * 3. Check if user is active
+ * 4. Compare password with stored hash
+ * 5. Get user profile based on role
+ * 6. Update last login time
+ * 7. Generate JWT token
+ * 8. Return token and user data
+ */
+exports.loginUser = async (req, res) => {
+	try {
+		const { email, password } = req.body;
+
+		// Step 1: Validate required input fields
+		if (!email || !password) {
+			return res
+				.status(400)
+				.json({ message: "Email and password are required" });
+		}
+
+		// Step 2: Find user by email
+		const user = await User.findOne({ email });
+		if (!user) {
 			return res.status(401).json({ message: "Invalid credentials" });
 		}
 
-		const { session, user: authUser } = data;
+		// Step 3: Check if user account is active
+		if (user.status !== "active") {
+			return res.status(401).json({ message: "Account is not active" });
+		}
 
-		// Get the complete user profile from your database using the auth ID
-		const { data: userData, error: userError } = await supabase
-			.from("users")
-			.select("*")
-			.eq("auth_id", authUser.id)
-			.single();
+		// Step 4: Verify password
+		const isMatch = await bcrypt.compare(password, user.password);
+		if (!isMatch) {
+			return res.status(401).json({ message: "Invalid credentials" });
+		}
 
-		if (userError) {
-			return res.status(500).json({
-				message: "Error fetching user data",
-				error: userError.message,
+		// Step 5: Create JWT payload with user details
+		const payload = {
+			user: {
+				id: user._id,
+				email: user.email,
+				role: user.role,
+			},
+		};
+
+		// Step 6: Get user's profile based on role
+		let profile;
+		if (user.role === "volunteer") {
+			profile = await Volunteer.findOne({ user_id: user._id });
+		} else if (user.role === "organiser") {
+			profile = await Organiser.findOne({ user_id: user._id });
+		}
+
+		// Step 7: Update last login timestamp
+		user.last_login = new Date();
+		await user.save();
+
+		// Step 8: Sign JWT token and send response
+		jwt.sign(
+			payload,
+			process.env.JWT_SECRET,
+			{ expiresIn: "24h" },
+			(err, token) => {
+				if (err) throw err;
+				res.json({
+					message: "Login successful",
+					token,
+					user: {
+						id: user._id,
+						email: user.email,
+						role: user.role,
+						name: profile?.name || profile?.organisation_name || "",
+						profile: profile,
+					},
+				});
+			}
+		);
+	} catch (error) {
+		console.error("Error logging in:", error);
+		res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Log out a user and invalidate token
+ * For JWT, this is typically handled client-side by removing the token
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with logout status
+ * @throws {Error} If server error occurs during logout
+ *
+ * Steps:
+ * 1. Return success response (JWT is stateless, so no server-side action needed)
+ */
+exports.logoutUser = async (req, res) => {
+	try {
+		// JWT is stateless, so we don't need to invalidate it server-side
+		// Client should remove the token from storage
+		res.json({ message: "Logged out successfully" });
+	} catch (error) {
+		console.error("Error logging out:", error);
+		res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Request a password reset
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.email - User's email address
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with reset token request status
+ * @throws {Error} If server error occurs during password reset request
+ *
+ * Steps:
+ * 1. Validate input (email)
+ * 2. Find user by email
+ * 3. Generate reset token
+ * 4. Return success message (with token for testing)
+ */
+exports.requestPasswordReset = async (req, res) => {
+	try {
+		const { email } = req.body;
+
+		// Step 1: Validate required input
+		if (!email) {
+			return res.status(400).json({ message: "Email is required" });
+		}
+
+		// Step 2: Find user by email
+		const user = await User.findOne({ email });
+		if (!user) {
+			// Security best practice: Don't reveal that the email doesn't exist
+			return res.status(200).json({
+				message:
+					"If your email exists in our system, you will receive a password reset link",
 			});
 		}
 
-		// Return combined auth and user data
+		// Step 3: Generate reset token with expiration
+		const resetToken = jwt.sign(
+			{ id: user._id },
+			process.env.JWT_RESET_SECRET,
+			{ expiresIn: "1h" }
+		);
+
+		// Step 4: In production, send reset link via email
+		// For now, return token directly for testing
 		return res.status(200).json({
-			message: "Login successful",
-			user: userData, // Send the complete user data with role
-			token: session.access_token,
+			message: "Password reset link sent to your email",
+			resetToken, // Note: Remove this in production
 		});
-	} catch (err) {
-		console.error("Error logging in:", err.message);
-		return res
-			.status(500)
-			.json({ message: "Server error", error: err.message });
+	} catch (error) {
+		console.error("Error requesting password reset:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
 	}
 };
 
-// Logout function
-const logoutUser = async (req, res) => {
-	// try catch to catch any errors not caught by the signOut function
+/**
+ * Reset password with token
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.token - Password reset token
+ * @param {string} req.body.newPassword - New password
+ * @param {string} req.body.confirmPassword - Password confirmation
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with password reset status
+ * @throws {Error} If server error occurs during password reset
+ *
+ * Steps:
+ * 1. Validate input (token, newPassword, confirmPassword)
+ * 2. Verify token
+ * 3. Find user by ID from token
+ * 4. Hash new password
+ * 5. Update user's password
+ * 6. Return success message
+ */
+exports.resetPassword = async (req, res) => {
 	try {
-		const { error } = await supabase.auth.signOut();
-		if (error) {
-			return res.status(500).json({ message: "Logout failed" });
+		const { token, newPassword, confirmPassword } = req.body;
+
+		// Step 1: Validate required input fields
+		if (!token || !newPassword || !confirmPassword) {
+			return res.status(400).json({ message: "All fields are required" });
 		}
-		return res.json({ message: "Logged out successfully" });
-	} catch (err) {
-		console.error("Error logging out:", err.message);
-		return res
-			.status(500)
-			.json({ message: "Server error", error: err.message });
+
+		// Step 2: Validate password confirmation
+		if (newPassword !== confirmPassword) {
+			return res.status(400).json({ message: "Passwords do not match" });
+		}
+
+		// Step 3: Verify token validity and expiration
+		let decoded;
+		try {
+			decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
+		} catch (err) {
+			return res
+				.status(400)
+				.json({ message: "Invalid or expired token" });
+		}
+
+		// Step 4: Find user from token
+		const user = await User.findById(decoded.id);
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		// Step 5: Hash new password
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+		// Step 6: Update user's password
+		user.password = hashedPassword;
+		await user.save();
+
+		// Step 7: Return success response
+		return res.status(200).json({ message: "Password reset successful" });
+	} catch (error) {
+		console.error("Error resetting password:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
 	}
 };
-
-// Helper functions
-const createAuthUser = async (email, password) => {
-	const { data, error } = await supabase.auth.signUp({ email, password });
-	if (error) throw error;
-	return data;
-};
-
-const createUser = async (userData) => {
-	const { data, error } = await supabase
-		.from("users")
-		.insert([userData])
-		.select();
-	if (error) throw error;
-	return data;
-};
-
-const checkEmailExists = async (email) => {
-	const { data, error } = await supabase
-		.from("users")
-		.select("email")
-		.eq("email", email);
-	if (error) throw error;
-	return data.length > 0;
-};
-
-module.exports = { logoutUser, loginUser, signUpUser }; //export functions to be used outside of controller

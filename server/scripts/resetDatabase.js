@@ -1,62 +1,64 @@
 // scripts/resetDatabase.js
 require("dotenv").config({ path: "./.env.server" });
-const { createClient } = require("@supabase/supabase-js");
+const mongoose = require("mongoose");
+const User = require("../models/User");
+const Volunteer = require("../models/Volunteer");
+const Organiser = require("../models/Organiser");
+const Event = require("../models/Event");
+const EventRegistration = require("../models/EventRegistration");
+const Report = require("../models/Report");
+const Admin = require("../models/Admin");
+const AdminAction = require("../models/AdminAction");
 
-const supabase = createClient(
-	process.env.SUPABASE_URL,
-	process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-const tableKeyMap = {
-	reports: "id",
-	event_registrations: "id",
-	events: "id",
-	volunteer_skills: "id",
-	organisation_details: "id",
-	volunteers: "id",
-	users: "user_id",
-};
+// MongoDB connection URI
+const MONGODB_URI =
+	process.env.MONGODB_URI || "mongodb://localhost:27017/volunsphere";
 
 async function resetDatabase() {
 	try {
 		console.log("🧹 Starting full database reset...");
 
-		// Step 1: Delete all Auth users
-		const { data: listData, error: listError } =
-			await supabase.auth.admin.listUsers();
-		if (listError) throw new Error("Failed to list Auth users.");
+		// Connect to MongoDB
+		await mongoose.connect(MONGODB_URI, {
+			useNewUrlParser: true,
+			useUnifiedTopology: true,
+		});
 
-		for (const user of listData.users) {
-			await supabase.auth.admin.deleteUser(user.id);
-			console.log(`🗑️ Deleted Auth user: ${user.email}`);
-		}
+		console.log("✅ Connected to MongoDB");
 
-		// Step 2: Clear relational tables in order
-		const tables = [
-			"reports",
-			"event_registrations",
-			"events",
-			"volunteer_skills",
-			"organisation_details",
-			"volunteers",
-			"users",
+		// Clear collections in appropriate order (respecting dependencies)
+		const collectionsToClear = [
+			{ model: AdminAction, name: "AdminAction" },
+			{ model: Report, name: "Report" },
+			{ model: EventRegistration, name: "EventRegistration" },
+			{ model: Event, name: "Event" },
+			{ model: Admin, name: "Admin" },
+			{ model: Volunteer, name: "Volunteer" },
+			{ model: Organiser, name: "Organiser" },
+			{ model: User, name: "User" },
 		];
 
-		for (const table of tables) {
-			const pk = tableKeyMap[table] || "id";
-			console.log(`⛔ Deleting rows from "${table}"...`);
-			const { error } = await supabase.from(table).delete().gt(pk, 0);
-			if (error) {
-				console.warn(`⚠️ Issue clearing ${table}: ${error.message}`);
-				// Continue instead of throwing error to handle non-existent tables
-			} else {
-				console.log(`✅ Cleared ${table} successfully`);
-			}
+		for (const collection of collectionsToClear) {
+			console.log(`⛔ Deleting data from "${collection.name}"...`);
+			const result = await collection.model.deleteMany({});
+			console.log(
+				`✅ Cleared ${result.deletedCount} documents from ${collection.name}`
+			);
 		}
 
-		console.log("✅ Database and Auth reset complete.");
+		console.log("✅ Database reset complete.");
+
+		// Close MongoDB connection
+		await mongoose.connection.close();
+		console.log("🔄 MongoDB connection closed");
 	} catch (err) {
 		console.error("❌ Error during reset:", err);
+		// Ensure mongoose connection is closed even if there's an error
+		if (mongoose.connection.readyState !== 0) {
+			await mongoose.connection.close();
+			console.log("🔄 MongoDB connection closed");
+		}
+		process.exit(1);
 	}
 }
 

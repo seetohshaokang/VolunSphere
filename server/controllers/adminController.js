@@ -1,0 +1,1335 @@
+const User = require("../models/User");
+const Volunteer = require("../models/Volunteer");
+const Organiser = require("../models/Organiser");
+const Event = require("../models/Event");
+const Report = require("../models/Report");
+const Admin = require("../models/Admin");
+const AdminAction = require("../models/AdminAction");
+const EventRegistration = require("../models/EventRegistration");
+const mongoose = require("mongoose");
+
+/**
+ * Get admin dashboard statistics
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with dashboard statistics
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Get user statistics
+ * 3. Get new users in last 30 days
+ * 4. Get event statistics
+ * 5. Get registration statistics
+ * 6. Get report statistics
+ * 7. Get verification statistics
+ * 8. Get most popular event causes
+ * 9. Compile all statistics
+ * 10. Return statistics
+ */
+exports.getDashboardStats = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const userId = req.user.id;
+		const admin = await Admin.findOne({ user_id: userId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		// Step 2: Gather user statistics
+		const volunteerCount = await User.countDocuments({ role: "volunteer" });
+		const organiserCount = await User.countDocuments({ role: "organiser" });
+		const totalUsers = volunteerCount + organiserCount;
+
+		// Step 3: Calculate new user growth (last 30 days)
+		const thirtyDaysAgo = new Date();
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+		const newUsers = await User.countDocuments({
+			created_at: { $gte: thirtyDaysAgo },
+		});
+
+		// Step 4: Gather event statistics by status
+		const totalEvents = await Event.countDocuments();
+		const activeEvents = await Event.countDocuments({ status: "active" });
+		const completedEvents = await Event.countDocuments({
+			status: "completed",
+		});
+		const cancelledEvents = await Event.countDocuments({
+			status: "cancelled",
+		});
+
+		// Step 5: Calculate registration statistics and attendance rates
+		const totalRegistrations = await EventRegistration.countDocuments();
+		const attendedRegistrations = await EventRegistration.countDocuments({
+			status: "attended",
+		});
+		const noShowRegistrations = await EventRegistration.countDocuments({
+			status: "no_show",
+		});
+
+		// Step 6: Gather report statistics
+		const pendingReports = await Report.countDocuments({
+			status: "pending",
+		});
+		const resolvedReports = await Report.countDocuments({
+			status: { $in: ["resolved", "dismissed"] },
+		});
+
+		// Step 7: Get count of pending verification requests
+		const pendingVerifications = await Volunteer.countDocuments({
+			"nric_image.data": { $ne: null },
+			"nric_image.verified": false,
+		});
+
+		// Step 8: Calculate most popular event causes using aggregation
+		const popularCauses = await Event.aggregate([
+			{ $unwind: "$causes" },
+			{ $group: { _id: "$causes", count: { $sum: 1 } } },
+			{ $sort: { count: -1 } },
+			{ $limit: 5 },
+		]);
+
+		// Step 9: Compile all statistics into a structured response object
+		const stats = {
+			users: {
+				total: totalUsers,
+				volunteers: volunteerCount,
+				organisers: organiserCount,
+				newUsers,
+			},
+			events: {
+				total: totalEvents,
+				active: activeEvents,
+				completed: completedEvents,
+				cancelled: cancelledEvents,
+				popularCauses,
+			},
+			registrations: {
+				total: totalRegistrations,
+				attended: attendedRegistrations,
+				noShow: noShowRegistrations,
+				attendanceRate:
+					totalRegistrations > 0
+						? (
+								(attendedRegistrations / totalRegistrations) *
+								100
+						  ).toFixed(2)
+						: 0,
+			},
+			reports: {
+				pending: pendingReports,
+				resolved: resolvedReports,
+			},
+			verifications: {
+				pending: pendingVerifications,
+			},
+		};
+
+		return res.status(200).json({ stats });
+	} catch (error) {
+		console.error("Error getting dashboard stats:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Get list of all users
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.query - Query parameters for filtering
+ * @param {string} [req.query.role] - Filter by role (volunteer/organiser)
+ * @param {string} [req.query.status] - Filter by status (active/inactive/suspended)
+ * @param {string} [req.query.search] - Search by email
+ * @param {number} [req.query.page=1] - Page number
+ * @param {number} [req.query.limit=10] - Number of users per page
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with users list and pagination info
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Get query parameters
+ * 3. Build query with filters
+ * 4. Calculate pagination
+ * 5. Get users
+ * 6. Get total count for pagination
+ * 7. Get profile details for each user
+ * 8. Return users with profiles and pagination info
+ */
+exports.getUsers = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const userId = req.user.id;
+		const admin = await Admin.findOne({ user_id: userId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		// Step 2: Get and validate query parameters
+		const { role, status, search, page = 1, limit = 10 } = req.query;
+
+		// Step 3: Build filtering query
+		const query = {};
+
+		if (role && ["volunteer", "organiser"].includes(role)) {
+			query.role = role;
+		}
+
+		if (status && ["active", "inactive", "suspended"].includes(status)) {
+			query.status = status;
+		}
+
+		if (search) {
+			query.$or = [{ email: { $regex: search, $options: "i" } }];
+		}
+
+		// Step 4: Calculate pagination
+		const skip = (parseInt(page) - 1) * parseInt(limit);
+
+		// Step 5: Fetch users with pagination and sorting
+		const users = await User.find(query)
+			.select("-password") // Exclude sensitive information
+			.sort({ created_at: -1 })
+			.skip(skip)
+			.limit(parseInt(limit));
+
+		// Step 6: Count total matching users for pagination metadata
+		const total = await User.countDocuments(query);
+
+		// Step 7: Fetch profile details for each user based on their role
+		const usersWithProfiles = await Promise.all(
+			users.map(async (user) => {
+				let profile;
+
+				if (user.role === "volunteer") {
+					profile = await Volunteer.findOne({
+						user_id: user._id,
+					}).select(
+						"name phone profile_picture_url skills preferred_causes nric_image.verified"
+					);
+				} else if (user.role === "organiser") {
+					profile = await Organiser.findOne({
+						user_id: user._id,
+					}).select(
+						"organisation_name phone profile_picture_url verification_status"
+					);
+				}
+
+				return {
+					...user._doc,
+					profile,
+				};
+			})
+		);
+
+		// Step 8: Return paginated results with metadata
+		return res.status(200).json({
+			users: usersWithProfiles,
+			pagination: {
+				total,
+				page: parseInt(page),
+				pages: Math.ceil(total / parseInt(limit)),
+				limit: parseInt(limit),
+			},
+		});
+	} catch (error) {
+		console.error("Error getting users:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Get specific user details
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.id - User ID to retrieve
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with comprehensive user details
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Validate user ID
+ * 3. Get user
+ * 4. Get profile based on role
+ * 5. Get events or registrations based on role
+ * 6. Get reports submitted by user
+ * 7. Get admin actions targeting this user
+ * 8. Return comprehensive user data
+ */
+exports.getUserById = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const userId = req.user.id;
+		const admin = await Admin.findOne({ user_id: userId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		const { id } = req.params;
+
+		// Step 2: Validate user ID format
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid user ID" });
+		}
+
+		// Step 3: Get basic user information
+		const user = await User.findById(id).select("-password");
+
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		// Step 4: Initialize variables for role-specific data
+		let profile;
+		let events = [];
+		let registrations = [];
+		let reports = [];
+
+		// Step 5: Get role-specific profile and related data
+		if (user.role === "volunteer") {
+			profile = await Volunteer.findOne({ user_id: id });
+
+			// Get volunteer registrations
+			if (profile) {
+				const volRegistrations = await EventRegistration.find({
+					volunteer_id: profile._id,
+				}).populate("event_id");
+
+				registrations = volRegistrations;
+			}
+		} else if (user.role === "organiser") {
+			profile = await Organiser.findOne({ user_id: id });
+
+			// Get organised events
+			if (profile) {
+				events = await Event.find({ organiser_id: profile._id });
+			}
+		}
+
+		// Step 6: Get reports submitted by user
+		reports = await Report.find({ reporter_id: id })
+			.populate("reported_id")
+			.populate("event_id");
+
+		// Step 7: Get admin actions targeting this user
+		const actions = await AdminAction.find({
+			$or: [
+				{ target_type: "volunteer", target_id: profile?._id },
+				{ target_type: "organiser", target_id: profile?._id },
+			],
+		}).populate("admin_id");
+
+		// Step 8: Return comprehensive user data
+		return res.status(200).json({
+			user,
+			profile,
+			events,
+			registrations,
+			reports,
+			actions,
+		});
+	} catch (error) {
+		console.error("Error getting user:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Update user status
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.id - User ID to update
+ * @param {Object} req.body - Update data
+ * @param {string} req.body.status - New status (active/inactive/suspended)
+ * @param {string} [req.body.reason] - Reason for status change
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with updated user status
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Validate user ID and status
+ * 3. Get user and profile
+ * 4. Start transaction
+ * 5. Update user status
+ * 6. Create admin action record
+ * 7. Handle side effects (cancel registrations, events)
+ * 8. Commit transaction
+ * 9. Return success message with updated user
+ */
+exports.updateUserStatus = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const adminUserId = req.user.id;
+		const admin = await Admin.findOne({ user_id: adminUserId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		const { id } = req.params;
+		const { status, reason } = req.body;
+
+		// Step 2: Validate user ID format
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid user ID" });
+		}
+
+		// Step 3: Validate status
+		if (!status || !["active", "inactive", "suspended"].includes(status)) {
+			return res.status(400).json({
+				message:
+					"Invalid status. Must be active, inactive, or suspended.",
+			});
+		}
+
+		// Step 4: Get user and verify existence
+		const user = await User.findById(id);
+
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+
+		// Step 5: Get profile based on user role
+		let profile;
+		if (user.role === "volunteer") {
+			profile = await Volunteer.findOne({ user_id: id });
+		} else if (user.role === "organiser") {
+			profile = await Organiser.findOne({ user_id: id });
+		}
+
+		if (!profile) {
+			return res.status(404).json({ message: "User profile not found" });
+		}
+
+		// Step 6: Start a MongoDB transaction to ensure data consistency
+		const session = await mongoose.startSession();
+		session.startTransaction();
+
+		try {
+			// Step 7: Update user status
+			user.status = status;
+			await user.save({ session });
+
+			// Step 8: Create admin action record for audit trail
+			const action = new AdminAction({
+				admin_id: admin._id,
+				action:
+					status === "suspended"
+						? "suspension"
+						: status === "active"
+						? "activation"
+						: "deactivation",
+				target_type: user.role,
+				target_id: profile._id,
+				reason: reason || `User ${status} by admin`,
+				date: new Date(),
+			});
+
+			await action.save({ session });
+
+			// Step 9: Handle side effects based on status change
+			// Step 9.1: For suspended volunteers, cancel their active registrations
+			if (status === "suspended" && user.role === "volunteer") {
+				await EventRegistration.updateMany(
+					{ volunteer_id: profile._id, status: "registered" },
+					{ $set: { status: "cancelled" } },
+					{ session }
+				);
+			}
+
+			// Step 9.2: For suspended organisers, cancel their active events
+			if (status === "suspended" && user.role === "organiser") {
+				await Event.updateMany(
+					{ organiser_id: profile._id, status: "active" },
+					{ $set: { status: "cancelled" } },
+					{ session }
+				);
+			}
+
+			// Step 10: Commit the transaction
+			await session.commitTransaction();
+			session.endSession();
+
+			return res.status(200).json({
+				message: `User status updated to ${status}`,
+				user: { ...user.toObject(), status },
+			});
+		} catch (error) {
+			// Roll back transaction on error
+			await session.abortTransaction();
+			session.endSession();
+			throw error;
+		}
+	} catch (error) {
+		console.error("Error updating user status:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Get volunteers with pending NRIC verification
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.query - Query parameters
+ * @param {number} [req.query.page=1] - Page number
+ * @param {number} [req.query.limit=10] - Items per page
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with pending verifications
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Calculate pagination
+ * 3. Get volunteers with unverified NRIC
+ * 4. Get total count for pagination
+ * 5. Return volunteers with pagination info
+ */
+exports.getPendingVerifications = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const userId = req.user.id;
+		const admin = await Admin.findOne({ user_id: userId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		// Step 2: Get pagination parameters
+		const { page = 1, limit = 10 } = req.query;
+
+		// Step 3: Calculate pagination offsets
+		const skip = (parseInt(page) - 1) * parseInt(limit);
+
+		// Step 4: Find volunteers with unverified NRIC images
+		// Filter to only those with uploaded but unverified NRIC data
+		const volunteers = await Volunteer.find({
+			"nric_image.data": { $ne: null },
+			"nric_image.verified": false,
+		})
+			.select("user_id name phone nric_image.uploaded_at")
+			.sort({ "nric_image.uploaded_at": -1 }) // Sort by most recent uploads first
+			.skip(skip)
+			.limit(parseInt(limit))
+			.populate("user_id", "email status created_at"); // Include user data
+
+		// Step 5: Count total matching volunteers for pagination metadata
+		const total = await Volunteer.countDocuments({
+			"nric_image.data": { $ne: null },
+			"nric_image.verified": false,
+		});
+
+		// Step 6: Return paginated results with metadata
+		return res.status(200).json({
+			volunteers,
+			pagination: {
+				total,
+				page: parseInt(page),
+				pages: Math.ceil(total / parseInt(limit)),
+				limit: parseInt(limit),
+			},
+		});
+	} catch (error) {
+		console.error("Error getting pending verifications:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Update volunteer NRIC verification status
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.id - Volunteer ID
+ * @param {Object} req.body - Update data
+ * @param {boolean} req.body.verified - Verification status
+ * @param {string} [req.body.reason] - Reason for decision
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with verification update status
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Validate volunteer ID and verification status
+ * 3. Get volunteer and check NRIC image
+ * 4. Start transaction
+ * 5. Update verification status
+ * 6. Create admin action record
+ * 7. Increment admin's reports_handled count
+ * 8. Commit transaction
+ * 9. Return success message
+ */
+exports.updateVerificationStatus = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const adminUserId = req.user.id;
+		const admin = await Admin.findOne({ user_id: adminUserId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		const { id } = req.params;
+		const { verified, reason } = req.body;
+
+		// Step 2: Validate volunteer ID format
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid volunteer ID" });
+		}
+
+		// Step 3: Validate verification status parameter
+		if (typeof verified !== "boolean") {
+			return res
+				.status(400)
+				.json({ message: "Verified status must be a boolean" });
+		}
+
+		// Step 4: Get volunteer and verify existence
+		const volunteer = await Volunteer.findById(id);
+
+		if (!volunteer) {
+			return res.status(404).json({ message: "Volunteer not found" });
+		}
+
+		// Step 5: Check if volunteer has an NRIC image to verify
+		if (!volunteer.nric_image || !volunteer.nric_image.data) {
+			return res
+				.status(400)
+				.json({ message: "Volunteer does not have an NRIC image" });
+		}
+
+		// Step 6: Start a MongoDB transaction to ensure data consistency
+		const session = await mongoose.startSession();
+		session.startTransaction();
+
+		try {
+			// Step 7: Update volunteer verification status
+			volunteer.nric_image.verified = verified;
+			await volunteer.save({ session });
+
+			// Step 8: Create admin action record for audit trail
+			const action = new AdminAction({
+				admin_id: admin._id,
+				action: verified
+					? "verification_approved"
+					: "verification_rejected",
+				target_type: "volunteer",
+				target_id: volunteer._id,
+				reason:
+					reason ||
+					`NRIC verification ${
+						verified ? "approved" : "rejected"
+					} by admin`,
+				date: new Date(),
+			});
+
+			await action.save({ session });
+
+			// Step 9: Update admin's reports_handled count for performance tracking
+			admin.reports_handled += 1;
+			await admin.save({ session });
+
+			// Step 10: Commit the transaction
+			await session.commitTransaction();
+			session.endSession();
+
+			return res.status(200).json({
+				message: `NRIC verification ${
+					verified ? "approved" : "rejected"
+				}`,
+				volunteer: {
+					_id: volunteer._id,
+					name: volunteer.name,
+					nric_verified: volunteer.nric_image.verified,
+				},
+			});
+		} catch (error) {
+			// Roll back transaction on error
+			await session.abortTransaction();
+			session.endSession();
+			throw error;
+		}
+	} catch (error) {
+		console.error("Error updating verification status:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Get list of all reports
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.status] - Filter by report status
+ * @param {string} [req.query.reported_type] - Filter by reported entity type
+ * @param {number} [req.query.page=1] - Page number
+ * @param {number} [req.query.limit=10] - Items per page
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with reports and pagination info
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Build query with filters
+ * 3. Calculate pagination
+ * 4. Get reports with populated details
+ * 5. Get total count for pagination
+ * 6. Return reports with pagination info
+ */
+exports.getReports = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const userId = req.user.id;
+		const admin = await Admin.findOne({ user_id: userId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		// Step 2: Get and validate query parameters
+		const { status, reported_type, page = 1, limit = 10 } = req.query;
+
+		// Step 3: Build filtering query
+		const query = {};
+
+		if (
+			status &&
+			["pending", "under_review", "resolved", "dismissed"].includes(
+				status
+			)
+		) {
+			query.status = status;
+		}
+
+		if (
+			reported_type &&
+			["volunteer", "organiser", "event"].includes(reported_type)
+		) {
+			query.reported_type = reported_type;
+		}
+
+		// Step 4: Calculate pagination
+		const skip = (parseInt(page) - 1) * parseInt(limit);
+
+		// Step 5: Fetch reports with pagination, sorting, and populated references
+		const reports = await Report.find(query)
+			.sort({ created_at: -1 })
+			.skip(skip)
+			.limit(parseInt(limit))
+			.populate("reporter_id", "email")
+			.populate("reported_id")
+			.populate("event_id");
+
+		// Step 6: Count total matching reports for pagination metadata
+		const total = await Report.countDocuments(query);
+
+		// Step 7: Return paginated results with metadata
+		return res.status(200).json({
+			reports,
+			pagination: {
+				total,
+				page: parseInt(page),
+				pages: Math.ceil(total / parseInt(limit)),
+				limit: parseInt(limit),
+			},
+		});
+	} catch (error) {
+		console.error("Error getting reports:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Get specific report details
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.id - Report ID
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with detailed report information
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Validate report ID
+ * 3. Get report with populated details
+ * 4. Return report
+ */
+exports.getReportById = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const userId = req.user.id;
+		const admin = await Admin.findOne({ user_id: userId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		const { id } = req.params;
+
+		// Step 2: Validate report ID format
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid report ID" });
+		}
+
+		// Step 3: Fetch report with populated references
+		const report = await Report.findById(id)
+			.populate("reporter_id", "email")
+			.populate("reported_id")
+			.populate("event_id")
+			.populate("resolved_by");
+
+		if (!report) {
+			return res.status(404).json({ message: "Report not found" });
+		}
+
+		// Step 4: Return complete report data
+		return res.status(200).json({ report });
+	} catch (error) {
+		console.error("Error getting report:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Update report status
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.id - Report ID
+ * @param {Object} req.body - Update data
+ * @param {string} req.body.status - New status
+ * @param {string} [req.body.admin_notes] - Admin notes
+ * @param {string} [req.body.resolution_action] - Resolution action
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with updated report
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Validate report ID and status
+ * 3. Get report
+ * 4. Validate resolution action if resolving
+ * 5. Start transaction
+ * 6. Update report status and fields
+ * 7. Take actions based on resolution if needed
+ * 8. Increment admin's reports_handled count
+ * 9. Commit transaction
+ * 10. Return success message with updated report
+ */
+exports.updateReportStatus = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const adminUserId = req.user.id;
+		const admin = await Admin.findOne({ user_id: adminUserId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		const { id } = req.params;
+		const { status, admin_notes, resolution_action } = req.body;
+
+		// Step 2: Validate report ID format
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid report ID" });
+		}
+
+		// Step 3: Validate status
+		if (
+			!status ||
+			!["pending", "under_review", "resolved", "dismissed"].includes(
+				status
+			)
+		) {
+			return res.status(400).json({ message: "Invalid status" });
+		}
+
+		// Step 4: Get report and verify existence
+		const report = await Report.findById(id);
+
+		if (!report) {
+			return res.status(404).json({ message: "Report not found" });
+		}
+
+		// Step 5: Validate resolution action if status is "resolved"
+		if (
+			status === "resolved" &&
+			(!resolution_action ||
+				![
+					"none",
+					"warning",
+					"suspension",
+					"ban",
+					"event_removed",
+				].includes(resolution_action))
+		) {
+			return res
+				.status(400)
+				.json({ message: "Invalid resolution action" });
+		}
+
+		// Step 6: Start a MongoDB transaction to ensure data consistency
+		const session = await mongoose.startSession();
+		session.startTransaction();
+
+		try {
+			// Step 7: Update report fields
+			report.status = status;
+
+			if (admin_notes) {
+				report.admin_notes = admin_notes;
+			}
+
+			if (status === "resolved" || status === "dismissed") {
+				report.resolved_by = admin._id;
+				report.resolution_date = new Date();
+				report.resolution_action = resolution_action || "none";
+			}
+
+			await report.save({ session });
+
+			// Step 8: Take action based on resolution (if status is "resolved" and action specified)
+			if (
+				status === "resolved" &&
+				resolution_action &&
+				resolution_action !== "none"
+			) {
+				// Step 8.1: Create admin action record for audit trail
+				const action = new AdminAction({
+					admin_id: admin._id,
+					action: resolution_action,
+					target_type: report.reported_type,
+					target_id: report.reported_id,
+					reason:
+						admin_notes ||
+						`Action taken based on report #${report._id}`,
+					date: new Date(),
+					related_report_id: report._id,
+				});
+
+				await action.save({ session });
+
+				// Step 8.2: Execute specific action based on type
+				if (
+					resolution_action === "suspension" ||
+					resolution_action === "ban"
+				) {
+					// Step 8.2.1: Get the user associated with the reported entity
+					let userToUpdate;
+
+					if (report.reported_type === "volunteer") {
+						const volunteer = await Volunteer.findById(
+							report.reported_id
+						).session(session);
+						userToUpdate = await User.findById(
+							volunteer.user_id
+						).session(session);
+					} else if (report.reported_type === "organiser") {
+						const organiser = await Organiser.findById(
+							report.reported_id
+						).session(session);
+						userToUpdate = await User.findById(
+							organiser.user_id
+						).session(session);
+					}
+
+					// Step 8.2.2: Update user status based on action
+					if (userToUpdate) {
+						userToUpdate.status =
+							resolution_action === "ban"
+								? "inactive"
+								: "suspended";
+						await userToUpdate.save({ session });
+					}
+				} else if (
+					resolution_action === "event_removed" &&
+					report.reported_type === "event"
+				) {
+					// Step 8.2.3: Cancel the reported event
+					await Event.findByIdAndUpdate(
+						report.reported_id,
+						{ $set: { status: "cancelled" } },
+						{ session }
+					);
+				}
+			}
+
+			// Step 9: Increment admin's reports_handled count for performance tracking
+			admin.reports_handled += 1;
+			await admin.save({ session });
+
+			// Step 10: Commit the transaction
+			await session.commitTransaction();
+			session.endSession();
+
+			return res.status(200).json({
+				message: `Report status updated to ${status}`,
+				report,
+			});
+		} catch (error) {
+			// Roll back transaction on error
+			await session.abortTransaction();
+			session.endSession();
+			throw error;
+		}
+	} catch (error) {
+		console.error("Error updating report status:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Get list of admin actions
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.query - Query parameters
+ * @param {string} [req.query.action_type] - Filter by action type
+ * @param {string} [req.query.target_type] - Filter by target type
+ * @param {number} [req.query.page=1] - Page number
+ * @param {number} [req.query.limit=10] - Items per page
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with admin actions and pagination info
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Build query with filters
+ * 3. Calculate pagination
+ * 4. Get actions with populated details
+ * 5. Get total count for pagination
+ * 6. Return actions with pagination info
+ */
+exports.getActions = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const userId = req.user.id;
+		const admin = await Admin.findOne({ user_id: userId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		// Step 2: Get and validate query parameters
+		const { action_type, target_type, page = 1, limit = 10 } = req.query;
+
+		// Step 3: Build filtering query
+		const query = {};
+
+		if (
+			action_type &&
+			[
+				"warning",
+				"suspension",
+				"ban",
+				"event_removed",
+				"verification_approved",
+				"verification_rejected",
+			].includes(action_type)
+		) {
+			query.action = action_type;
+		}
+
+		if (
+			target_type &&
+			["volunteer", "organiser", "event"].includes(target_type)
+		) {
+			query.target_type = target_type;
+		}
+
+		// Step 4: Calculate pagination
+		const skip = (parseInt(page) - 1) * parseInt(limit);
+
+		// Step 5: Fetch admin actions with pagination, sorting, and populated references
+		const actions = await AdminAction.find(query)
+			.sort({ date: -1 })
+			.skip(skip)
+			.limit(parseInt(limit))
+			.populate("admin_id")
+			.populate("target_id")
+			.populate("related_report_id");
+
+		// Step 6: Count total matching actions for pagination metadata
+		const total = await AdminAction.countDocuments(query);
+
+		// Step 7: Return paginated results with metadata
+		return res.status(200).json({
+			actions,
+			pagination: {
+				total,
+				page: parseInt(page),
+				pages: Math.ceil(total / parseInt(limit)),
+				limit: parseInt(limit),
+			},
+		});
+	} catch (error) {
+		console.error("Error getting admin actions:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Create a new admin action
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.body - Action details
+ * @param {string} req.body.action - Action type
+ * @param {string} req.body.target_type - Target entity type
+ * @param {string} req.body.target_id - Target entity ID
+ * @param {string} req.body.reason - Reason for action
+ * @param {string} [req.body.related_report_id] - Related report ID
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with created action
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Validate required fields, action, target type, and IDs
+ * 3. Verify target exists
+ * 4. Start transaction
+ * 5. Create admin action record
+ * 6. Execute action effects based on type
+ * 7. Update related report if provided
+ * 8. Commit transaction
+ * 9. Return success message with action details
+ */
+exports.createAction = async (req, res) => {
+	try {
+		// Step 1: Verify user has admin permissions
+		const adminUserId = req.user.id;
+		const admin = await Admin.findOne({ user_id: adminUserId });
+
+		if (!admin) {
+			return res.status(403).json({
+				message: "Access denied. Admin permissions required.",
+			});
+		}
+
+		const { action, target_type, target_id, reason, related_report_id } =
+			req.body;
+
+		// Step 2: Validate required fields
+		if (!action || !target_type || !target_id || !reason) {
+			return res.status(400).json({
+				message:
+					"Action, target type, target ID, and reason are required",
+			});
+		}
+
+		// Step 3: Validate action type
+		if (
+			!["warning", "suspension", "ban", "event_removed"].includes(action)
+		) {
+			return res.status(400).json({ message: "Invalid action" });
+		}
+
+		// Step 4: Validate target type
+		if (!["volunteer", "organiser", "event"].includes(target_type)) {
+			return res.status(400).json({ message: "Invalid target type" });
+		}
+
+		// Step 5: Validate target ID format
+		if (!mongoose.Types.ObjectId.isValid(target_id)) {
+			return res.status(400).json({ message: "Invalid target ID" });
+		}
+
+		// Step 6: Validate related report ID format if provided
+		if (
+			related_report_id &&
+			!mongoose.Types.ObjectId.isValid(related_report_id)
+		) {
+			return res.status(400).json({ message: "Invalid report ID" });
+		}
+
+		// Step 7: Verify target entity exists
+		let target;
+		if (target_type === "volunteer") {
+			target = await Volunteer.findById(target_id);
+		} else if (target_type === "organiser") {
+			target = await Organiser.findById(target_id);
+		} else if (target_type === "event") {
+			target = await Event.findById(target_id);
+		}
+
+		if (!target) {
+			return res
+				.status(404)
+				.json({ message: `${target_type} not found` });
+		}
+
+		// Step 8: Start a MongoDB transaction to ensure data consistency
+		const session = await mongoose.startSession();
+		session.startTransaction();
+
+		try {
+			// Step 9: Create admin action record
+			const adminAction = new AdminAction({
+				admin_id: admin._id,
+				action,
+				target_type,
+				target_id,
+				reason,
+				date: new Date(),
+				related_report_id: related_report_id || null,
+			});
+
+			await adminAction.save({ session });
+
+			// Step 10: Execute action based on type
+			if (action === "suspension" || action === "ban") {
+				// Step 10.1: Get the user associated with the target
+				let userToUpdate;
+
+				if (target_type === "volunteer") {
+					userToUpdate = await User.findById(target.user_id).session(
+						session
+					);
+				} else if (target_type === "organiser") {
+					userToUpdate = await User.findById(target.user_id).session(
+						session
+					);
+				}
+
+				// Step 10.2: Update user status based on action
+				if (userToUpdate) {
+					userToUpdate.status =
+						action === "ban" ? "inactive" : "suspended";
+					await userToUpdate.save({ session });
+				}
+			} else if (action === "event_removed" && target_type === "event") {
+				// Step 10.3: Cancel the event
+				await Event.findByIdAndUpdate(
+					target_id,
+					{ $set: { status: "cancelled" } },
+					{ session }
+				);
+			}
+
+			// Step 11: Update related report if provided
+			if (related_report_id) {
+				await Report.findByIdAndUpdate(
+					related_report_id,
+					{
+						$set: {
+							status: "resolved",
+							resolved_by: admin._id,
+							resolution_date: new Date(),
+							resolution_action: action,
+						},
+					},
+					{ session }
+				);
+			}
+
+			// Step 12: Commit the transaction
+			await session.commitTransaction();
+			session.endSession();
+
+			return res.status(201).json({
+				message: "Admin action created successfully",
+				action: adminAction,
+			});
+		} catch (error) {
+			// Roll back transaction on error
+			await session.abortTransaction();
+			session.endSession();
+			throw error;
+		}
+	} catch (error) {
+		console.error("Error creating admin action:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};

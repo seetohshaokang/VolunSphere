@@ -1,242 +1,194 @@
 // scripts/seedTestData.js
 require("dotenv").config({ path: "./.env.server" });
-const { createClient } = require("@supabase/supabase-js");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
+const Volunteer = require("../models/Volunteer");
+const Organiser = require("../models/Organiser");
+const Event = require("../models/Event");
+const EventRegistration = require("../models/EventRegistration");
 
-const supabase = createClient(
-	process.env.SUPABASE_URL,
-	process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// MongoDB connection URI
+const MONGODB_URI =
+	process.env.MONGODB_URI || "mongodb://localhost:27017/volunsphere";
 
 async function seedTestData() {
 	try {
 		console.log("🌱 Seeding test users and events...");
 
-		const users = [
-			{
-				email: "testvolunteer1@gmail.com",
-				password: "password",
-				role: "volunteer",
-				name: "Test Volunteer",
-				phone: "91234567",
-				bio: "I love volunteering for green causes.",
-				address: "123 Test Lane",
-				dob: "1990-01-01",
-				profile_picture_url: null,
-				status: "active",
-			},
-			{
-				email: "testorganiser1@gmail.com",
-				password: "password",
-				role: "organiser",
-				name: "Test Organiser",
-				phone: "98765432",
-				bio: "We host educational events.",
-				address: "456 Org Street",
-				dob: "1985-05-15",
-				profile_picture_url: null,
-				status: "active",
-			},
-		];
+		// Connect to MongoDB
+		await mongoose.connect(MONGODB_URI, {
+			useNewUrlParser: true,
+			useUnifiedTopology: true,
+		});
 
-		let organiserAuthId = null;
-		let volunteerId = null;
+		console.log("✅ Connected to MongoDB");
 
-		for (const user of users) {
-			const { data: listData } = await supabase.auth.admin.listUsers();
-			const exists = listData.users.find((u) => u.email === user.email);
+		// Hash password
+		const salt = await bcrypt.genSalt(10);
+		const hashedPassword = await bcrypt.hash("password", salt);
 
-			if (exists) {
-				console.log(
-					`⚠️ User ${user.email} already exists, skipping creation.`
-				);
+		// Create test volunteer user
+		const volunteerUser = new User({
+			email: "testvolunteer1@gmail.com",
+			password: hashedPassword,
+			role: "volunteer",
+			status: "active",
+			created_at: new Date(),
+			last_login: new Date(),
+		});
 
-				const { data: existingDbUser, error: fetchError } =
-					await supabase
-						.from("users")
-						.select("auth_id, user_id")
-						.eq("email", user.email)
-						.maybeSingle();
+		const savedVolunteerUser = await volunteerUser.save();
+		console.log(`✅ Created volunteer user: ${savedVolunteerUser.email}`);
 
-				if (fetchError || !existingDbUser) {
-					throw new Error(
-						`User ${user.email} exists in Auth but not in DB.`
-					);
-				}
+		// Create volunteer profile
+		const volunteer = new Volunteer({
+			user_id: savedVolunteerUser._id,
+			name: "Test Volunteer",
+			phone: "91234567",
+			bio: "I love volunteering for green causes.",
+			address: "123 Test Lane",
+			dob: new Date("1990-01-01"),
+			profile_picture_url: null,
+			skills: ["Education", "Healthcare", "Environment"],
+			preferred_causes: ["education", "healthcare", "environment"],
+		});
 
-				if (user.role === "organiser") {
-					organiserAuthId = existingDbUser.auth_id;
-				} else if (user.role === "volunteer") {
-					volunteerId = existingDbUser.user_id;
-				}
-				continue;
-			}
+		await volunteer.save();
+		console.log(
+			`✅ Created volunteer profile for: ${savedVolunteerUser.email}`
+		);
 
-			// Create in Auth
-			const { data: authUser, error: authError } =
-				await supabase.auth.admin.createUser({
-					email: user.email,
-					password: user.password,
-					email_confirm: true,
-				});
-			if (authError) throw new Error(authError.message);
+		// Create test organiser user
+		const organiserUser = new User({
+			email: "testorganiser1@gmail.com",
+			password: hashedPassword,
+			role: "organiser",
+			status: "active",
+			created_at: new Date(),
+			last_login: new Date(),
+		});
 
-			console.log(`✅ Created Auth user: ${user.email}`);
+		const savedOrganiserUser = await organiserUser.save();
+		console.log(`✅ Created organiser user: ${savedOrganiserUser.email}`);
 
-			// Create in DB
-			const userData = {
-				auth_id: authUser.user.id,
-				email: user.email,
-				role: user.role,
-				name: user.name,
-				phone: user.phone,
-				bio: user.bio,
-				address: user.address,
-				dob: user.dob,
-				profile_picture_url: user.profile_picture_url,
-				status: user.status,
-				created_at: new Date(),
-			};
+		// Create organiser profile
+		const organiser = new Organiser({
+			user_id: savedOrganiserUser._id,
+			organisation_name: "Test Organisation",
+			phone: "98765432",
+			description: "We host educational events.",
+			address: "456 Org Street",
+			profile_picture_url: null,
+			verification_status: "verified",
+			website: "https://testorg.example.com",
+		});
 
-			const { data: inserted, error: dbError } = await supabase
-				.from("users")
-				.insert([userData])
-				.select();
-
-			if (dbError) {
-				await supabase.auth.admin.deleteUser(authUser.user.id);
-				throw new Error(
-					`DB insert failed for ${user.email}: ${dbError.message}`
-				);
-			}
-
-			if (user.role === "organiser") {
-				organiserAuthId = authUser.user.id;
-
-				await supabase.from("organisation_details").insert([
-					{
-						user_id: inserted[0].user_id,
-						organisation_name: "Test Organisation",
-						description: "For dev seeding",
-					},
-				]);
-			}
-
-			if (user.role === "volunteer") {
-				volunteerId = inserted[0].user_id;
-
-				await supabase.from("volunteer_skills").insert(
-					["Education", "Healthcare", "Environment"].map((skill) => ({
-						user_id: inserted[0].user_id,
-						skill_name: skill,
-					}))
-				);
-			}
-		}
+		const savedOrganiser = await organiser.save();
+		console.log(
+			`✅ Created organiser profile for: ${savedOrganiserUser.email}`
+		);
 
 		// Create events
-		if (!organiserAuthId)
-			throw new Error("No organiser available to seed events.");
-
 		const events = [
 			{
+				organiser_id: savedOrganiser._id,
 				name: "Beach Cleanup Drive",
-				duration: "3 hours",
 				description:
 					"Join us for a community beach cleanup event. Help keep our beaches clean and protect marine life.",
-				cause: "Environment",
 				location: "Changi Beach",
-				organiser_id: organiserAuthId,
-				start_date: "2025-04-15",
-				end_date: "2025-04-15",
-				status: "active",
-				start_time: "09:00:00",
-				end_time: "12:00:00",
-				is_recurring: false,
+				causes: ["environment"],
 				max_volunteers: 20,
 				registered_count: 0,
+				contact_person: "Test Organiser",
+				contact_email: "testorganiser1@gmail.com",
+				status: "active",
+				is_recurring: false,
+				start_datetime: new Date("2025-04-15T09:00:00"),
+				end_datetime: new Date("2025-04-15T12:00:00"),
+				start_day_of_week: new Date("2025-04-15").getDay(),
+				created_at: new Date(),
 			},
 			{
+				organiser_id: savedOrganiser._id,
 				name: "Literacy Program",
-				duration: "2 hours",
 				description:
 					"Volunteer to read with children and support literacy skills development.",
-				cause: "Education",
 				location: "Public Library",
-				organiser_id: organiserAuthId,
-				start_date: "2025-04-25",
-				end_date: "2025-04-25",
-				status: "active",
-				start_time: "16:00:00",
-				end_time: "18:00:00",
-				is_recurring: true,
-				recurrence_pattern: "weekly",
-				recurrence_day: 5,
+				causes: ["education"],
 				max_volunteers: 10,
 				registered_count: 0,
+				contact_person: "Test Organiser",
+				contact_email: "testorganiser1@gmail.com",
+				status: "active",
+				is_recurring: true,
+				recurrence_pattern: "weekly",
+				recurrence_days: [5], // Friday
+				recurrence_start_date: new Date("2025-04-25"),
+				recurrence_end_date: new Date("2025-07-25"),
+				recurrence_time: {
+					start: "16:00",
+					end: "18:00",
+				},
+				created_at: new Date(),
 			},
 			{
+				organiser_id: savedOrganiser._id,
 				name: "Food Distribution Drive",
-				duration: "4 hours",
 				description:
 					"Help pack and distribute food packages to families in need in our community.",
-				cause: "Social Services",
 				location: "Central Community Center",
-				organiser_id: organiserAuthId,
-				start_date: "2025-04-10",
-				end_date: "2025-04-10",
-				status: "active",
-				start_time: "10:00:00",
-				end_time: "14:00:00",
-				is_recurring: false,
+				causes: ["social services"],
 				max_volunteers: 25,
 				registered_count: 0,
+				contact_person: "Test Organiser",
+				contact_email: "testorganiser1@gmail.com",
+				status: "active",
+				is_recurring: false,
+				start_datetime: new Date("2025-04-10T10:00:00"),
+				end_datetime: new Date("2025-04-10T14:00:00"),
+				start_day_of_week: new Date("2025-04-10").getDay(),
+				created_at: new Date(),
 			},
 		];
 
-		const { data: createdEvents, error: eventError } = await supabase
-			.from("events")
-			.insert(events)
-			.select();
-
-		if (eventError) throw new Error(eventError.message);
-
+		const createdEvents = await Event.insertMany(events);
 		console.log(`✅ Created ${createdEvents.length} events`);
 
-		// Register volunteer for first event if volunteer exists
-		if (volunteerId && createdEvents && createdEvents.length > 0) {
-			const firstEvent = createdEvents[0];
+		// Register volunteer for the first event
+		const firstEvent = createdEvents[0];
 
-			const { error: regError } = await supabase
-				.from("event_registrations")
-				.insert([
-					{
-						user_id: volunteerId,
-						event_id: firstEvent.id,
-						status: "registered",
-						created_at: new Date(),
-					},
-				]);
+		const registration = new EventRegistration({
+			volunteer_id: volunteer._id,
+			event_id: firstEvent._id,
+			status: "registered",
+			registration_date: new Date(),
+		});
 
-			if (regError) {
-				console.warn(
-					`⚠️ Could not register volunteer: ${regError.message}`
-				);
-			} else {
-				// Update the event registration count
-				await supabase
-					.from("events")
-					.update({ registered_count: 1 })
-					.eq("id", firstEvent.id);
+		await registration.save();
 
-				console.log(
-					`✅ Registered test volunteer for "${firstEvent.name}" event`
-				);
-			}
-		}
+		// Update event registration count
+		await Event.findByIdAndUpdate(firstEvent._id, {
+			$inc: { registered_count: 1 },
+		});
+
+		console.log(
+			`✅ Registered test volunteer for "${firstEvent.name}" event`
+		);
 
 		console.log("🎉 Seeding complete!");
+
+		// Close MongoDB connection
+		await mongoose.connection.close();
+		console.log("🔄 MongoDB connection closed");
 	} catch (error) {
-		console.error("❌ Seeding failed:", error.message);
+		console.error("❌ Seeding failed:", error);
+		// Ensure mongoose connection is closed even if there's an error
+		if (mongoose.connection.readyState !== 0) {
+			await mongoose.connection.close();
+			console.log("🔄 MongoDB connection closed");
+		}
+		process.exit(1);
 	}
 }
 

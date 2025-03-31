@@ -1,48 +1,89 @@
-/**
- * Event Routes
- * Handles routes for event management and participation
- */
 const express = require("express");
 const router = express.Router();
-const {
-	createEvent,
-	getEvents,
-	getEventById,
-	updateEvent,
-	deleteEvent,
-	registerForEvent,
-	cancelRegistration,
-	getRegisteredEvents,
-	getOrganizedEvents,
-	reportEvent,
-	getRecommendedEvents,
-} = require("../controllers/eventController");
-const { protectRoute } = require("../middleware/authMiddleware");
+const eventController = require("../controllers/eventController");
+const { protectRoute, requireRole } = require("../middleware/authMiddleware");
 
-// Public even routes (no authentication required)
-router.get("/", getEvents);
-router.get("/:id", getEventById);
+/**
+ * @route   GET /events
+ * @desc    Get all events with optional filters
+ * @access  Public
+ */
+router.get("/", eventController.getEvents);
 
-// Protected event routes (require authentication)
-router.use(protectRoute);
+/**
+ * @route   POST /events
+ * @desc    Create a new event
+ * @access  Private (Organiser only)
+ */
+router.post(
+	"/",
+	protectRoute,
+	requireRole("organiser"),
+	eventController.createEvent
+);
 
-// Event creation and management - typically for organisers
-router.post("/", createEvent);
-router.put("/:id", updateEvent);
-router.delete("/:id", deleteEvent);
+/**
+ * @route   GET /events/:id
+ * @desc    Get details of a specific event
+ * @access  Public
+ */
+router.get("/:id", eventController.getEventById);
 
-// Event registration routes - for volunteers
-router.post("/:id/register", registerForEvent);
-router.delete("/:id/register", cancelRegistration);
+/**
+ * @route   PUT /events/:id
+ * @desc    Update event details
+ * @access  Private (Event Owner)
+ */
+router.put("/:id", protectRoute, eventController.updateEvent);
 
-// User-specific event lists
-router.get("/user/registered", getRegisteredEvents);
-router.get("/user/organized", getOrganizedEvents);
+/**
+ * @route   DELETE /events/:id
+ * @desc    Delete an event
+ * @access  Private (Event Owner)
+ */
+router.delete("/:id", protectRoute, eventController.deleteEvent);
 
-// Event recommendations
-router.get("/recommendations", getRecommendedEvents);
+/**
+ * @route   POST /events/:id/registrations
+ * @desc    Register for an event
+ * @access  Private (Volunteer only)
+ */
+router.post(
+	"/:id/registrations",
+	protectRoute,
+	requireRole("volunteer"),
+	eventController.registerForEvent
+);
 
-// Event reporting route
-router.post("/:id/report", reportEvent);
+/**
+ * @route   DELETE /events/:id/registrations
+ * @desc    Cancel event registration
+ * @access  Private (Volunteer only)
+ */
+router.delete(
+	"/:id/registrations",
+	protectRoute,
+	requireRole("volunteer"),
+	eventController.cancelRegistration
+);
+
+/**
+ * @route   POST /events/:id/reports
+ * @desc    Report an event
+ * @access  Private
+ */
+router.post("/:id/reports", protectRoute, eventController.reportEvent);
+
+/**
+ * @route   GET /events/recommendations
+ * @desc    Get personalized event recommendations
+ * @access  Private (Volunteer only)
+ */
+router.get(
+	"/recommendations",
+	protectRoute,
+	requireRole("volunteer"),
+	eventController.getRecommendedEvents
+);
 
 module.exports = router;
