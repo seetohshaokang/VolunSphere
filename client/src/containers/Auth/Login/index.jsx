@@ -19,36 +19,14 @@ import Api from "../../../helpers/Api";
 function Login() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
-	const [message, setMessage] = useState("");
 	const [error, setError] = useState("");
 	const [validated, setValidated] = useState(false);
 	const navigate = useNavigate();
 	const { login } = useAuth();
 	const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-	// Function to fetch data from the backend
-	const fetchData = async () => {
-		try {
-			const response = await Api.testConnection();
-			console.log("Full Response", response);
-
-			if (response.data) {
-				setMessage(response.data.message);
-				setError("");
-			} else {
-				setError("No data returned from backend");
-				setMessage("");
-			}
-		} catch (err) {
-			console.error("Error fetching data from the backend:", err);
-			setError("Failed to connect to the backend.");
-			setMessage("");
-		}
-	};
-
-	// Fetch data on component mount
+	// Handle window resize for responsive design
 	useEffect(() => {
-		fetchData();
 		const handleResize = () => setIsMobile(window.innerWidth <= 768);
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
@@ -96,11 +74,6 @@ function Login() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{message && (
-						<Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
-							<AlertDescription>{message}</AlertDescription>
-						</Alert>
-					)}
 					{error && (
 						<Alert variant="destructive" className="mb-4">
 							<AlertDescription>{error}</AlertDescription>

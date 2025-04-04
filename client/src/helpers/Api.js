@@ -1,187 +1,150 @@
-const SERVER_PREFIX = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// src/helpers/Api.js
+// Base API helper for making requests to the backend
 
-const Api = {
-	testConnection() {
-		return fetch(`${SERVER_PREFIX}/test/connection`)
-			.then((res) => res.json())
-			.catch((error) => {
-				console.error("Test connection error:", error);
-				throw error;
-			});
-	},
+const API_BASE_URL =
+	import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
-	// Auth-related methods
-	loginUser(credentials) {
-		return fetch(`${SERVER_PREFIX}/auth/login`, {
+class Api {
+	// Authentication methods
+	static async loginUser(credentials) {
+		return fetch(`${API_BASE_URL}/auth/login`, {
+			method: "POST",
 			headers: {
-				Accept: "application/json",
 				"Content-Type": "application/json",
 			},
-			method: "POST",
 			body: JSON.stringify(credentials),
 		});
-	},
+	}
 
-	registerUser(userData) {
-		return fetch(`${SERVER_PREFIX}/auth/signup`, {
+	static async registerUser(userData) {
+		return fetch(`${API_BASE_URL}/auth/register`, {
+			method: "POST",
 			headers: {
-				Accept: "application/json",
 				"Content-Type": "application/json",
 			},
-			method: "POST",
 			body: JSON.stringify(userData),
 		});
-	},
+	}
 
-	forgotPassword(data) {
-		return fetch(`${SERVER_PREFIX}/auth/forgot-password`, {
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-			},
-			method: "POST",
-			body: JSON.stringify(data),
-		});
-	},
-
-	logoutUser() {
-		return fetch(`${SERVER_PREFIX}/auth/logout`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "POST",
-		});
-	},
-
-	// Profile-related methods
-	getUserProfile() {
-		return fetch(`${SERVER_PREFIX}/profile/readProfile`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-		});
-	},
-
-	updateUserProfile(data) {
-		// For form data with file uploads
-		return fetch(`${SERVER_PREFIX}/profile/updateProfile`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "POST",
-			body: data, // FormData for file uploads
-		});
-	},
-
-	deleteUserProfile() {
-		return fetch(`${SERVER_PREFIX}/profile/deleteProfile`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "DELETE",
-		});
-	},
-
-	// Event-related methods
-	getAllEvents() {
-		return fetch(`${SERVER_PREFIX}/events`);
-	},
-
-	getEvent(id) {
-		return fetch(`${SERVER_PREFIX}/events/${id}`);
-	},
-
-	createEvent(data) {
-		return fetch(`${SERVER_PREFIX}/events`, {
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "POST",
-			body: JSON.stringify(data),
-		});
-	},
-
-	updateEvent(id, data) {
-		return fetch(`${SERVER_PREFIX}/events/${id}`, {
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "PUT",
-			body: JSON.stringify(data),
-		});
-	},
-
-	deleteEvent(id) {
-		return fetch(`${SERVER_PREFIX}/events/${id}`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "DELETE",
-		});
-	},
-
-	registerForEvent(eventId) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/register`, {
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "POST",
-		});
-	},
-
-	cancelEventRegistration(eventId) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/register`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "DELETE",
-		});
-	},
-
-	getRegisteredEvents() {
-		return fetch(`${SERVER_PREFIX}/events/user/registered`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-		});
-	},
-
-	getOrganizedEvents() {
+	// User profile methods
+	static async getUserProfile() {
 		const token = localStorage.getItem("token");
-		console.log("Using token for auth:", token);
-
-		return fetch(`${SERVER_PREFIX}/events/user/organized`, {
+		return fetch(`${API_BASE_URL}/profile`, {
+			method: "GET",
 			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-		});
-	},
-
-	reportEvent(eventId, reason) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/report`, {
-			headers: {
-				Accept: "application/json",
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
+				Authorization: `Bearer ${token}`,
 			},
-			method: "POST",
-			body: JSON.stringify({ reason }),
 		});
-	},
+	}
 
-	getRecommendedEvents() {
-		return fetch(`${SERVER_PREFIX}/events/recommendations`, {
+	static async updateUserProfile(formData) {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/profile`, {
+			method: "PUT",
 			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
+				Authorization: `Bearer ${token}`,
+			},
+			body: formData,
+		});
+	}
+
+	// Event methods
+	static async getAllEvents() {
+		return fetch(`${API_BASE_URL}/events`, {
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
 			},
 		});
-	},
-};
+	}
+
+	static async getEvent(id) {
+		return fetch(`${API_BASE_URL}/events/${id}`, {
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
+	}
+
+	static async createEvent(eventData) {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/events`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${token}`,
+			},
+			body: JSON.stringify(eventData),
+		});
+	}
+
+	static async updateEvent(id, eventData) {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/events/${id}`, {
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${token}`,
+			},
+			body: JSON.stringify(eventData),
+		});
+	}
+
+	static async deleteEvent(id) {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/events/${id}`, {
+			method: "DELETE",
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
+	}
+
+	// Registration methods
+	static async registerForEvent(eventId) {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/events/${eventId}/registrations`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${token}`,
+			},
+		});
+	}
+
+	static async cancelEventRegistration(eventId) {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/events/${eventId}/registrations`, {
+			method: "DELETE",
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
+	}
+
+	static async getRegisteredEvents() {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/registrations`, {
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${token}`,
+			},
+		});
+	}
+
+	static async getOrganizedEvents() {
+		const token = localStorage.getItem("token");
+		return fetch(`${API_BASE_URL}/profile/events`, {
+			method: "GET",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${token}`,
+			},
+		});
+	}
+}
 
 export default Api;
