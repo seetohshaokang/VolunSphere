@@ -1333,3 +1333,88 @@ exports.createAction = async (req, res) => {
 		});
 	}
 };
+
+/**
+ * Get specific event details for admin view
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - Admin user ID
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.id - Event ID
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with event details
+ * @throws {Error} If server error occurs or if user lacks admin permissions
+ *
+ * Steps:
+ * 1. Verify user is admin
+ * 2. Validate event ID
+ * 3. Get event with organiser details
+ * 4. Get registrations for this event
+ * 5. Get reports related to this event
+ * 6. Return event data
+ */
+exports.getEventById = async (req, res) => {
+    try {
+        // Step 1: Verify user has admin permissions
+        const userId = req.user.id;
+        const admin = await Admin.findOne({ user_id: userId });
+
+        if (!admin) {
+            return res.status(403).json({
+                message: "Access denied. Admin permissions required.",
+            });
+        }
+
+        const { id } = req.params;
+
+        // Step 2: Validate event ID format
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid event ID" });
+        }
+
+        // Step 3: Get event with organiser details
+        const event = await Event.findById(id).populate({
+            path: "organiser_id",
+            select: "organisation_name description profile_picture_url",
+            populate: {
+                path: "user_id",
+                select: "email status created_at"
+            }
+        });
+
+        if (!event) {
+            return res.status(404).json({ message: "Event not found" });
+        }
+
+        // Step 4: Get registrations for this event
+        const registrations = await EventRegistration.find({ event_id: id })
+            .populate({
+                path: "volunteer_id",
+                select: "name profile_picture_url"
+            })
+            .sort({ registration_date: -1 });
+
+        // Step 5: Get reports related to this event
+        const reports = await Report.find({
+            $or: [
+                { reported_type: "Event", reported_id: id },
+                { event_id: id }
+            ]
+        }).populate("reporter_id", "email");
+
+        // Step 6: Return event data
+        return res.status(200).json({
+            event,
+            registrations,
+            reports
+        });
+    } catch (error) {
+        console.error("Error getting event:", error);
+        return res.status(500).json({
+            message: "Server error",
+            error: error.message,
+        });
+    }
+};

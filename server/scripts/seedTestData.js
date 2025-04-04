@@ -7,6 +7,7 @@ const Volunteer = require("../models/Volunteer");
 const Organiser = require("../models/Organiser");
 const Event = require("../models/Event");
 const EventRegistration = require("../models/EventRegistration");
+const Admin = require("../models/Admin");
 
 // MongoDB connection URI
 const MONGODB_URI =
@@ -88,6 +89,42 @@ async function seedTestData() {
 		console.log(
 			`✅ Created organiser profile for: ${savedOrganiserUser.email}`
 		);
+
+		// *** ADD ADMIN USER ***
+		// Create test admin user
+		const adminUser = new User({
+			email: "admin@volunsphere.com",
+			password: hashedPassword,
+			role: "admin",
+			status: "active",
+			created_at: new Date(),
+			last_login: new Date(),
+		});
+
+		const savedAdminUser = await adminUser.save();
+		console.log(`✅ Created admin user: ${savedAdminUser.email}`);
+
+		// Create admin profile with all permissions
+		const admin = new Admin({
+			user_id: savedAdminUser._id,
+			name: "System Administrator",
+			phone: "88888888",
+			profile_picture_url: null,
+			role: "supervisor", // Give the highest level of admin privileges
+			permissions: [
+				"manage_users",
+				"manage_events",
+				"manage_reports",
+				"manage_admins",
+				"system_settings"
+			],
+			last_login: new Date(),
+			reports_handled: 0
+		});
+
+		await admin.save();
+		console.log(`✅ Created admin profile for: ${savedAdminUser.email}`);
+		// *** END ADMIN USER ADDITION ***
 
 		// Create events
 		const events = [
@@ -177,6 +214,12 @@ async function seedTestData() {
 		);
 
 		console.log("🎉 Seeding complete!");
+		console.log("\nTest Account Information:");
+		console.log("------------------------");
+		console.log("Volunteer: testvolunteer1@gmail.com (password: password)");
+		console.log("Organiser: testorganiser1@gmail.com (password: password)");
+		console.log("Admin: admin@volunsphere.com (password: password)");
+		console.log("------------------------");
 
 		// Close MongoDB connection
 		await mongoose.connection.close();

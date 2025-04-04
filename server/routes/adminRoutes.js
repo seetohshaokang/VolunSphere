@@ -128,4 +128,15 @@ router.post(
 	adminController.createAction
 );
 
+/**
+ * @route   GET /admin/events/:id
+ * @desc    Get detailed information for a specific event including registrations and reports
+ * @access  Private (Admin with manage_events permission)
+ */
+router.get(
+    "/events/:id",
+    requirePermission("manage_events"),
+    adminController.getEventById
+);
+
 module.exports = router;

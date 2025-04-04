@@ -24,6 +24,14 @@ import OrganizerDashboard from "../containers/Organizer/Dashboard";
 import OrganizerEventDetail from "../containers/Organizer/EventDetail";
 import OrganizerManageEvent from "../containers/Organizer/ManageEvent";
 
+//Admin
+import AdminDashboard from "../containers/Admin/Dashboard";
+import AdminUsers from "../containers/Admin/Users";
+import AdminUserDetail from "../containers/Admin/UserDetail";
+import AdminReports from "../containers/Admin/Reports";
+import AdminReportDetail from "../containers/Admin/ReportDetail";
+import AdminVerifications from "../containers/Admin/Verifications";
+
 import { useAuth } from "../contexts/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -116,6 +124,23 @@ const AppRoutes = () => {
 					path="events/:eventId"
 					element={<OrganizerEventDetail />}
 				/>
+			</Route>
+
+			{/* Admin Routes */}
+			<Route
+				path="/admin"
+				element={
+					<ProtectedRoute roleRequired="admin">
+						<MainLayout />
+					</ProtectedRoute>
+				}
+			>
+				<Route index element={<AdminDashboard />} />
+				<Route path="users" element={<AdminUsers />} />
+				<Route path="users/:id" element={<AdminUserDetail />} />
+				<Route path="reports" element={<AdminReports />} />
+				<Route path="reports/:id" element={<AdminReportDetail />} />
+				<Route path="verifications" element={<AdminVerifications />} />
 			</Route>
 		</Routes>
 	);

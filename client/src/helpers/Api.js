@@ -1,4 +1,4 @@
-const SERVER_PREFIX = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const SERVER_PREFIX = import.meta.env.VITE_API_URL + "/api" || "http://localhost:8000";
 
 const Api = {
 	testConnection() {
@@ -177,6 +177,140 @@ const Api = {
 
 	getRecommendedEvents() {
 		return fetch(`${SERVER_PREFIX}/events/recommendations`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	ggetAdminDashboardStats() {
+		return fetch(`${SERVER_PREFIX}/api/admin/dashboard`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	// User management
+	getAdminUsers(params = {}) {
+		const queryString = new URLSearchParams(params).toString();
+		return fetch(`${SERVER_PREFIX}/api/admin/users?${queryString}`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	getUserById(id) {
+		return fetch(`${SERVER_PREFIX}/api/admin/users/${id}`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	updateUserStatus(id, status, reason) {
+		return fetch(`${SERVER_PREFIX}/api/admin/users/${id}/status`, {
+			method: 'PUT',
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ status, reason }),
+		});
+	},
+
+	// Verification management
+	getPendingVerifications(params = {}) {
+		const queryString = new URLSearchParams(params).toString();
+		return fetch(`${SERVER_PREFIX}/api/admin/volunteers/verifications?${queryString}`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	updateVerificationStatus(id, verified, reason) {
+		return fetch(`${SERVER_PREFIX}/api/admin/volunteers/${id}/verification`, {
+			method: 'PUT',
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ verified, reason }),
+		});
+	},
+
+	// Reports management
+	getReports(params = {}) {
+		const queryString = new URLSearchParams(params).toString();
+		return fetch(`${SERVER_PREFIX}/api/admin/reports?${queryString}`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	getReportById(id) {
+		return fetch(`${SERVER_PREFIX}/api/admin/reports/${id}`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	updateReportStatus(id, status, adminNotes, resolutionAction) {
+		return fetch(`${SERVER_PREFIX}/api/admin/reports/${id}`, {
+			method: 'PUT',
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({
+				status,
+				admin_notes: adminNotes,
+				resolution_action: resolutionAction
+			}),
+		});
+	},
+
+	// Admin actions
+	getAdminActions(params = {}) {
+		const queryString = new URLSearchParams(params).toString();
+		return fetch(`${SERVER_PREFIX}/api/admin/actions?${queryString}`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	createAdminAction(data) {
+		return fetch(`${SERVER_PREFIX}/api/admin/actions`, {
+			method: 'POST',
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify(data),
+		});
+	},
+
+	// Admin event management
+	getAdminEvents(params = {}) {
+		const queryString = new URLSearchParams(params).toString();
+		return fetch(`${SERVER_PREFIX}/api/events?${queryString}`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	getAdminEventById(id) {
+		return fetch(`${SERVER_PREFIX}/api/admin/events/${id}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
