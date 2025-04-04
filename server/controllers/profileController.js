@@ -97,6 +97,7 @@ exports.fetchProfile = async (req, res) => {
 		}
 
 		console.log("✅ Profile found for user");
+		console.log("📌 Profile Picture URL:", profile.profile_picture_url);
 
 		// Return combined user and profile data
 		const responseData = {
@@ -122,6 +123,7 @@ exports.fetchProfile = async (req, res) => {
 		});
 	}
 };
+
 /**
  * Update user profile information
  *
@@ -147,6 +149,9 @@ exports.fetchProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		console.log("🔍 updateProfile called for userId:", userId);
+		console.log("📌 Request body:", req.body);
+		console.log("📌 Request file:", req.file ? "File uploaded" : "No file");
 
 		// Get existing user
 		const user = await User.findById(userId);
@@ -154,79 +159,117 @@ exports.updateProfile = async (req, res) => {
 			return res.status(404).json({ message: "User not found" });
 		}
 
-		// Handle profile image
+		// Handle profile image upload
 		let profileImageUrl = null;
 		if (req.file) {
-			// In a real implementation, upload to cloud storage and get URL
-			// For now, we'll just acknowledge the upload
-			profileImageUrl = "/uploads/" + req.file.filename; // Placeholder
+			console.log("📌 Profile image uploaded:", req.file.filename);
+			const baseUrl = `${req.protocol}://${req.get("host")}`;
+			profileImageUrl = `${baseUrl}/uploads/profiles/${req.file.filename}`;
+			console.log("📌 Generated profile image URL:", profileImageUrl);
 		}
 
-		// Get role-specific profile
+		// Initialize profile variable
 		let profile;
 		if (user.role === "volunteer") {
 			profile = await Volunteer.findOne({ user_id: userId });
-
-			if (!profile) {
+			if (!profile)
 				return res
 					.status(404)
 					.json({ message: "Volunteer profile not found" });
+
+			// Update fields dynamically
+			const fieldsToUpdate = ["name", "phone", "bio", "address", "dob"];
+			fieldsToUpdate.forEach((field) => {
+				if (req.body[field]) profile[field] = req.body[field];
+			});
+
+			// Validate and update date of birth
+			if (req.body.dob) {
+				const parsedDate = new Date(req.body.dob);
+				if (!isNaN(parsedDate)) profile.dob = parsedDate;
 			}
 
-			// Update volunteer profile
-			const { name, phone, bio, address, dob, skills, preferred_causes } =
-				req.body;
-
-			if (name) profile.name = name;
-			if (phone) profile.phone = phone;
-			if (bio) profile.bio = bio;
-			if (address) profile.address = address;
-			if (dob) profile.dob = new Date(dob);
-			if (profileImageUrl) profile.profile_picture_url = profileImageUrl;
-
-			// Handle arrays - parse from JSON if they came as strings
-			if (skills) {
-				profile.skills =
-					typeof skills === "string" ? JSON.parse(skills) : skills;
+			// Handle profile picture
+			if (profileImageUrl) {
+				profile.profile_picture_url = req.file.filename; // Store just the filename
+				console.log(
+					"📌 Updated volunteer profile_picture_url to:",
+					req.file.filename
+				);
 			}
 
-			if (preferred_causes) {
-				profile.preferred_causes =
-					typeof preferred_causes === "string"
-						? JSON.parse(preferred_causes)
-						: preferred_causes;
+			// Parse JSON safely for arrays
+			try {
+				if (req.body.skills) {
+					profile.skills =
+						typeof req.body.skills === "string"
+							? JSON.parse(req.body.skills)
+							: req.body.skills;
+				}
+				if (req.body.preferred_causes) {
+					profile.preferred_causes =
+						typeof req.body.preferred_causes === "string"
+							? JSON.parse(req.body.preferred_causes)
+							: req.body.preferred_causes;
+				}
+			} catch (error) {
+				return res.status(400).json({
+					message:
+						"Invalid JSON format for skills or preferred_causes",
+				});
 			}
 		} else if (user.role === "organiser") {
 			profile = await Organiser.findOne({ user_id: userId });
-
-			if (!profile) {
+			if (!profile)
 				return res
 					.status(404)
 					.json({ message: "Organiser profile not found" });
+
+			// Update fields dynamically
+			const fieldsToUpdate = [
+				"name",
+				"phone",
+				"description",
+				"address",
+				"website",
+			];
+			fieldsToUpdate.forEach((field) => {
+				if (req.body[field]) profile[field] = req.body[field];
+			});
+
+			// Handle profile picture - store just the filename
+			if (profileImageUrl) {
+				profile.profile_picture_url = req.file.filename; // Store just the filename
+				console.log(
+					"📌 Updated organiser profile_picture_url to:",
+					req.file.filename
+				);
 			}
-
-			// Update organiser profile
-			const { organisation_name, phone, description, address, website } =
-				req.body;
-
-			if (organisation_name)
-				profile.organisation_name = organisation_name;
-			if (phone) profile.phone = phone;
-			if (description) profile.description = description;
-			if (address) profile.address = address;
-			if (website) profile.website = website;
-			if (profileImageUrl) profile.profile_picture_url = profileImageUrl;
 		}
 
-		// Save profile updates
-		await profile.save();
+		// Save updates
+		const savedProfile = await profile.save();
+		console.log("✅ Profile updated successfully");
+
+		// Prepare the response
+		// Add the full URL for the frontend
+		const responseProfile = savedProfile.toObject();
+		if (responseProfile.profile_picture_url) {
+			const baseUrl = `${req.protocol}://${req.get("host")}`;
+			console.log("📌 Base URL for response:", baseUrl);
+			// Keep the URL structure consistent
+			console.log(
+				"📌 Profile picture in response:",
+				responseProfile.profile_picture_url
+			);
+		}
 
 		return res.status(200).json({
 			message: "Profile updated successfully",
-			profile,
+			profile: responseProfile,
 		});
 	} catch (error) {
-		console.error("Error updating profile:", error);
+		console.error("❌ Error updating profile:", error);
 		return res.status(500).json({
 			message: "Server error",
 			error: error.message,
@@ -330,6 +373,7 @@ exports.deleteProfile = async (req, res) => {
 exports.uploadNRIC = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		console.log("🔍 uploadNRIC called for userId:", userId);
 
 		// Check if user is a volunteer
 		const user = await User.findById(userId);
@@ -361,13 +405,14 @@ exports.uploadNRIC = async (req, res) => {
 		};
 
 		await volunteer.save();
+		console.log("✅ NRIC uploaded successfully");
 
 		return res.status(200).json({
 			message:
 				"NRIC uploaded successfully. It will be verified by an administrator.",
 		});
 	} catch (error) {
-		console.error("Error uploading NRIC:", error);
+		console.error("❌ Error uploading NRIC:", error);
 		return res.status(500).json({
 			message: "Server error",
 			error: error.message,
@@ -395,6 +440,7 @@ exports.uploadNRIC = async (req, res) => {
 exports.getProfileEvents = async (req, res) => {
 	try {
 		const userId = req.user.id;
+		console.log("🔍 getProfileEvents called for userId:", userId);
 
 		// Get user role
 		const user = await User.findById(userId);
@@ -436,9 +482,10 @@ exports.getProfileEvents = async (req, res) => {
 			events = await Event.find({ organiser_id: organiser._id });
 		}
 
+		console.log(`✅ Found ${events.length} events for user`);
 		return res.status(200).json({ events });
 	} catch (error) {
-		console.error("Error getting profile events:", error);
+		console.error("❌ Error getting profile events:", error);
 		return res.status(500).json({
 			message: "Server error",
 			error: error.message,

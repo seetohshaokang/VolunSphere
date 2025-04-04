@@ -1,150 +1,259 @@
 // src/helpers/Api.js
 // Base API helper for making requests to the backend
 
-const API_BASE_URL =
+const SERVER_PREFIX =
 	import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
-class Api {
-	// Authentication methods
-	static async loginUser(credentials) {
-		return fetch(`${API_BASE_URL}/auth/login`, {
-			method: "POST",
+const Api = {
+	// Auth-related methods
+	loginUser(credentials) {
+		return fetch(`${SERVER_PREFIX}/auth/login`, {
 			headers: {
+				Accept: "application/json",
 				"Content-Type": "application/json",
 			},
+			method: "POST",
 			body: JSON.stringify(credentials),
 		});
-	}
+	},
 
-	static async registerUser(userData) {
-		return fetch(`${API_BASE_URL}/auth/register`, {
-			method: "POST",
+	registerUser(userData) {
+		return fetch(`${SERVER_PREFIX}/auth/signup`, {
 			headers: {
+				Accept: "application/json",
 				"Content-Type": "application/json",
 			},
+			method: "POST",
 			body: JSON.stringify(userData),
 		});
-	}
+	},
 
-	// User profile methods
-	static async getUserProfile() {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/profile`, {
-			method: "GET",
+	forgotPassword(data) {
+		return fetch(`${SERVER_PREFIX}/auth/forgot-password`, {
 			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
-			},
-		});
-	}
-
-	static async updateUserProfile(formData) {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/profile`, {
-			method: "PUT",
-			headers: {
-				Authorization: `Bearer ${token}`,
-			},
-			body: formData,
-		});
-	}
-
-	// Event methods
-	static async getAllEvents() {
-		return fetch(`${API_BASE_URL}/events`, {
-			method: "GET",
-			headers: {
+				Accept: "application/json",
 				"Content-Type": "application/json",
 			},
-		});
-	}
-
-	static async getEvent(id) {
-		return fetch(`${API_BASE_URL}/events/${id}`, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-			},
-		});
-	}
-
-	static async createEvent(eventData) {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/events`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
-			},
-			body: JSON.stringify(eventData),
+			body: JSON.stringify(data),
 		});
-	}
+	},
 
-	static async updateEvent(id, eventData) {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/events/${id}`, {
-			method: "PUT",
+	logoutUser() {
+		return fetch(`${SERVER_PREFIX}/auth/logout`, {
 			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
-			body: JSON.stringify(eventData),
-		});
-	}
-
-	static async deleteEvent(id) {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/events/${id}`, {
-			method: "DELETE",
-			headers: {
-				Authorization: `Bearer ${token}`,
-			},
-		});
-	}
-
-	// Registration methods
-	static async registerForEvent(eventId) {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/events/${eventId}/registrations`, {
 			method: "POST",
+		});
+	},
+
+	// Profile-related methods
+	getUserProfile() {
+		return fetch(`${SERVER_PREFIX}/profile`, {
 			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
 		});
-	}
+	},
 
-	static async cancelEventRegistration(eventId) {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/events/${eventId}/registrations`, {
+	updateUserProfile(data) {
+		return fetch(`${SERVER_PREFIX}/profile`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "PUT",
+			body: data, // FormData for file uploads
+		})
+			.then((res) => {
+				if (!res.ok) {
+					throw new Error(`HTTP error! Status: ${res.status}`);
+				}
+				return res.json(); // Ensure this result is returned
+			})
+			.then((data) => {
+				console.log("Fetched Profile Data:", data);
+				return data; // Return the parsed JSON
+			})
+			.catch((error) => {
+				console.error("Error updating profile:", error);
+				throw error; // Re-throw the error to be handled in handleSubmit
+			});
+	},
+
+	deleteUserProfile() {
+		return fetch(`${SERVER_PREFIX}/profile`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
 			method: "DELETE",
-			headers: {
-				Authorization: `Bearer ${token}`,
-			},
 		});
-	}
+	},
 
-	static async getRegisteredEvents() {
-		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/registrations`, {
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
-			},
-		});
-	}
+	// Event-related methods
+	getAllEvents() {
+		return fetch(`${SERVER_PREFIX}/events`);
+	},
 
-	static async getOrganizedEvents() {
+	getEvent(id) {
+		return fetch(`${SERVER_PREFIX}/events/${id}`);
+	},
+
+	// Updated to handle image uploads
+	createEvent(data, imageFile) {
 		const token = localStorage.getItem("token");
-		return fetch(`${API_BASE_URL}/profile/events`, {
-			method: "GET",
+
+		if (imageFile) {
+			// Create FormData for multipart/form-data to support file upload
+			const formData = new FormData();
+
+			// Add all form fields to FormData
+			Object.keys(data).forEach((key) => {
+				// Handle arrays (like causes)
+				if (Array.isArray(data[key])) {
+					formData.append(key, JSON.stringify(data[key]));
+				} else {
+					formData.append(key, data[key]);
+				}
+			});
+
+			// Add the image file
+			formData.append("event_image", imageFile);
+
+			// Send multipart request
+			return fetch(`${SERVER_PREFIX}/events`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					// Don't set Content-Type when using FormData - browser will set it with boundary
+				},
+				body: formData,
+			});
+		} else {
+			// Regular JSON request if no file
+			return fetch(`${SERVER_PREFIX}/events`, {
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				method: "POST",
+				body: JSON.stringify(data),
+			});
+		}
+	},
+
+	// Updated to handle image uploads
+	updateEvent(id, data, imageFile) {
+		const token = localStorage.getItem("token");
+
+		if (imageFile) {
+			// Create FormData for multipart/form-data to support file upload
+			const formData = new FormData();
+
+			// Add all form fields to FormData
+			Object.keys(data).forEach((key) => {
+				// Handle arrays (like causes)
+				if (Array.isArray(data[key])) {
+					formData.append(key, JSON.stringify(data[key]));
+				} else {
+					formData.append(key, data[key]);
+				}
+			});
+
+			// Add the image file
+			formData.append("event_image", imageFile);
+
+			// Send multipart request
+			return fetch(`${SERVER_PREFIX}/events/${id}`, {
+				method: "PUT",
+				headers: {
+					Authorization: `Bearer ${token}`,
+					// Don't set Content-Type when using FormData - browser will set it with boundary
+				},
+				body: formData,
+			});
+		} else {
+			// Regular JSON request if no file
+			return fetch(`${SERVER_PREFIX}/events/${id}`, {
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				method: "PUT",
+				body: JSON.stringify(data),
+			});
+		}
+	},
+
+	deleteEvent(id) {
+		return fetch(`${SERVER_PREFIX}/events/${id}`, {
 			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "DELETE",
+		});
+	},
+
+	registerForEvent(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/registrations`, {
+			headers: {
+				Accept: "application/json",
 				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "POST",
+		});
+	},
+
+	cancelEventRegistration(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/registrations`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "DELETE",
+		});
+	},
+
+	getRegisteredEvents() {
+		return fetch(`${SERVER_PREFIX}/profile/events`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
 		});
-	}
-}
+	},
+
+	getOrganizedEvents() {
+		const token = localStorage.getItem("token");
+		console.log("Using token for auth:", token);
+
+		return fetch(`${SERVER_PREFIX}/profile/events`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	reportEvent(eventId, reason) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/reports`, {
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "POST",
+			body: JSON.stringify({ reason }),
+		});
+	},
+
+	getRecommendedEvents() {
+		return fetch(`${SERVER_PREFIX}/events/recommendations`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+};
 
 export default Api;

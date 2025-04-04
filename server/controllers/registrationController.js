@@ -24,50 +24,48 @@ const mongoose = require("mongoose");
  * 5. Return registrations
  */
 exports.getUserRegistrations = async (req, res) => {
-	try {
-		const userId = req.user.id;
+  try {
+    const userId = req.user.id;
 
-		// Get user role
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Get user role
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		if (user.role !== "volunteer") {
-			return res
-				.status(403)
-				.json({ message: "Only volunteers can access registrations" });
-		}
+    if (user.role !== "volunteer") {
+      return res
+        .status(403)
+        .json({ message: "Only volunteers can access registrations" });
+    }
 
-		// Get volunteer profile
-		const volunteer = await Volunteer.findOne({ user_id: userId });
-		if (!volunteer) {
-			return res
-				.status(404)
-				.json({ message: "Volunteer profile not found" });
-		}
+    // Get volunteer profile
+    const volunteer = await Volunteer.findOne({ user_id: userId });
+    if (!volunteer) {
+      return res.status(404).json({ message: "Volunteer profile not found" });
+    }
 
-		// Get registrations with populated event details
-		const registrations = await EventRegistration.find({
-			volunteer_id: volunteer._id,
-		})
-			.populate({
-				path: "event_id",
-				populate: {
-					path: "organiser_id",
-					select: "organisation_name",
-				},
-			})
-			.sort({ registration_date: -1 });
+    // Get registrations with populated event details
+    const registrations = await EventRegistration.find({
+      volunteer_id: volunteer._id,
+    })
+      .populate({
+        path: "event_id",
+        populate: {
+          path: "organiser_id",
+          select: "name",
+        },
+      })
+      .sort({ registration_date: -1 });
 
-		return res.status(200).json({ registrations });
-	} catch (error) {
-		console.error("Error getting registrations:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({ registrations });
+  } catch (error) {
+    console.error("Error getting registrations:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -99,95 +97,91 @@ exports.getUserRegistrations = async (req, res) => {
  * 13. Return success message with registration
  */
 exports.createRegistration = async (req, res) => {
-	try {
-		const userId = req.user.id;
-		const { event_id } = req.body;
+  try {
+    const userId = req.user.id;
+    const { event_id } = req.body;
 
-		// Validate event ID
-		if (!event_id || !mongoose.Types.ObjectId.isValid(event_id)) {
-			return res
-				.status(400)
-				.json({ message: "Valid event ID is required" });
-		}
+    // Validate event ID
+    if (!event_id || !mongoose.Types.ObjectId.isValid(event_id)) {
+      return res.status(400).json({ message: "Valid event ID is required" });
+    }
 
-		// Verify user is a volunteer
-		const user = await User.findById(userId);
-		if (!user || user.role !== "volunteer") {
-			return res
-				.status(403)
-				.json({ message: "Only volunteers can register for events" });
-		}
+    // Verify user is a volunteer
+    const user = await User.findById(userId);
+    if (!user || user.role !== "volunteer") {
+      return res
+        .status(403)
+        .json({ message: "Only volunteers can register for events" });
+    }
 
-		// Get volunteer profile
-		const volunteer = await Volunteer.findOne({ user_id: userId });
-		if (!volunteer) {
-			return res
-				.status(404)
-				.json({ message: "Volunteer profile not found" });
-		}
+    // Get volunteer profile
+    const volunteer = await Volunteer.findOne({ user_id: userId });
+    if (!volunteer) {
+      return res.status(404).json({ message: "Volunteer profile not found" });
+    }
 
-		// Find event by ID
-		const event = await Event.findById(event_id);
-		if (!event) {
-			return res.status(404).json({ message: "Event not found" });
-		}
+    // Find event by ID
+    const event = await Event.findById(event_id);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
-		// Check if event is active
-		if (event.status !== "active") {
-			return res
-				.status(400)
-				.json({ message: "Cannot register for an inactive event" });
-		}
+    // Check if event is active
+    if (event.status !== "active") {
+      return res
+        .status(400)
+        .json({ message: "Cannot register for an inactive event" });
+    }
 
-		// Check if event has reached max capacity
-		if (
-			event.max_volunteers > 0 &&
-			event.registered_count >= event.max_volunteers
-		) {
-			return res
-				.status(400)
-				.json({ message: "Event has reached maximum capacity" });
-		}
+    // Check if event has reached max capacity
+    if (
+      event.max_volunteers > 0 &&
+      event.registered_count >= event.max_volunteers
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Event has reached maximum capacity" });
+    }
 
-		// Check if already registered
-		const existingRegistration = await EventRegistration.findOne({
-			volunteer_id: volunteer._id,
-			event_id,
-		});
+    // Check if already registered
+    const existingRegistration = await EventRegistration.findOne({
+      volunteer_id: volunteer._id,
+      event_id,
+    });
 
-		if (existingRegistration) {
-			return res
-				.status(400)
-				.json({ message: "You are already registered for this event" });
-		}
+    if (existingRegistration) {
+      return res
+        .status(400)
+        .json({ message: "You are already registered for this event" });
+    }
 
-		// Create new registration
-		const registration = new EventRegistration({
-			volunteer_id: volunteer._id,
-			event_id,
-			status: "registered",
-			registration_date: new Date(),
-		});
+    // Create new registration
+    const registration = new EventRegistration({
+      volunteer_id: volunteer._id,
+      event_id,
+      status: "registered",
+      registration_date: new Date(),
+    });
 
-		// Save registration (without transactions)
-		await registration.save();
+    // Save registration (without transactions)
+    await registration.save();
 
-		// Increment registered_count on event
-		await Event.findByIdAndUpdate(event_id, {
-			$inc: { registered_count: 1 },
-		});
+    // Increment registered_count on event
+    await Event.findByIdAndUpdate(event_id, {
+      $inc: { registered_count: 1 },
+    });
 
-		return res.status(201).json({
-			message: "Registered for event successfully",
-			registration,
-		});
-	} catch (error) {
-		console.error("Error creating registration:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(201).json({
+      message: "Registered for event successfully",
+      registration,
+    });
+  } catch (error) {
+    console.error("Error creating registration:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -212,76 +206,75 @@ exports.createRegistration = async (req, res) => {
  * 6. Return registration details
  */
 exports.getRegistrationById = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const userId = req.user.id;
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
 
-		// Check if ID is valid
-		if (!mongoose.Types.ObjectId.isValid(id)) {
-			return res.status(400).json({ message: "Invalid registration ID" });
-		}
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid registration ID" });
+    }
 
-		// Find registration by ID
-		const registration = await EventRegistration.findById(id)
-			.populate({
-				path: "event_id",
-				populate: {
-					path: "organiser_id",
-					select: "organisation_name profile_picture_url",
-				},
-			})
-			.populate({
-				path: "volunteer_id",
-				select: "name profile_picture_url",
-			});
+    // Find registration by ID
+    const registration = await EventRegistration.findById(id)
+      .populate({
+        path: "event_id",
+        populate: {
+          path: "organiser_id",
+          select: "name profile_picture_url",
+        },
+      })
+      .populate({
+        path: "volunteer_id",
+        select: "name profile_picture_url",
+      });
 
-		if (!registration) {
-			return res.status(404).json({ message: "Registration not found" });
-		}
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found" });
+    }
 
-		// Check authorization
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Check authorization
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		// Volunteer can view their own registrations
-		if (user.role === "volunteer") {
-			const volunteer = await Volunteer.findOne({ user_id: userId });
-			if (
-				!volunteer ||
-				volunteer._id.toString() !==
-					registration.volunteer_id._id.toString()
-			) {
-				return res.status(403).json({
-					message: "Not authorized to view this registration",
-				});
-			}
-		}
-		// Organiser can view registrations for their events
-		else if (user.role === "organiser") {
-			const organiser = await Organiser.findOne({ user_id: userId });
-			const event = await Event.findById(registration.event_id);
+    // Volunteer can view their own registrations
+    if (user.role === "volunteer") {
+      const volunteer = await Volunteer.findOne({ user_id: userId });
+      if (
+        !volunteer ||
+        volunteer._id.toString() !== registration.volunteer_id._id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Not authorized to view this registration",
+        });
+      }
+    }
+    // Organiser can view registrations for their events
+    else if (user.role === "organiser") {
+      const organiser = await Organiser.findOne({ user_id: userId });
+      const event = await Event.findById(registration.event_id);
 
-			if (
-				!organiser ||
-				!event ||
-				event.organiser_id.toString() !== organiser._id.toString()
-			) {
-				return res.status(403).json({
-					message: "Not authorized to view this registration",
-				});
-			}
-		}
+      if (
+        !organiser ||
+        !event ||
+        event.organiser_id.toString() !== organiser._id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Not authorized to view this registration",
+        });
+      }
+    }
 
-		return res.status(200).json({ registration });
-	} catch (error) {
-		console.error("Error getting registration:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({ registration });
+  } catch (error) {
+    console.error("Error getting registration:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -310,94 +303,93 @@ exports.getRegistrationById = async (req, res) => {
  * 8. Return success message with updated registration
  */
 exports.updateRegistration = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const userId = req.user.id;
-		const { feedback } = req.body;
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { feedback } = req.body;
 
-		// Check if ID is valid
-		if (!mongoose.Types.ObjectId.isValid(id)) {
-			return res.status(400).json({ message: "Invalid registration ID" });
-		}
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid registration ID" });
+    }
 
-		// Find registration by ID
-		const registration = await EventRegistration.findById(id);
-		if (!registration) {
-			return res.status(404).json({ message: "Registration not found" });
-		}
+    // Find registration by ID
+    const registration = await EventRegistration.findById(id);
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found" });
+    }
 
-		// Check authorization
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Check authorization
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		// Prepare update data
-		const updateData = {};
+    // Prepare update data
+    const updateData = {};
 
-		// Volunteer can add feedback to their own registrations
-		if (user.role === "volunteer") {
-			const volunteer = await Volunteer.findOne({ user_id: userId });
-			if (
-				!volunteer ||
-				volunteer._id.toString() !==
-					registration.volunteer_id.toString()
-			) {
-				return res.status(403).json({
-					message: "Not authorized to update this registration",
-				});
-			}
+    // Volunteer can add feedback to their own registrations
+    if (user.role === "volunteer") {
+      const volunteer = await Volunteer.findOne({ user_id: userId });
+      if (
+        !volunteer ||
+        volunteer._id.toString() !== registration.volunteer_id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Not authorized to update this registration",
+        });
+      }
 
-			if (feedback) {
-				updateData["feedback.from_volunteer"] = {
-					comment: feedback.comment,
-					rating: feedback.rating,
-					submitted_at: new Date(),
-				};
-			}
-		}
-		// Organiser can add feedback to volunteers for their events
-		else if (user.role === "organiser") {
-			const organiser = await Organiser.findOne({ user_id: userId });
-			const event = await Event.findById(registration.event_id);
+      if (feedback) {
+        updateData["feedback.from_volunteer"] = {
+          comment: feedback.comment,
+          rating: feedback.rating,
+          submitted_at: new Date(),
+        };
+      }
+    }
+    // Organiser can add feedback to volunteers for their events
+    else if (user.role === "organiser") {
+      const organiser = await Organiser.findOne({ user_id: userId });
+      const event = await Event.findById(registration.event_id);
 
-			if (
-				!organiser ||
-				!event ||
-				event.organiser_id.toString() !== organiser._id.toString()
-			) {
-				return res.status(403).json({
-					message: "Not authorized to update this registration",
-				});
-			}
+      if (
+        !organiser ||
+        !event ||
+        event.organiser_id.toString() !== organiser._id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Not authorized to update this registration",
+        });
+      }
 
-			if (feedback) {
-				updateData["feedback.from_organiser"] = {
-					comment: feedback.comment,
-					rating: feedback.rating,
-					submitted_at: new Date(),
-				};
-			}
-		}
+      if (feedback) {
+        updateData["feedback.from_organiser"] = {
+          comment: feedback.comment,
+          rating: feedback.rating,
+          submitted_at: new Date(),
+        };
+      }
+    }
 
-		// Update registration
-		const updatedRegistration = await EventRegistration.findByIdAndUpdate(
-			id,
-			{ $set: updateData },
-			{ new: true, runValidators: true }
-		).populate("event_id volunteer_id");
+    // Update registration
+    const updatedRegistration = await EventRegistration.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).populate("event_id volunteer_id");
 
-		return res.status(200).json({
-			message: "Registration updated successfully",
-			registration: updatedRegistration,
-		});
-	} catch (error) {
-		console.error("Error updating registration:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message: "Registration updated successfully",
+      registration: updatedRegistration,
+    });
+  } catch (error) {
+    console.error("Error updating registration:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -424,63 +416,62 @@ exports.updateRegistration = async (req, res) => {
  * 8. Return success message
  */
 exports.cancelRegistration = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const userId = req.user.id;
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
 
-		// Check if ID is valid
-		if (!mongoose.Types.ObjectId.isValid(id)) {
-			return res.status(400).json({ message: "Invalid registration ID" });
-		}
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid registration ID" });
+    }
 
-		// Find registration by ID
-		const registration = await EventRegistration.findById(id);
-		if (!registration) {
-			return res.status(404).json({ message: "Registration not found" });
-		}
+    // Find registration by ID
+    const registration = await EventRegistration.findById(id);
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found" });
+    }
 
-		// Check authorization
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Check authorization
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		// Only volunteer who registered can cancel
-		if (user.role === "volunteer") {
-			const volunteer = await Volunteer.findOne({ user_id: userId });
-			if (
-				!volunteer ||
-				volunteer._id.toString() !==
-					registration.volunteer_id.toString()
-			) {
-				return res.status(403).json({
-					message: "Not authorized to cancel this registration",
-				});
-			}
-		} else {
-			return res.status(403).json({
-				message: "Only volunteers can cancel their registrations",
-			});
-		}
+    // Only volunteer who registered can cancel
+    if (user.role === "volunteer") {
+      const volunteer = await Volunteer.findOne({ user_id: userId });
+      if (
+        !volunteer ||
+        volunteer._id.toString() !== registration.volunteer_id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Not authorized to cancel this registration",
+        });
+      }
+    } else {
+      return res.status(403).json({
+        message: "Only volunteers can cancel their registrations",
+      });
+    }
 
-		// Delete registration (without transactions)
-		await EventRegistration.findByIdAndDelete(id);
+    // Delete registration (without transactions)
+    await EventRegistration.findByIdAndDelete(id);
 
-		// Decrement registered_count on event
-		await Event.findByIdAndUpdate(registration.event_id, {
-			$inc: { registered_count: -1 },
-		});
+    // Decrement registered_count on event
+    await Event.findByIdAndUpdate(registration.event_id, {
+      $inc: { registered_count: -1 },
+    });
 
-		return res
-			.status(200)
-			.json({ message: "Registration cancelled successfully" });
-	} catch (error) {
-		console.error("Error cancelling registration:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res
+      .status(200)
+      .json({ message: "Registration cancelled successfully" });
+  } catch (error) {
+    console.error("Error cancelling registration:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -504,65 +495,65 @@ exports.cancelRegistration = async (req, res) => {
  * 5. Return success message with updated registration
  */
 exports.checkInRegistration = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const userId = req.user.id;
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
 
-		// Check if ID is valid
-		if (!mongoose.Types.ObjectId.isValid(id)) {
-			return res.status(400).json({ message: "Invalid registration ID" });
-		}
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid registration ID" });
+    }
 
-		// Find registration by ID
-		const registration = await EventRegistration.findById(id);
-		if (!registration) {
-			return res.status(404).json({ message: "Registration not found" });
-		}
+    // Find registration by ID
+    const registration = await EventRegistration.findById(id);
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found" });
+    }
 
-		// Check authorization (only organizer of the event can check in volunteers)
-		const user = await User.findById(userId);
-		if (!user || user.role !== "organiser") {
-			return res
-				.status(403)
-				.json({ message: "Only organizers can check in volunteers" });
-		}
+    // Check authorization (only organizer of the event can check in volunteers)
+    const user = await User.findById(userId);
+    if (!user || user.role !== "organiser") {
+      return res
+        .status(403)
+        .json({ message: "Only organizers can check in volunteers" });
+    }
 
-		const organiser = await Organiser.findOne({ user_id: userId });
-		const event = await Event.findById(registration.event_id);
+    const organiser = await Organiser.findOne({ user_id: userId });
+    const event = await Event.findById(registration.event_id);
 
-		if (
-			!organiser ||
-			!event ||
-			event.organiser_id.toString() !== organiser._id.toString()
-		) {
-			return res
-				.status(403)
-				.json({ message: "Not authorized to check in for this event" });
-		}
+    if (
+      !organiser ||
+      !event ||
+      event.organiser_id.toString() !== organiser._id.toString()
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to check in for this event" });
+    }
 
-		// Update registration with check-in time and status
-		const updatedRegistration = await EventRegistration.findByIdAndUpdate(
-			id,
-			{
-				$set: {
-					check_in_time: new Date(),
-					status: "attended",
-				},
-			},
-			{ new: true }
-		);
+    // Update registration with check-in time and status
+    const updatedRegistration = await EventRegistration.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          check_in_time: new Date(),
+          status: "attended",
+        },
+      },
+      { new: true }
+    );
 
-		return res.status(200).json({
-			message: "Volunteer checked in successfully",
-			registration: updatedRegistration,
-		});
-	} catch (error) {
-		console.error("Error checking in volunteer:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message: "Volunteer checked in successfully",
+      registration: updatedRegistration,
+    });
+  } catch (error) {
+    console.error("Error checking in volunteer:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -587,71 +578,71 @@ exports.checkInRegistration = async (req, res) => {
  * 6. Return success message with updated registration
  */
 exports.checkOutRegistration = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const userId = req.user.id;
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
 
-		// Check if ID is valid
-		if (!mongoose.Types.ObjectId.isValid(id)) {
-			return res.status(400).json({ message: "Invalid registration ID" });
-		}
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid registration ID" });
+    }
 
-		// Find registration by ID
-		const registration = await EventRegistration.findById(id);
-		if (!registration) {
-			return res.status(404).json({ message: "Registration not found" });
-		}
+    // Find registration by ID
+    const registration = await EventRegistration.findById(id);
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found" });
+    }
 
-		// Verify registration has been checked in
-		if (!registration.check_in_time) {
-			return res.status(400).json({
-				message: "Volunteer must check in before checking out",
-			});
-		}
+    // Verify registration has been checked in
+    if (!registration.check_in_time) {
+      return res.status(400).json({
+        message: "Volunteer must check in before checking out",
+      });
+    }
 
-		// Check authorization (only organizer of the event can check out volunteers)
-		const user = await User.findById(userId);
-		if (!user || user.role !== "organiser") {
-			return res
-				.status(403)
-				.json({ message: "Only organizers can check out volunteers" });
-		}
+    // Check authorization (only organizer of the event can check out volunteers)
+    const user = await User.findById(userId);
+    if (!user || user.role !== "organiser") {
+      return res
+        .status(403)
+        .json({ message: "Only organizers can check out volunteers" });
+    }
 
-		const organiser = await Organiser.findOne({ user_id: userId });
-		const event = await Event.findById(registration.event_id);
+    const organiser = await Organiser.findOne({ user_id: userId });
+    const event = await Event.findById(registration.event_id);
 
-		if (
-			!organiser ||
-			!event ||
-			event.organiser_id.toString() !== organiser._id.toString()
-		) {
-			return res.status(403).json({
-				message: "Not authorized to check out for this event",
-			});
-		}
+    if (
+      !organiser ||
+      !event ||
+      event.organiser_id.toString() !== organiser._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Not authorized to check out for this event",
+      });
+    }
 
-		// Update registration with check-out time
-		const updatedRegistration = await EventRegistration.findByIdAndUpdate(
-			id,
-			{
-				$set: {
-					check_out_time: new Date(),
-				},
-			},
-			{ new: true }
-		);
+    // Update registration with check-out time
+    const updatedRegistration = await EventRegistration.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          check_out_time: new Date(),
+        },
+      },
+      { new: true }
+    );
 
-		return res.status(200).json({
-			message: "Volunteer checked out successfully",
-			registration: updatedRegistration,
-		});
-	} catch (error) {
-		console.error("Error checking out volunteer:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message: "Volunteer checked out successfully",
+      registration: updatedRegistration,
+    });
+  } catch (error) {
+    console.error("Error checking out volunteer:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -680,104 +671,101 @@ exports.checkOutRegistration = async (req, res) => {
  * 7. Return success message with updated registration
  */
 exports.addFeedback = async (req, res) => {
-	try {
-		const { id } = req.params;
-		const userId = req.user.id;
-		const { comment, rating } = req.body;
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { comment, rating } = req.body;
 
-		// Check if ID is valid
-		if (!mongoose.Types.ObjectId.isValid(id)) {
-			return res.status(400).json({ message: "Invalid registration ID" });
-		}
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid registration ID" });
+    }
 
-		// Validate feedback data
-		if (!comment || !rating) {
-			return res
-				.status(400)
-				.json({ message: "Comment and rating are required" });
-		}
+    // Validate feedback data
+    if (!comment || !rating) {
+      return res
+        .status(400)
+        .json({ message: "Comment and rating are required" });
+    }
 
-		if (rating < 1 || rating > 5) {
-			return res
-				.status(400)
-				.json({ message: "Rating must be between 1 and 5" });
-		}
+    if (rating < 1 || rating > 5) {
+      return res
+        .status(400)
+        .json({ message: "Rating must be between 1 and 5" });
+    }
 
-		// Find registration by ID
-		const registration = await EventRegistration.findById(id);
-		if (!registration) {
-			return res.status(404).json({ message: "Registration not found" });
-		}
+    // Find registration by ID
+    const registration = await EventRegistration.findById(id);
+    if (!registration) {
+      return res.status(404).json({ message: "Registration not found" });
+    }
 
-		// Check authorization
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Check authorization
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		let updateField = "";
+    let updateField = "";
 
-		// Volunteer can add feedback to their own registrations
-		if (user.role === "volunteer") {
-			const volunteer = await Volunteer.findOne({ user_id: userId });
-			if (
-				!volunteer ||
-				volunteer._id.toString() !==
-					registration.volunteer_id.toString()
-			) {
-				return res.status(403).json({
-					message:
-						"Not authorized to add feedback to this registration",
-				});
-			}
+    // Volunteer can add feedback to their own registrations
+    if (user.role === "volunteer") {
+      const volunteer = await Volunteer.findOne({ user_id: userId });
+      if (
+        !volunteer ||
+        volunteer._id.toString() !== registration.volunteer_id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Not authorized to add feedback to this registration",
+        });
+      }
 
-			updateField = "feedback.from_volunteer";
-		}
-		// Organiser can add feedback to volunteers for their events
-		else if (user.role === "organiser") {
-			const organiser = await Organiser.findOne({ user_id: userId });
-			const event = await Event.findById(registration.event_id);
+      updateField = "feedback.from_volunteer";
+    }
+    // Organiser can add feedback to volunteers for their events
+    else if (user.role === "organiser") {
+      const organiser = await Organiser.findOne({ user_id: userId });
+      const event = await Event.findById(registration.event_id);
 
-			if (
-				!organiser ||
-				!event ||
-				event.organiser_id.toString() !== organiser._id.toString()
-			) {
-				return res.status(403).json({
-					message:
-						"Not authorized to add feedback to this registration",
-				});
-			}
+      if (
+        !organiser ||
+        !event ||
+        event.organiser_id.toString() !== organiser._id.toString()
+      ) {
+        return res.status(403).json({
+          message: "Not authorized to add feedback to this registration",
+        });
+      }
 
-			updateField = "feedback.from_organiser";
-		}
+      updateField = "feedback.from_organiser";
+    }
 
-		// Create feedback data
-		const feedbackData = {
-			comment,
-			rating,
-			submitted_at: new Date(),
-		};
+    // Create feedback data
+    const feedbackData = {
+      comment,
+      rating,
+      submitted_at: new Date(),
+    };
 
-		// Update registration with feedback
-		const update = {};
-		update[updateField] = feedbackData;
+    // Update registration with feedback
+    const update = {};
+    update[updateField] = feedbackData;
 
-		const updatedRegistration = await EventRegistration.findByIdAndUpdate(
-			id,
-			{ $set: update },
-			{ new: true }
-		);
+    const updatedRegistration = await EventRegistration.findByIdAndUpdate(
+      id,
+      { $set: update },
+      { new: true }
+    );
 
-		return res.status(200).json({
-			message: "Feedback added successfully",
-			registration: updatedRegistration,
-		});
-	} catch (error) {
-		console.error("Error adding feedback:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message: "Feedback added successfully",
+      registration: updatedRegistration,
+    });
+  } catch (error) {
+    console.error("Error adding feedback:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
