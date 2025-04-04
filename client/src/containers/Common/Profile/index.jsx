@@ -36,9 +36,12 @@ function Profile() {
 		dob: "",
 		bio: "",
 		avatar: null,
+		avatarFile: null,
 		skills: [],
 		address: "",
 	});
+	// Add timestamp for cache busting
+	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
 	// Format date for input field (YYYY-MM-DD)
 	const formatDateForInput = (dateString) => {
@@ -48,6 +51,7 @@ function Profile() {
 	};
 
 	useEffect(() => {
+		console.log("User data:", user);
 		fetchUserProfile();
 		fetchUserEvents();
 	}, [user]);
@@ -57,16 +61,22 @@ function Profile() {
 
 		setLoading(true);
 		try {
-			const response = await Api.getUserProfile();
+			const response = await Api.getUserProfile({
+				headers: {
+					"Cache-Control": "no-cache",
+					Pragma: "no-cache",
+				},
+			});
 
 			if (!response.ok) {
 				throw new Error("Failed to fetch profile data");
 			}
 
 			const data = await response.json();
+			console.log("Profile data received:", data);
 
 			// Parse name (assuming it comes as full name)
-			let firstName = data.name || "";
+			let firstName = data.profile.name || "";
 			let lastName = "";
 
 			if (firstName.includes(" ")) {
@@ -75,17 +85,25 @@ function Profile() {
 				lastName = nameParts.slice(1).join(" ");
 			}
 
+			// Log the avatar URL we're going to use
+			console.log("Setting avatar to:", data.profile.profile_picture_url);
+
 			setProfile({
 				firstName,
 				lastName,
-				email: data.email || "",
-				phone: data.phone || "",
-				dob: data.dob ? formatDateForInput(data.dob) : "",
-				bio: data.bio || "",
-				avatar: data.profile_picture_url,
-				address: data.address || "",
+				email: data.user.email || "Email not provided",
+				phone: data.profile.phone || "",
+				dob: data.profile.dob
+					? formatDateForInput(data.profile.dob)
+					: "",
+				bio: data.profile.bio || data.profile.description || "",
+				avatar: data.profile.profile_picture_url,
+				address: data.profile.address || "",
 				skills:
-					data.volunteer_skills?.map((skill) => skill.skill_name) ||
+					data.profile.skills ||
+					data.profile.volunteer_skills?.map(
+						(skill) => skill.skill_name
+					) ||
 					[],
 			});
 		} catch (err) {
@@ -97,13 +115,18 @@ function Profile() {
 	};
 
 	const fetchUserEvents = async () => {
-		if (!user) return;
+		if (!user) {
+			console.log("No user found, returning early.");
+			return;
+		}
 
 		try {
 			let response;
 			if (user.role === "organiser") {
+				console.log("Fetching organized events...");
 				response = await Api.getOrganizedEvents();
 			} else {
+				console.log("Fetching registered events...");
 				response = await Api.getRegisteredEvents();
 			}
 
@@ -116,7 +139,18 @@ function Profile() {
 			}
 
 			const data = await response.json();
-			setEvents(data || []);
+			console.log("Fetched event data:", data);
+
+			// Now access the events array from the response object
+			const events = data.events || [];
+
+			// Check if the events array has any items
+			if (events.length === 0) {
+				console.log("No events found.");
+				setEvents([]); // Set empty events if no events are found
+			} else {
+				setEvents(events);
+			}
 		} catch (err) {
 			console.error("Error fetching events:", err);
 			// Non-critical error, don't show to user
@@ -131,8 +165,7 @@ function Profile() {
 	const handleFileChange = (e) => {
 		const file = e.target.files[0];
 		if (file) {
-			// Create FormData in the submission function instead of here
-			// Just store the file reference for preview
+			// Create a preview URL for display purposes
 			const imageUrl = URL.createObjectURL(file);
 			setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
 		}
@@ -151,7 +184,6 @@ function Profile() {
 				"name",
 				`${profile.firstName} ${profile.lastName}`.trim()
 			);
-			formData.append("email", profile.email);
 			formData.append("phone", profile.phone);
 			formData.append("bio", profile.bio);
 			formData.append("dob", profile.dob);
@@ -161,7 +193,6 @@ function Profile() {
 				formData.append("profile_picture", profile.avatarFile);
 			}
 
-			// If the user is a volunteer and has skills
 			if (
 				user.role === "volunteer" &&
 				profile.skills &&
@@ -170,17 +201,17 @@ function Profile() {
 				formData.append("skills", JSON.stringify(profile.skills));
 			}
 
-			const response = await Api.updateUserProfile(formData);
+			// This is a nested try block that can stay or be flattened
+			const data = await Api.updateUserProfile(formData);
+			console.log("API Response:", data);
 
-			if (!response.ok) {
+			if (!data || !data.profile) {
 				throw new Error("Failed to update profile");
 			}
 
-			const data = await response.json();
-
+			setImageTimestamp(Date.now());
 			setSuccess("Profile updated successfully!");
 			setIsEditing(false);
-			// Refetch the profile to get the updated data
 			fetchUserProfile();
 		} catch (err) {
 			console.error("Error updating profile:", err);
@@ -198,6 +229,28 @@ function Profile() {
 			</div>
 		);
 	}
+
+	// Function to handle avatar URL with potential cache busting
+	const getAvatarUrl = () => {
+		if (!profile.avatar) {
+			return user?.role === "organiser"
+				? "/src/assets/default-avatar-red.png"
+				: "/src/assets/default-avatar-blue.png";
+		}
+
+		// If it's a full URL
+		if (profile.avatar.startsWith("http")) {
+			return `${profile.avatar}?t=${imageTimestamp}`;
+		}
+
+		// If it's a relative path
+		if (profile.avatar.startsWith("/")) {
+			return `${profile.avatar}?t=${imageTimestamp}`;
+		}
+
+		// If it's just a filename
+		return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
+	};
 
 	return (
 		<>
@@ -226,12 +279,7 @@ function Profile() {
 					<CardContent className="p-6 flex flex-col items-center text-center">
 						<Avatar className="w-24 h-24 border-4 border-primary">
 							<AvatarImage
-								src={
-									profile.avatar ||
-									(user?.role === "organiser"
-										? "/src/assets/default-avatar-red.png"
-										: "/src/assets/default-avatar-blue.png")
-								}
+								src={getAvatarUrl()}
 								alt="User profile"
 							/>
 							<AvatarFallback>
@@ -474,7 +522,7 @@ function Profile() {
 								</TableHeader>
 								<TableBody>
 									{events.map((event) => (
-										<TableRow key={event.id}>
+										<TableRow key={event._id}>
 											<TableCell className="font-medium">
 												{event.name ||
 													event.event?.name ||
