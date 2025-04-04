@@ -1,4 +1,4 @@
-// src/containers/Auth/ForgotPassword/index.jsx
+// src/containers/Auth/EditPassword/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,11 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function ForgotPassword() {
+function EditPassword() {
 	const navigate = useNavigate();
 	const [email, setEmail] = useState("");
+	const [currentPassword, setCurrentPassword] = useState("");
+	const [newPassword, setNewPassword] = useState("");
 	const [message, setMessage] = useState("");
 	const [error, setError] = useState("");
 	const [validated, setValidated] = useState(false);
@@ -25,28 +27,30 @@ function ForgotPassword() {
 
 	const handleSubmit = async (event) => {
 		event.preventDefault();
+		const form = event.currentTarget;
 
-		if (!email) {
-			setValidated(true);
-			return;
+		if (form.checkValidity() === false) {
+			event.stopPropagation();
+		} else {
+			try {
+				// Simulating successful password reset
+				setMessage(
+					"Password reset successful. You can now log in with your new password."
+				);
+				setError("");
+
+				// In a real app, you might redirect after successful reset
+				setTimeout(() => {
+					navigate("/login");
+				}, 3000);
+			} catch (err) {
+				console.error("Error submitting password reset:", err);
+				setError(
+					"Failed to reset password. Please verify your email and current password."
+				);
+				setMessage("");
+			}
 		}
-
-		try {
-			// Simulate successful email sent
-			setMessage(
-				"If this email is registered, a password reset link has been sent."
-			);
-			setError("");
-
-			setTimeout(() => {
-				navigate("/login");
-			}, 3000);
-		} catch (err) {
-			console.error("Error sending reset link:", err);
-			setError("Failed to send reset link. Please try again later.");
-			setMessage("");
-		}
-
 		setValidated(true);
 	};
 
@@ -58,7 +62,7 @@ function ForgotPassword() {
 						VolunSphere
 					</CardTitle>
 					<CardDescription className="text-center">
-						Forgot your password?
+						Reset your password
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -91,8 +95,46 @@ function ForgotPassword() {
 							)}
 						</div>
 
+						<div className="space-y-2">
+							<Label htmlFor="currentPassword">
+								Current Password
+							</Label>
+							<Input
+								id="currentPassword"
+								type="password"
+								placeholder="Enter current password"
+								value={currentPassword}
+								onChange={(e) =>
+									setCurrentPassword(e.target.value)
+								}
+								required
+							/>
+							{validated && !currentPassword && (
+								<p className="text-sm text-destructive">
+									Current password is required.
+								</p>
+							)}
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="newPassword">New Password</Label>
+							<Input
+								id="newPassword"
+								type="password"
+								placeholder="Enter new password"
+								value={newPassword}
+								onChange={(e) => setNewPassword(e.target.value)}
+								required
+							/>
+							{validated && !newPassword && (
+								<p className="text-sm text-destructive">
+									New password is required.
+								</p>
+							)}
+						</div>
+
 						<Button type="submit" className="w-full">
-							Send Reset Link
+							Reset Password
 						</Button>
 					</form>
 				</CardContent>
@@ -112,4 +154,4 @@ function ForgotPassword() {
 	);
 }
 
-export default ForgotPassword;
+export default EditPassword;

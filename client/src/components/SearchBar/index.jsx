@@ -1,73 +1,68 @@
-// src/containers/Home/components/EventCard.jsx
-import React from "react";
-import { Link } from "react-router-dom";
+// src/components/SearchBar/index.jsx
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Search, X } from "lucide-react";
 
-function EventCard({ event }) {
-	// Get spots count based on max_volunteers property or a random number
-	const getSpots = () => {
-		if (event.max_volunteers) {
-			return Math.min(
-				Math.floor(Math.random() * event.max_volunteers) + 1,
-				event.max_volunteers
-			);
-		}
-		return Math.floor(Math.random() * 10) + 1;
-	};
+function SearchBar({ searchTerm, handleSearch }) {
+  const [inputFocused, setInputFocused] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || "");
 
-	return (
-		<div className="card h-100">
-			<div className="position-relative">
-				<img
-					src={`https://source.unsplash.com/random/300x200/?${
-						event.cause || "volunteer"
-					}`}
-					className="card-img-top"
-					alt={event.name || "Event"}
-					style={{ height: "200px", objectFit: "cover" }}
-				/>
-				<div
-					className="position-absolute"
-					style={{ top: "10px", left: "10px" }}
-				>
-					<span className="badge bg-light text-dark">
-						{getSpots()} spots left
-					</span>
-				</div>
-			</div>
-			<div className="card-body">
-				<h5 className="card-title">{event.name}</h5>
-				{event.organiser_id && (
-					<p className="card-text text-muted mb-2">
-						<i className="fas fa-user me-2"></i>
-						{event.organiser_id}
-					</p>
-				)}
-				<p className="card-text mb-2">
-					<i className="fas fa-calendar me-2"></i>
-					{new Date(
-						event.start_date || event.date
-					).toLocaleDateString()}
-				</p>
-				<p className="card-text mb-2">
-					<i className="fas fa-map-marker-alt me-2"></i>
-					{event.location || "Various locations"}
-				</p>
-				{event.description && (
-					<p className="card-text text-truncate">
-						{event.description}
-					</p>
-				)}
-			</div>
-			<div className="card-footer bg-white border-top-0">
-				<Link
-					to={`/events/${event.id}`}
-					className="btn btn-primary w-100"
-				>
-					View Details
-				</Link>
-			</div>
-		</div>
-	);
+  const handleInputChange = (e) => {
+    setLocalSearchTerm(e.target.value);
+    handleSearch(e);
+  };
+
+  const clearSearch = () => {
+    setLocalSearchTerm("");
+    // Create a synthetic event object to pass to handleSearch
+    const syntheticEvent = { target: { value: "" } };
+    handleSearch(syntheticEvent);
+  };
+
+  return (
+    <Card className="mb-6 shadow-sm hover:shadow-md transition-all duration-200">
+      <CardContent className="p-4">
+        <div className="flex w-full items-center space-x-2 relative">
+          <div className={`flex-grow relative transition-all duration-200 ${inputFocused ? 'ring-2 ring-primary rounded-md' : ''}`}>
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <Search className="h-5 w-5" />
+            </div>
+            
+            <Input
+              type="text"
+              placeholder="Search for volunteer opportunities..."
+              value={localSearchTerm}
+              onChange={handleInputChange}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              className="pl-10 pr-10 py-6 text-base focus-visible:ring-1"
+            />
+            
+            {localSearchTerm && (
+              <button 
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                aria-label="Clear search"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          
+          <Button 
+		  	variant="outline"
+            className="px-4 py-6 shadow-md hover:shadow-lg transition-all bg-primary"
+            onClick={() => console.log("Search button clicked")}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
-export default EventCard;
+export default SearchBar;

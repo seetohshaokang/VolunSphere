@@ -61,6 +61,7 @@ const AppRoutes = () => {
 					element={<RegistrationVolunteer />}
 				/>
 				<Route path="/forgotpassword" element={<ForgotPassword />} />
+				<Route path="/resetpassword/:token" element={<ForgotPassword />} />
 
 				{/* Events (Public View) */}
 				<Route

@@ -44,7 +44,7 @@ function FilterControls({
             <Label htmlFor="category">Category</Label>
             <Select open={categoryOpen} onOpenChange={setCategoryOpen}>
               <SelectTrigger id="category" className="bg-white">
-			  <span className="truncate">
+                <span className="truncate">
                   {filters.category === "all"
                     ? "All Categories"
                     : filters.category}
@@ -129,27 +129,6 @@ function FilterControls({
           </div>
 
           <div className="space-y-2">
-            <Label>Price Range</Label>
-            <div className="flex gap-2 items-center">
-              <Input
-                type="number"
-                placeholder="Min"
-                value={filters.priceRange.min}
-                onChange={(e) => handleFilterChange("priceMin", e.target.value)}
-                className="bg-white"
-              />
-              <span>to</span>
-              <Input
-                type="number"
-                placeholder="Max"
-                value={filters.priceRange.max}
-                onChange={(e) => handleFilterChange("priceMax", e.target.value)}
-                className="bg-white"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
             <Label>Date Range</Label>
             <div className="grid grid-cols-2 gap-2">
               <Input
@@ -168,23 +147,23 @@ function FilterControls({
               />
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end mt-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              handleFilterChange("category", "all");
-              handleFilterChange("location", "all");
-              handleFilterChange("priceMin", 0);
-              handleFilterChange("priceMax", 1000);
-              handleFilterChange("dateStart", "");
-              handleFilterChange("dateEnd", "");
-            }}
-            className="hover:bg-gray-100 transition-colors"
-          >
-            Reset Filters
-          </Button>
+          <div className="flex justify-end pt-[2rem]">
+            <Button
+              variant="outline"
+              onClick={() => {
+                handleFilterChange("category", "all");
+                handleFilterChange("location", "all");
+                handleFilterChange("priceMin", 0);
+                handleFilterChange("priceMax", 1000);
+                handleFilterChange("dateStart", "");
+                handleFilterChange("dateEnd", "");
+              }}
+              className="hover:bg-gray-100 transition-colors"
+            >
+              Reset Filters
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

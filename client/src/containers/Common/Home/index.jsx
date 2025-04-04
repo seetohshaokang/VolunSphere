@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import EventCard from "../../../components/EventCard";
 import FilterControls from "../../../components/FilterControls";
 import ResultsHeader from "../../../components/ResultsHeader";
+import Searchbar from "../../../components/SearchBar";
 
 function Home() {
 	// State management
@@ -212,23 +213,10 @@ function Home() {
 				</div>
 
 				{/* Search bar */}
-				<Card className="mb-6">
-					<CardContent className="p-4">
-						<div className="flex w-full items-center space-x-2">
-							<Input
-								type="text"
-								placeholder="Search for volunteer opportunities..."
-								value={searchTerm}
-								onChange={handleSearch}
-								className="flex-grow"
-							/>
-							<Button type="submit">
-								<Search className="h-4 w-4 mr-2" />
-								Search
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
+				<Searchbar 
+					searchTerm={searchTerm} 
+					handleSearch={handleSearch}
+				/>
 
 				{/* Filter section */}
 				<FilterControls
