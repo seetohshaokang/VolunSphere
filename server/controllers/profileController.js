@@ -23,104 +23,101 @@ const fs = require("fs");
  * 3. Return combined user and profile data
  */
 exports.fetchProfile = async (req, res) => {
-	try {
-		console.log("🔍 fetchProfile called - debugging info:");
+  try {
+    console.log("🔍 fetchProfile called - debugging info:");
 
-		// Debug req.user object
-		console.log(
-			"📌 req.user:",
-			req.user ? JSON.stringify(req.user) : "undefined"
-		);
+    // Debug req.user object
+    console.log(
+      "📌 req.user:",
+      req.user ? JSON.stringify(req.user) : "undefined"
+    );
 
-		// Verify we have a user ID
-		const userId = req.user ? req.user.id : null;
-		console.log("📌 Extracted userId:", userId);
+    // Verify we have a user ID
+    const userId = req.user ? req.user.id : null;
+    console.log("📌 Extracted userId:", userId);
 
-		if (!userId) {
-			console.log("❌ Error: No user ID found in request");
-			return res
-				.status(401)
-				.json({ message: "User not authenticated or ID missing" });
-		}
+    if (!userId) {
+      console.log("❌ Error: No user ID found in request");
+      return res
+        .status(401)
+        .json({ message: "User not authenticated or ID missing" });
+    }
 
-		// Get basic user info
-		console.log("📌 Attempting to find user with ID:", userId);
-		const user = await User.findById(userId).select("-password");
+    // Get basic user info
+    console.log("📌 Attempting to find user with ID:", userId);
+    const user = await User.findById(userId).select("-password");
 
-		// Debug user retrieval
-		if (!user) {
-			console.log(
-				"❌ Error: User not found in database with ID:",
-				userId
-			);
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Debug user retrieval
+    if (!user) {
+      console.log("❌ Error: User not found in database with ID:", userId);
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		console.log("✅ User found:", {
-			id: user._id,
-			email: user.email,
-			role: user.role,
-			status: user.status,
-		});
+    console.log("✅ User found:", {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    });
 
-		// Get role-specific profile
-		let profile;
-		console.log("📌 User role:", user.role);
+    // Get role-specific profile
+    let profile;
+    console.log("📌 User role:", user.role);
 
-		if (user.role === "volunteer") {
-			console.log(
-				"📌 Attempting to find volunteer profile for user_id:",
-				userId
-			);
-			profile = await Volunteer.findOne({ user_id: userId });
-			console.log(
-				"📌 Volunteer findOne query result:",
-				profile ? "Found" : "Not found"
-			);
-		} else if (user.role === "organiser") {
-			console.log(
-				"📌 Attempting to find organiser profile for user_id:",
-				userId
-			);
-			profile = await Organiser.findOne({ user_id: userId });
-			console.log(
-				"📌 Organiser findOne query result:",
-				profile ? "Found" : "Not found"
-			);
-		} else {
-			console.log("❌ Error: Unknown user role:", user.role);
-		}
+    if (user.role === "volunteer") {
+      console.log(
+        "📌 Attempting to find volunteer profile for user_id:",
+        userId
+      );
+      profile = await Volunteer.findOne({ user_id: userId });
+      console.log(
+        "📌 Volunteer findOne query result:",
+        profile ? "Found" : "Not found"
+      );
+    } else if (user.role === "organiser") {
+      console.log(
+        "📌 Attempting to find organiser profile for user_id:",
+        userId
+      );
+      profile = await Organiser.findOne({ user_id: userId });
+      console.log(
+        "📌 Organiser findOne query result:",
+        profile ? "Found" : "Not found"
+      );
+    } else {
+      console.log("❌ Error: Unknown user role:", user.role);
+    }
 
-		if (!profile) {
-			console.log("❌ Error: Profile not found for user ID:", userId);
-			return res.status(404).json({ message: "Profile not found" });
-		}
+    if (!profile) {
+      console.log("❌ Error: Profile not found for user ID:", userId);
+      return res.status(404).json({ message: "Profile not found" });
+    }
 
-		console.log("✅ Profile found for user");
+    console.log("✅ Profile found for user");
 
-		// Return combined user and profile data
-		const responseData = {
-			user: {
-				id: user._id,
-				email: user.email,
-				role: user.role,
-				status: user.status,
-				created_at: user.created_at,
-				last_login: user.last_login,
-			},
-			profile,
-		};
+    // Return combined user and profile data
+    const responseData = {
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        created_at: user.created_at,
+        last_login: user.last_login,
+      },
+      profile,
+    };
 
-		console.log("📤 Sending profile response");
-		return res.status(200).json(responseData);
-	} catch (error) {
-		console.error("❌ Error fetching profile:", error);
-		console.error("❌ Stack trace:", error.stack);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    console.log("📤 Sending profile response");
+    return res.status(200).json(responseData);
+  } catch (error) {
+    console.error("❌ Error fetching profile:", error);
+    console.error("❌ Stack trace:", error.stack);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 /**
  * Update user profile information
@@ -145,93 +142,100 @@ exports.fetchProfile = async (req, res) => {
  * 7. Return success message with updated profile
  */
 exports.updateProfile = async (req, res) => {
-	try {
-		const userId = req.user.id;
+  try {
+    const userId = req.user.id;
 
-		// Get existing user
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Get existing user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		// Handle profile image
-		let profileImageUrl = null;
-		if (req.file) {
-			// In a real implementation, upload to cloud storage and get URL
-			// For now, we'll just acknowledge the upload
-			profileImageUrl = "/uploads/" + req.file.filename; // Placeholder
-		}
+    // Handle profile image upload
+    let profileImageUrl = null;
+    if (req.file) {
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      profileImageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    }
 
-		// Get role-specific profile
-		let profile;
-		if (user.role === "volunteer") {
-			profile = await Volunteer.findOne({ user_id: userId });
+    // Initialize profile variable
+    let profile;
+    if (user.role === "volunteer") {
+      profile = await Volunteer.findOne({ user_id: userId });
+      if (!profile)
+        return res.status(404).json({ message: "Volunteer profile not found" });
 
-			if (!profile) {
-				return res
-					.status(404)
-					.json({ message: "Volunteer profile not found" });
-			}
+      // Update fields dynamically
+      const fieldsToUpdate = ["name", "phone", "bio", "address", "dob"];
+      fieldsToUpdate.forEach((field) => {
+        if (req.body[field]) profile[field] = req.body[field];
+      });
 
-			// Update volunteer profile
-			const { name, phone, bio, address, dob, skills, preferred_causes } =
-				req.body;
+      // Validate and update date of birth
+      if (req.body.dob) {
+        const parsedDate = new Date(req.body.dob);
+        if (!isNaN(parsedDate)) profile.dob = parsedDate;
+      }
 
-			if (name) profile.name = name;
-			if (phone) profile.phone = phone;
-			if (bio) profile.bio = bio;
-			if (address) profile.address = address;
-			if (dob) profile.dob = new Date(dob);
-			if (profileImageUrl) profile.profile_picture_url = profileImageUrl;
+      // Handle profile picture
+      if (profileImageUrl) profile.profile_picture_url = profileImageUrl;
 
-			// Handle arrays - parse from JSON if they came as strings
-			if (skills) {
-				profile.skills =
-					typeof skills === "string" ? JSON.parse(skills) : skills;
-			}
+      // Parse JSON safely for arrays
+      try {
+        if (req.body.skills) {
+          profile.skills =
+            typeof req.body.skills === "string"
+              ? JSON.parse(req.body.skills)
+              : req.body.skills;
+        }
+        if (req.body.preferred_causes) {
+          profile.preferred_causes =
+            typeof req.body.preferred_causes === "string"
+              ? JSON.parse(req.body.preferred_causes)
+              : req.body.preferred_causes;
+        }
+      } catch (error) {
+        return res
+          .status(400)
+          .json({
+            message: "Invalid JSON format for skills or preferred_causes",
+          });
+      }
+    } else if (user.role === "organiser") {
+      profile = await Organiser.findOne({ user_id: userId });
+      if (!profile)
+        return res.status(404).json({ message: "Organiser profile not found" });
 
-			if (preferred_causes) {
-				profile.preferred_causes =
-					typeof preferred_causes === "string"
-						? JSON.parse(preferred_causes)
-						: preferred_causes;
-			}
-		} else if (user.role === "organiser") {
-			profile = await Organiser.findOne({ user_id: userId });
+      // Update fields dynamically
+      const fieldsToUpdate = [
+        "name",
+        "phone",
+        "description",
+        "address",
+        "website",
+      ];
+      fieldsToUpdate.forEach((field) => {
+        if (req.body[field]) profile[field] = req.body[field];
+      });
 
-			if (!profile) {
-				return res
-					.status(404)
-					.json({ message: "Organiser profile not found" });
-			}
+      // Handle profile picture
+      if (profileImageUrl) profile.profile_picture_url = profileImageUrl;
+    }
 
-			// Update organiser profile
-			const { organisation_name, phone, description, address, website } =
-				req.body;
+    // Save updates
+    await profile.save();
 
-			if (organisation_name)
-				profile.organisation_name = organisation_name;
-			if (phone) profile.phone = phone;
-			if (description) profile.description = description;
-			if (address) profile.address = address;
-			if (website) profile.website = website;
-			if (profileImageUrl) profile.profile_picture_url = profileImageUrl;
-		}
-
-		// Save profile updates
-		await profile.save();
-
-		return res.status(200).json({
-			message: "Profile updated successfully",
-			profile,
-		});
-	} catch (error) {
-		console.error("Error updating profile:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      profile,
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -256,55 +260,55 @@ exports.updateProfile = async (req, res) => {
  * 8. Return success message
  */
 exports.deleteProfile = async (req, res) => {
-	try {
-		const userId = req.user.id;
+  try {
+    const userId = req.user.id;
 
-		// Get existing user
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Get existing user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		// Delete profile based on role (without transactions)
-		if (user.role === "volunteer") {
-			// Delete volunteer profile
-			const volunteer = await Volunteer.findOneAndDelete({
-				user_id: userId,
-			});
+    // Delete profile based on role (without transactions)
+    if (user.role === "volunteer") {
+      // Delete volunteer profile
+      const volunteer = await Volunteer.findOneAndDelete({
+        user_id: userId,
+      });
 
-			// Delete event registrations
-			await EventRegistration.deleteMany({ volunteer_id: volunteer._id });
-		} else if (user.role === "organiser") {
-			// Delete organiser profile
-			const organiser = await Organiser.findOneAndDelete({
-				user_id: userId,
-			});
+      // Delete event registrations
+      await EventRegistration.deleteMany({ volunteer_id: volunteer._id });
+    } else if (user.role === "organiser") {
+      // Delete organiser profile
+      const organiser = await Organiser.findOneAndDelete({
+        user_id: userId,
+      });
 
-			// Find organiser's events
-			const events = await Event.find({ organiser_id: organiser._id });
+      // Find organiser's events
+      const events = await Event.find({ organiser_id: organiser._id });
 
-			// Delete event registrations for each event
-			for (const event of events) {
-				await EventRegistration.deleteMany({ event_id: event._id });
-			}
+      // Delete event registrations for each event
+      for (const event of events) {
+        await EventRegistration.deleteMany({ event_id: event._id });
+      }
 
-			// Delete events
-			await Event.deleteMany({ organiser_id: organiser._id });
-		}
+      // Delete events
+      await Event.deleteMany({ organiser_id: organiser._id });
+    }
 
-		// Delete user
-		await User.findByIdAndDelete(userId);
+    // Delete user
+    await User.findByIdAndDelete(userId);
 
-		return res
-			.status(200)
-			.json({ message: "Profile and account deleted successfully" });
-	} catch (error) {
-		console.error("Error deleting profile:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res
+      .status(200)
+      .json({ message: "Profile and account deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting profile:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -328,51 +332,49 @@ exports.deleteProfile = async (req, res) => {
  * 6. Return success message
  */
 exports.uploadNRIC = async (req, res) => {
-	try {
-		const userId = req.user.id;
+  try {
+    const userId = req.user.id;
 
-		// Check if user is a volunteer
-		const user = await User.findById(userId);
-		if (!user || user.role !== "volunteer") {
-			return res
-				.status(403)
-				.json({ message: "Only volunteers can upload NRIC" });
-		}
+    // Check if user is a volunteer
+    const user = await User.findById(userId);
+    if (!user || user.role !== "volunteer") {
+      return res
+        .status(403)
+        .json({ message: "Only volunteers can upload NRIC" });
+    }
 
-		// Check if file was uploaded
-		if (!req.file) {
-			return res.status(400).json({ message: "No file uploaded" });
-		}
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
-		// Find volunteer profile
-		const volunteer = await Volunteer.findOne({ user_id: userId });
-		if (!volunteer) {
-			return res
-				.status(404)
-				.json({ message: "Volunteer profile not found" });
-		}
+    // Find volunteer profile
+    const volunteer = await Volunteer.findOne({ user_id: userId });
+    if (!volunteer) {
+      return res.status(404).json({ message: "Volunteer profile not found" });
+    }
 
-		// Update volunteer's NRIC image
-		volunteer.nric_image = {
-			data: req.file.buffer,
-			contentType: req.file.mimetype,
-			uploaded_at: new Date(),
-			verified: false,
-		};
+    // Update volunteer's NRIC image
+    volunteer.nric_image = {
+      data: req.file.buffer,
+      contentType: req.file.mimetype,
+      uploaded_at: new Date(),
+      verified: false,
+    };
 
-		await volunteer.save();
+    await volunteer.save();
 
-		return res.status(200).json({
-			message:
-				"NRIC uploaded successfully. It will be verified by an administrator.",
-		});
-	} catch (error) {
-		console.error("Error uploading NRIC:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({
+      message:
+        "NRIC uploaded successfully. It will be verified by an administrator.",
+    });
+  } catch (error) {
+    console.error("Error uploading NRIC:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -393,55 +395,51 @@ exports.uploadNRIC = async (req, res) => {
  * 4. Return events list
  */
 exports.getProfileEvents = async (req, res) => {
-	try {
-		const userId = req.user.id;
+  try {
+    const userId = req.user.id;
 
-		// Get user role
-		const user = await User.findById(userId);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
+    // Get user role
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-		let events = [];
+    let events = [];
 
-		if (user.role === "volunteer") {
-			// Get volunteer profile
-			const volunteer = await Volunteer.findOne({ user_id: userId });
-			if (!volunteer) {
-				return res
-					.status(404)
-					.json({ message: "Volunteer profile not found" });
-			}
+    if (user.role === "volunteer") {
+      // Get volunteer profile
+      const volunteer = await Volunteer.findOne({ user_id: userId });
+      if (!volunteer) {
+        return res.status(404).json({ message: "Volunteer profile not found" });
+      }
 
-			// Get registered events
-			const registrations = await EventRegistration.find({
-				volunteer_id: volunteer._id,
-			}).populate("event_id");
+      // Get registered events
+      const registrations = await EventRegistration.find({
+        volunteer_id: volunteer._id,
+      }).populate("event_id");
 
-			events = registrations.map((reg) => ({
-				...reg.event_id._doc,
-				registration_status: reg.status,
-				registration_date: reg.registration_date,
-			}));
-		} else if (user.role === "organiser") {
-			// Get organiser profile
-			const organiser = await Organiser.findOne({ user_id: userId });
-			if (!organiser) {
-				return res
-					.status(404)
-					.json({ message: "Organiser profile not found" });
-			}
+      events = registrations.map((reg) => ({
+        ...reg.event_id._doc,
+        registration_status: reg.status,
+        registration_date: reg.registration_date,
+      }));
+    } else if (user.role === "organiser") {
+      // Get organiser profile
+      const organiser = await Organiser.findOne({ user_id: userId });
+      if (!organiser) {
+        return res.status(404).json({ message: "Organiser profile not found" });
+      }
 
-			// Get organized events
-			events = await Event.find({ organiser_id: organiser._id });
-		}
+      // Get organized events
+      events = await Event.find({ organiser_id: organiser._id });
+    }
 
-		return res.status(200).json({ events });
-	} catch (error) {
-		console.error("Error getting profile events:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(200).json({ events });
+  } catch (error) {
+    console.error("Error getting profile events:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };

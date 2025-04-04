@@ -3,21 +3,22 @@ const router = express.Router();
 const profileController = require("../controllers/profileController");
 const { protectRoute } = require("../middleware/authMiddleware");
 const uploadNRIC = require("../middleware/nricUploadMiddleware");
+const profileImageUpload = require("../middleware/profileImageUploadMiddleware");
 const multer = require("multer");
 
 // Configure multer storage for profile pictures
 const storage = multer.memoryStorage();
 const upload = multer({
-	storage: storage,
-	limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-	fileFilter: (req, file, cb) => {
-		// Accept only images
-		if (file.mimetype.startsWith("image/")) {
-			cb(null, true);
-		} else {
-			cb(new Error("Only image files are allowed"));
-		}
-	},
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    // Accept only images
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
 }).single("profile_picture");
 
 /**
@@ -32,7 +33,12 @@ router.get("/", protectRoute, profileController.fetchProfile);
  * @desc    Update user profile information
  * @access  Private
  */
-router.put("/", protectRoute, upload, profileController.updateProfile);
+router.put(
+  "/",
+  protectRoute,
+  (req, res, next) => profileImageUpload(req, res, next),
+  profileController.updateProfile
+);
 
 /**
  * @route   DELETE /profile
