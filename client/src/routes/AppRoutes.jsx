@@ -23,6 +23,11 @@ import VolunteerEventDetail from "../containers/Volunteer/EventDetail";
 import OrganizerDashboard from "../containers/Organizer/Dashboard";
 import OrganizerEventDetail from "../containers/Organizer/EventDetail";
 import OrganizerManageEvent from "../containers/Organizer/ManageEvent";
+import OrganizerProfile from "../containers/Volunteer/OrganizerProfile";
+
+// Review Page
+import ReviewPage from "../containers/Volunteer/Review";
+
 
 import { useAuth } from "../contexts/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -102,6 +107,12 @@ const AppRoutes = () => {
 				}
 			></Route>
 
+			<Route 
+				path="/organisers/:id" 
+				element={
+				<OrganizerProfile />} 
+			/>
+
 			{/* Organizer Routes */}
 			<Route
 				path="/organizer"
@@ -117,6 +128,10 @@ const AppRoutes = () => {
 					element={<OrganizerEventDetail />}
 				/>
 			</Route>
+
+			{/* Review Routes */}
+			<Route path="/events/:id/review" element={<ReviewPage />} />
+			<Route path="/organisers/:id/review" element={<ReviewPage />} />
 		</Routes>
 	);
 };
