@@ -14,7 +14,7 @@ import Api from "../../../helpers/Api";
 import ReviewForm from "../../../components/ReviewForm";
 
 function ReviewPage() {
-  const { type, id } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [target, setTarget] = useState(null);
@@ -23,6 +23,8 @@ function ReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditingReview, setIsEditingReview] = useState(false);
+  // Assume the type is always 'event' for simplicity in this implementation
+  const type = 'event';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,93 +32,33 @@ function ReviewPage() {
       setError(null);
 
       try {
+        // Fetch event details
+        const eventResponse = await Api.getEvent(id);
+        const eventData = await eventResponse.json();
+        setTarget(eventData);
 
-        let mockTarget;
-        let mockReviews;
-
-        if (type === "event") {
-          mockTarget = {
-            id: id,
-            name: "Weekend Tutoring Program",
-            description: "Weekly tutoring sessions for primary school students",
-            location: "Ang Mo Kio Community Centre",
-            date: "Every Saturday",
-            organiser_name: "Happy Children Happy Future",
-            organiser_id: "org123",
-            image_url: "/src/assets/default-event.jpg",
-          };
-
-          mockReviews = [
-            {
-              id: "rev1",
-              reviewer: "John Lee",
-              reviewer_id: "user1",
-              rating: 5,
-              comment:
-                "Great experience! Well organized and very fulfilling. The kids were amazing and the staff was very supportive.",
-              date: "2025-03-15T08:00:00Z",
-              avatar: null,
-            },
-            {
-              id: "rev2",
-              reviewer: "Sarah Tan",
-              reviewer_id: "user2",
-              rating: 4,
-              comment:
-                "Really enjoyed volunteering here. The only downside was the location was a bit hard to find.",
-              date: "2025-03-10T10:30:00Z",
-              avatar: null,
-            },
-          ];
-        } else {
-          mockTarget = {
-            id: id,
-            organisation_name: "Happy Children Happy Future",
-            description:
-              "Founded in June 2017, Happy Children Happy Future (HCHF) is an initiative committed to transforming the lives of Primary 1 to Secondary 3 students from low-income or single-parent families.",
-            address:
-              "Block 123, Ang Mo Kio Avenue 6, #01-234, Singapore 560123",
-            profile_picture_url: "/src/assets/default-avatar-red.png",
-          };
-
-          mockReviews = [
-            {
-              id: "rev1",
-              reviewer: "Michael Wong",
-              reviewer_id: "user3",
-              rating: 5,
-              comment:
-                "A fantastic organization with a clear mission. I've volunteered with them multiple times and they are very well organized.",
-              date: "2025-03-05T14:20:00Z",
-              avatar: null,
-            },
-            {
-              id: "rev2",
-              reviewer: "Lisa Chen",
-              reviewer_id: "user4",
-              rating: 5,
-              comment:
-                "The staff is amazing and the impact they're having on children's education is incredible. Highly recommend volunteering with them!",
-              date: "2025-02-28T09:15:00Z",
-              avatar: null,
-            },
-          ];
-        }
-
+        // Fetch reviews for the event
+        const reviewsResponse = await Api.getEventReviews(id);
+        const reviewsData = await reviewsResponse.json();
+        
+        // If user is logged in, check if they already have a review
         if (user) {
-          const userHasReview = mockReviews.find(
+          const userHasReview = reviewsData.find(
             (review) => review.reviewer_id === user.id
           );
+          
           if (userHasReview) {
             setUserReview(userHasReview);
-            mockReviews = mockReviews.filter(
+            // Filter out user's review from the list of other reviews
+            setReviews(reviewsData.filter(
               (review) => review.reviewer_id !== user.id
-            );
+            ));
+          } else {
+            setReviews(reviewsData);
           }
+        } else {
+          setReviews(reviewsData);
         }
-
-        setTarget(mockTarget);
-        setReviews(mockReviews);
       } catch (err) {
         console.error(`Error fetching ${type} data:`, err);
         setError(`Failed to load ${type} details. Please try again later.`);
@@ -128,24 +70,49 @@ function ReviewPage() {
     fetchData();
   }, [id, type, user]);
 
-  const handleSubmitReview = (newReview) => {
-    const completeReview = {
-      id: userReview?.id || `new-${Date.now()}`,
-      reviewer: newReview.reviewer,
-      reviewer_id: user.id,
-      rating: newReview.rating,
-      comment: newReview.comment,
-      date: newReview.date.toISOString(),
-      avatar: user.avatar || null,
-    };
+  const handleSubmitReview = async (newReview) => {
+    try {
+      // Prepare the review data for the API
+      const reviewData = {
+        rating: newReview.rating,
+        comment: newReview.comment,
+      };
+      
+      let response;
+      
+      if (userReview) {
+        // If editing an existing review
+        response = await Api.updateEventReview(id, userReview.id, reviewData);
+      } else {
+        // If creating a new review
+        response = await Api.createEventReview(id, reviewData);
+      }
+      
+      const responseData = await response.json();
+      
+      // Update the UI with the submitted review
+      const completeReview = {
+        id: responseData.id || userReview?.id || `new-${Date.now()}`,
+        reviewer: newReview.reviewer,
+        reviewer_id: user.id,
+        rating: newReview.rating,
+        comment: newReview.comment,
+        date: new Date().toISOString(),
+        avatar: user.avatar || null,
+      };
 
-    setUserReview(completeReview);
-    setIsEditingReview(false);
+      setUserReview(completeReview);
+      setIsEditingReview(false);
 
-    const entityUrl = type === "event" ? `/events/${id}` : `/organisers/${id}`;
-    setTimeout(() => {
-      navigate(entityUrl);
-    }, 2000);
+      // Redirect back to event page after a short delay
+      const entityUrl = `/events/${id}`;
+      setTimeout(() => {
+        navigate(entityUrl);
+      }, 2000);
+    } catch (err) {
+      console.error("Error submitting review:", err);
+      setError("Failed to submit your review. Please try again.");
+    }
   };
 
   const calculateAverageRating = () => {
@@ -247,7 +214,7 @@ function ReviewPage() {
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-gray-700">{target.date}</span>
+                          <span className="text-gray-700">{target.start_date}</span>
                         </div>
                         <div className="flex items-center">
                           <MapPin className="h-4 w-4 mr-2 text-gray-500" />

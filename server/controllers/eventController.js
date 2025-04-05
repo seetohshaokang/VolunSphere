@@ -446,9 +446,9 @@ exports.deleteEvent = async (req, res) => {
 };
 
 /**
- * Register for an event
+ * Sign up for an event
  */
-exports.registerForEvent = async (req, res) => {
+exports.signupForEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -456,20 +456,6 @@ exports.registerForEvent = async (req, res) => {
     // Check if ID is valid
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid event ID" });
-    }
-
-    // Verify user is a volunteer
-    const user = await User.findById(userId);
-    if (!user || user.role !== "volunteer") {
-      return res
-        .status(403)
-        .json({ message: "Only volunteers can register for events" });
-    }
-
-    // Get volunteer profile
-    const volunteer = await Volunteer.findOne({ user_id: userId });
-    if (!volunteer) {
-      return res.status(404).json({ message: "Volunteer profile not found" });
     }
 
     // Find event by ID
@@ -482,7 +468,7 @@ exports.registerForEvent = async (req, res) => {
     if (event.status !== "active") {
       return res
         .status(400)
-        .json({ message: "Cannot register for an inactive event" });
+        .json({ message: "Cannot sign up for an inactive event" });
     }
 
     // Check if event has reached max capacity
@@ -495,38 +481,38 @@ exports.registerForEvent = async (req, res) => {
         .json({ message: "Event has reached maximum capacity" });
     }
 
-    // Check if already registered
+    // Check if already signed up
     const existingRegistration = await EventRegistration.findOne({
-      volunteer_id: volunteer._id,
+      user_id: userId,
       event_id: id,
     });
 
     if (existingRegistration) {
       return res
         .status(400)
-        .json({ message: "You are already registered for this event" });
+        .json({ message: "You are already signed up for this event" });
     }
 
     // Create new registration
     const registration = new EventRegistration({
-      volunteer_id: volunteer._id,
+      user_id: userId,
       event_id: id,
-      status: "registered",
-      registration_date: new Date(),
+      status: "confirmed",
+      signup_date: new Date(),
     });
 
-    // Save registration (without transactions)
+    // Save registration
     await registration.save();
 
     // Increment registered_count on event
     await Event.findByIdAndUpdate(id, { $inc: { registered_count: 1 } });
 
     return res.status(201).json({
-      message: "Registered for event successfully",
+      message: "Successfully signed up for event",
       registration,
     });
   } catch (error) {
-    console.error("Error registering for event:", error);
+    console.error("Error signing up for event:", error);
     return res.status(500).json({
       message: "Server error",
       error: error.message,
@@ -535,9 +521,9 @@ exports.registerForEvent = async (req, res) => {
 };
 
 /**
- * Cancel event registration
+ * Remove signup from an event
  */
-exports.cancelRegistration = async (req, res) => {
+exports.removeEventSignup = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -547,33 +533,64 @@ exports.cancelRegistration = async (req, res) => {
       return res.status(400).json({ message: "Invalid event ID" });
     }
 
-    // Get volunteer profile
-    const volunteer = await Volunteer.findOne({ user_id: userId });
-    if (!volunteer) {
-      return res.status(404).json({ message: "Volunteer profile not found" });
-    }
-
     // Find registration
     const registration = await EventRegistration.findOne({
-      volunteer_id: volunteer._id,
+      user_id: userId,
       event_id: id,
     });
 
     if (!registration) {
-      return res.status(404).json({ message: "Registration not found" });
+      return res.status(404).json({ message: "You are not signed up for this event" });
     }
 
-    // Delete registration (without transactions)
+    // Delete registration
     await EventRegistration.findByIdAndDelete(registration._id);
 
-    // Decrement registered_count on event
-    await Event.findByIdAndUpdate(id, { $inc: { registered_count: -1 } });
+    // Get current event to check registered_count
+    const event = await Event.findById(id);
+    if (event && event.registered_count > 0) {
+      // Update registered_count in a separate operation
+      await Event.findByIdAndUpdate(id, { 
+        registered_count: event.registered_count - 1
+      });
+    }
 
     return res
       .status(200)
-      .json({ message: "Registration cancelled successfully" });
+      .json({ message: "Successfully removed signup from event" });
   } catch (error) {
-    console.error("Error cancelling registration:", error);
+    console.error("Error removing signup:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Check if user is signed up for an event
+ */
+exports.checkSignupStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Check if ID is valid
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+
+    // Find registration
+    const registration = await EventRegistration.findOne({
+      user_id: userId,
+      event_id: id,
+    });
+
+    return res.status(200).json({
+      isSignedUp: !!registration
+    });
+  } catch (error) {
+    console.error("Error checking signup status:", error);
     return res.status(500).json({
       message: "Server error",
       error: error.message,

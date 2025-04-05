@@ -22,59 +22,96 @@ function EventDetail() {
 	const { user } = useAuth();
 	const [event, setEvent] = useState(null);
 	const [loading, setLoading] = useState(true);
-	const [isRegistered, setIsRegistered] = useState(false);
+	const [isSignedUp, setIsSignedUp] = useState(false);
 	const [showConfirmModal, setShowConfirmModal] = useState(false);
-	const [registrationSuccess, setRegistrationSuccess] = useState(false);
+	const [signupSuccess, setSignupSuccess] = useState(false);
 	const [error, setError] = useState(null);
+	const [reviews, setReviews] = useState([]);
+	const [reviewsLoading, setReviewsLoading] = useState(true);
 
 	// Fetch event details
-	useEffect(() => {
-		const fetchEventDetails = async () => {
-			setLoading(true);
-			setError(null);
+	const fetchEventDetails = async () => {
+		setLoading(true);
+		setError(null);
 
-			try {
-				// Using the Api helper to fetch event
-				const response = await Api.getEvent(eventId);
-				const eventData = await response.json();
-				setEvent(eventData);
-
-				// Check if user is logged in, fetch registration status
-				if (user) {
-					checkRegistrationStatus();
-				}
-			} catch (err) {
-				console.error("Error fetching event details:", err);
-				setError(
-					"Failed to load event details. Please try again later."
-				);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchEventDetails();
-	}, [eventId, user]);
-
-	// Check if user is already registered
-	const checkRegistrationStatus = async () => {
 		try {
-			const response = await Api.getRegisteredEvents();
-			const data = await response.json();
+			// Using the Api helper to fetch event
+			const response = await Api.getEvent(eventId);
+			
+			if (!response.ok) {
+				// Handle non-200 responses
+				if (response.status === 404) {
+					throw new Error("Event not found");
+				} else {
+					const errorData = await response.json().catch(() => ({}));
+					throw new Error(errorData.message || "Failed to load event details");
+				}
+			}
+			
+			const eventData = await response.json();
+			setEvent(eventData);
 
-			// Check if this event is in the list of registrations
-			const isUserRegistered = data.some(
-				(registration) => registration.event_id === parseInt(eventId)
-			);
-
-			setIsRegistered(isUserRegistered);
+			// Check if user is logged in, fetch signup status
+			if (user) {
+				checkSignupStatus();
+			}
 		} catch (err) {
-			console.error("Error checking registration status:", err);
-			// Non-critical error, don't show to user
+			console.error("Error fetching event details:", err);
+			setError(
+				err.message || "Failed to load event details. Please try again later."
+			);
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	const handleRegisterClick = () => {
+	useEffect(() => {
+		fetchEventDetails();
+	}, [eventId, user]);
+
+	// Fetch event reviews
+	useEffect(() => {
+		const fetchReviews = async () => {
+			setReviewsLoading(true);
+			
+			try {
+				const response = await Api.getEventReviews(eventId);
+				const reviewsData = await response.json();
+				setReviews(reviewsData);
+			} catch (err) {
+				console.error("Error fetching event reviews:", err);
+				// Not showing error for reviews as it's not critical
+				setReviews([]);
+			} finally {
+				setReviewsLoading(false);
+			}
+		};
+
+		if (eventId) {
+			fetchReviews();
+		}
+	}, [eventId]);
+
+	// Check if user is already signed up
+	const checkSignupStatus = async () => {
+		try {
+			const response = await Api.checkEventSignupStatus(eventId);
+			
+			if (response.ok) {
+				const data = await response.json();
+				setIsSignedUp(data.isSignedUp);
+			} else {
+				// If there's an error, assume not signed up
+				setIsSignedUp(false);
+			}
+		} catch (err) {
+			console.error("Error checking signup status:", err);
+			// Non-critical error, assume not signed up
+			setIsSignedUp(false);
+		}
+	};
+
+	const handleSignupClick = () => {
 		if (!user) {
 			// Redirect to login if not logged in
 			navigate("/login", { state: { from: `/events/${eventId}` } });
@@ -96,46 +133,50 @@ function EventDetail() {
 		setShowConfirmModal(true);
 	};
 
-	const confirmRegistration = async () => {
+	const confirmSignup = async () => {
 		try {
-			await Api.registerForEvent(eventId);
+			const response = await Api.signupForEvent(eventId);
+			
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.message || "Failed to sign up for event");
+			}
+			
+			// Re-fetch the event to get the updated capacity count
+			await fetchEventDetails();
 
-			setIsRegistered(true);
+			setIsSignedUp(true);
 			setShowConfirmModal(false);
-			setRegistrationSuccess(true);
-
-			// Update the event data to reflect the new registration count
-			setEvent((prev) => ({
-				...prev,
-				registered_count: (prev.registered_count || 0) + 1,
-			}));
+			setSignupSuccess(true);
 
 			// Hide success message after 3 seconds
 			setTimeout(() => {
-				setRegistrationSuccess(false);
+				setSignupSuccess(false);
 			}, 3000);
 		} catch (err) {
-			console.error("Error registering for event:", err);
-			setError("Failed to register for event. Please try again.");
+			console.error("Error signing up for event:", err);
+			setError(err.message || "Failed to sign up for event. Please try again.");
 			setShowConfirmModal(false);
 		}
 	};
 
-	const cancelRegistration = async () => {
+	const cancelSignup = async () => {
 		try {
-			await Api.cancelEventRegistration(eventId);
+			const response = await Api.removeEventSignup(eventId);
+			
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new Error(errorData.message || "Failed to cancel signup");
+			}
+			
+			// Re-fetch the event to get the updated capacity count
+			await fetchEventDetails();
 
-			setIsRegistered(false);
+			setIsSignedUp(false);
 			setShowConfirmModal(false);
-
-			// Update the event data to reflect the reduced registration count
-			setEvent((prev) => ({
-				...prev,
-				registered_count: Math.max(0, (prev.registered_count || 1) - 1),
-			}));
 		} catch (err) {
-			console.error("Error cancelling registration:", err);
-			setError("Failed to cancel registration. Please try again.");
+			console.error("Error cancelling signup:", err);
+			setError(err.message || "Failed to cancel signup. Please try again.");
 		}
 	};
 
@@ -192,6 +233,10 @@ function EventDetail() {
 		);
 	}
 
+	// Check if event is at capacity
+	const isEventFull = event.max_volunteers > 0 && 
+		(event.registered_count || 0) >= event.max_volunteers;
+
 	return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 mt-6">
       {/* Breadcrumb navigation */}
@@ -234,10 +279,10 @@ function EventDetail() {
       </div>
 
       {/* Registration success message */}
-      {registrationSuccess && (
+      {signupSuccess && (
         <Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
           <AlertDescription>
-            You have successfully registered for this event!
+            You have successfully signed up for this event!
           </AlertDescription>
         </Alert>
       )}
@@ -431,33 +476,28 @@ function EventDetail() {
               </div>
             </div>
 
-            {isRegistered ? (
+            {isSignedUp ? (
               <button
                 onClick={() => setShowConfirmModal(true)}
                 className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md text-base font-medium transition-colors"
               >
-                Cancel Registration
+                Cancel Signup
               </button>
             ) : (
               <button
-                onClick={handleRegisterClick}
+                onClick={handleSignupClick}
                 disabled={
-                  event.status !== "active" ||
-                  (event.max_volunteers > 0 &&
-                    (event.registered_count || 0) >= event.max_volunteers)
+                  event.status !== "active" || isEventFull
                 }
                 className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${
-                  event.status !== "active" ||
-                  (event.max_volunteers > 0 &&
-                    (event.registered_count || 0) >= event.max_volunteers)
+                  event.status !== "active" || isEventFull
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700 text-white"
                 }`}
               >
                 {event.status !== "active"
                   ? "Event Not Active"
-                  : event.max_volunteers > 0 &&
-                    (event.registered_count || 0) >= event.max_volunteers
+                  : isEventFull
                   ? "No Spots Available"
                   : "I want to volunteer"}
               </button>
@@ -476,11 +516,7 @@ function EventDetail() {
                     className="bg-blue-600 h-full rounded-full"
                     style={{
                       width: `${
-                        ((event.max_volunteers -
-                          (event.max_volunteers -
-                            (event.registered_count || 0))) /
-                          event.max_volunteers) *
-                        100
+                        ((event.registered_count || 0) / event.max_volunteers) * 100
                       }%`,
                     }}
                   ></div>
@@ -497,30 +533,8 @@ function EventDetail() {
           entityId={event.id}
           entityType="event"
           entityName={event.name}
-          reviews={[
-            // Test Reviews
-            {
-              id: "rev1",
-              reviewer: "John Lee",
-              reviewer_id: "user1",
-              rating: 5,
-              comment:
-                "Great experience! Well organized and very fulfilling. The kids were amazing and the staff was very supportive.",
-              date: "2025-03-15T08:00:00Z",
-              avatar: null,
-            },
-            {
-              id: "rev2",
-              reviewer: "Sarah Tan",
-              reviewer_id: "user2",
-              rating: 4,
-              comment:
-                "Really enjoyed volunteering here. The only downside was the location was a bit hard to find.",
-              date: "2025-03-10T10:30:00Z",
-              avatar: null,
-            },
-          ]}
-          isLoading={false}
+          reviews={reviews}
+          isLoading={reviewsLoading}
           maxShownReviews={2}
         />
       </div>
@@ -530,18 +544,18 @@ function EventDetail() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {isRegistered ? "Cancel Registration" : "Confirm Registration"}
+              {isSignedUp ? "Cancel Signup" : "Confirm Signup"}
             </DialogTitle>
             <DialogDescription>
-              {isRegistered ? (
+              {isSignedUp ? (
                 <p>
-                  Are you sure you want to cancel your registration for this
+                  Are you sure you want to cancel your signup for this
                   event? This action cannot be undone.
                 </p>
               ) : (
                 <>
                   <p className="mb-2">
-                    You are about to register as a volunteer for:
+                    You are about to sign up as a volunteer for:
                   </p>
                   <p className="font-semibold mb-2">{event.name}</p>
                   <p className="mb-2">
@@ -559,7 +573,7 @@ function EventDetail() {
                   {event.is_recurring && (
                     <p className="font-medium">
                       <strong>Note:</strong> This is a recurring event. By
-                      registering, you are committing to attend all sessions
+                      signing up, you are committing to attend all sessions
                       within the specified date range.
                     </p>
                   )}
@@ -575,10 +589,10 @@ function EventDetail() {
               Cancel
             </Button>
             <Button
-              variant={isRegistered ? "destructive" : "default"}
-              onClick={isRegistered ? cancelRegistration : confirmRegistration}
+              variant={isSignedUp ? "destructive" : "default"}
+              onClick={isSignedUp ? cancelSignup : confirmSignup}
             >
-              {isRegistered ? "Confirm Cancellation" : "Confirm Registration"}
+              {isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
             </Button>
           </DialogFooter>
         </DialogContent>

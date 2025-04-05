@@ -5,6 +5,9 @@ const SERVER_PREFIX =
 	import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 const Api = {
+	// Make SERVER_PREFIX available
+	SERVER_PREFIX,
+	
 	// Auth-related methods
 	loginUser(credentials) {
 		return fetch(`${SERVER_PREFIX}/auth/login`, {
@@ -97,6 +100,64 @@ const Api = {
 
 	getEvent(id) {
 		return fetch(`${SERVER_PREFIX}/events/${id}`);
+	},
+
+	getEventReviews(id) {
+		return fetch(`${SERVER_PREFIX}/events/${id}/reviews`);
+	},
+
+	// Event signup methods
+	signupForEvent(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/signup`, {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+	
+	removeEventSignup(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/signup`, {
+			method: "DELETE",
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+	
+	// Check if user is signed up for an event
+	checkEventSignupStatus(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/signup/status`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	createEventReview(eventId, reviewData) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/reviews`, {
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "POST",
+			body: JSON.stringify(reviewData),
+		});
+	},
+
+	updateEventReview(eventId, reviewId, reviewData) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/reviews/${reviewId}`, {
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "PUT",
+			body: JSON.stringify(reviewData),
+		});
 	},
 
 	// Updated to handle image uploads

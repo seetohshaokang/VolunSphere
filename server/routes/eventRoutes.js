@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const eventController = require("../controllers/eventController");
+const reviewController = require("../controllers/reviewController");
 const { protectRoute, requireRole } = require("../middleware/authMiddleware");
 const eventImageUpload = require("../middleware/eventImageUploadMiddleware");
 
@@ -51,28 +52,25 @@ router.put(
 router.delete("/:id", protectRoute, eventController.deleteEvent);
 
 /**
- * @route   POST /api/events/:id/registrations
- * @desc    Register for an event
- * @access  Private (Volunteer only)
+ * @route   POST /api/events/:id/signup
+ * @desc    Sign up for an event
+ * @access  Private
  */
-router.post(
-  "/:id/registrations",
-  protectRoute,
-  requireRole("volunteer"),
-  eventController.registerForEvent
-);
+router.post("/:id/signup", protectRoute, eventController.signupForEvent);
 
 /**
- * @route   DELETE /api/events/:id/registrations
- * @desc    Cancel event registration
- * @access  Private (Volunteer only)
+ * @route   DELETE /api/events/:id/signup
+ * @desc    Remove signup from an event
+ * @access  Private
  */
-router.delete(
-  "/:id/registrations",
-  protectRoute,
-  requireRole("volunteer"),
-  eventController.cancelRegistration
-);
+router.delete("/:id/signup", protectRoute, eventController.removeEventSignup);
+
+/**
+ * @route   GET /api/events/:id/signup/status
+ * @desc    Check if user is signed up for an event
+ * @access  Private
+ */
+router.get("/:id/signup/status", protectRoute, eventController.checkSignupStatus);
 
 /**
  * @route   POST /api/events/:id/reports
@@ -92,5 +90,33 @@ router.get(
   requireRole("volunteer"),
   eventController.getRecommendedEvents
 );
+
+/**
+ * @route   GET /api/events/:id/reviews
+ * @desc    Get all reviews for an event
+ * @access  Public
+ */
+router.get("/:id/reviews", reviewController.getEventReviews);
+
+/**
+ * @route   POST /api/events/:id/reviews
+ * @desc    Create a review for an event
+ * @access  Private
+ */
+router.post("/:id/reviews", protectRoute, reviewController.createEventReview);
+
+/**
+ * @route   PUT /api/events/:id/reviews/:reviewId
+ * @desc    Update a review
+ * @access  Private (Review Owner)
+ */
+router.put("/:id/reviews/:reviewId", protectRoute, reviewController.updateEventReview);
+
+/**
+ * @route   DELETE /api/events/:id/reviews/:reviewId
+ * @desc    Delete a review
+ * @access  Private (Review Owner)
+ */
+router.delete("/:id/reviews/:reviewId", protectRoute, reviewController.deleteEventReview);
 
 module.exports = router;

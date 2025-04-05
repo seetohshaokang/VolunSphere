@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
+const Schema = mongoose.Schema;
 
 const eventRegistrationSchema = new Schema({
-	volunteer_id: {
+	user_id: {
 		type: Schema.Types.ObjectId,
-		ref: "Volunteer",
+		ref: "User",
 		required: true,
 	},
 	event_id: {
@@ -14,18 +14,25 @@ const eventRegistrationSchema = new Schema({
 	},
 	status: {
 		type: String,
-		enum: ["registered", "attended", "no_show", "cancelled"],
-		default: "registered",
+		enum: ["pending", "confirmed", "cancelled"],
+		default: "confirmed",
 	},
-	registration_date: {
+	signup_date: {
 		type: Date,
 		default: Date.now,
 	},
+	attendance_status: {
+		type: String,
+		enum: ["not_attended", "attended", "no_show"],
+		default: "not_attended",
+	},
 	check_in_time: {
 		type: Date,
+		default: null,
 	},
 	check_out_time: {
 		type: Date,
+		default: null,
 	},
 	feedback: {
 		from_volunteer: {
@@ -46,13 +53,10 @@ const eventRegistrationSchema = new Schema({
 			},
 			submitted_at: Date,
 		},
-	},
+	}
 });
 
-// Ensure that a volunteer can only register once for an event
-eventRegistrationSchema.index(
-	{ volunteer_id: 1, event_id: 1 },
-	{ unique: true }
-);
+// Create a compound index to prevent duplicate registrations
+eventRegistrationSchema.index({ user_id: 1, event_id: 1 }, { unique: true });
 
 module.exports = mongoose.model("EventRegistration", eventRegistrationSchema);

@@ -71,37 +71,31 @@ function Navbar() {
 										</Avatar>
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuLabel>
+								<DropdownMenuContent align="end" className="bg-white shadow-md border rounded-md p-2 w-48">
+									<DropdownMenuLabel className="text-gray-700 font-semibold px-3 py-2">
 										My Account
 									</DropdownMenuLabel>
-									<DropdownMenuSeparator />
+									<DropdownMenuSeparator className="bg-gray-200" />
 									<DropdownMenuItem asChild>
 										<Link
 											to="/profile"
-											className="cursor-pointer flex items-center justify-between w-full"
+											className="cursor-pointer flex items-center w-full px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
 										>
 											Profile
-											<Badge
-												variant="secondary"
-												className="ml-2"
-											>
-												New
-											</Badge>
 										</Link>
 									</DropdownMenuItem>
 									<DropdownMenuItem asChild>
 										<Link
 											to="/events/user/registered"
-											className="cursor-pointer w-full"
+											className="cursor-pointer w-full px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
 										>
 											My Events
 										</Link>
 									</DropdownMenuItem>
-									<DropdownMenuSeparator />
+									<DropdownMenuSeparator className="bg-gray-200" />
 									<DropdownMenuItem
 										onClick={logout}
-										className="cursor-pointer"
+										className="cursor-pointer px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
 									>
 										Logout
 									</DropdownMenuItem>

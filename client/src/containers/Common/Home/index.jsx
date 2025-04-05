@@ -8,6 +8,7 @@ import EventCard from "../../../components/EventCard";
 import FilterControls from "../../../components/FilterControls";
 import ResultsHeader from "../../../components/ResultsHeader";
 import Searchbar from "../../../components/SearchBar";
+import Api from "../../../helpers/Api";
 
 function Home() {
 	// State management
@@ -15,6 +16,7 @@ function Home() {
 	const [filteredEvents, setFilteredEvents] = useState([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
 	const [filters, setFilters] = useState({
 		category: "all",
 		location: "all",
@@ -28,102 +30,96 @@ function Home() {
 		},
 	});
 
-	// Mock data - replace with API call
+	// Fetch all events initially
 	useEffect(() => {
-		// Simulate API call
-		setTimeout(() => {
-			const mockEvents = [
-				{
-					id: 1,
-					name: "Beach Cleanup Drive",
-					organiser_id: "ECO Guardians",
-					start_date: "2025-04-15",
-					location: "Changi Beach",
-					description:
-						"Join us for a community beach cleanup event. Help keep our beaches clean!",
-					cause: "Environment",
-					max_volunteers: 20,
-				},
-				{
-					id: 2,
-					name: "Elderly Home Visit",
-					organiser_id: "Silver Care Society",
-					start_date: "2025-04-22",
-					location: "Sunshine Retirement Home",
-					description:
-						"Spend a day brightening the lives of elderly residents through companionship and activities.",
-					cause: "Healthcare",
-					max_volunteers: 15,
-				},
-				{
-					id: 3,
-					name: "Food Distribution Drive",
-					organiser_id: "Hunger Heroes",
-					start_date: "2025-04-10",
-					location: "Central Community Center",
-					description:
-						"Help pack and distribute food packages to families in need in our community.",
-					cause: "Social Services",
-					max_volunteers: 25,
-				},
-				{
-					id: 4,
-					name: "Tree Planting Initiative",
-					organiser_id: "Green Earth Alliance",
-					start_date: "2025-05-05",
-					location: "City Park",
-					description:
-						"Be part of our city's greening efforts by planting trees in local parks.",
-					cause: "Environment",
-					max_volunteers: 30,
-				},
-				{
-					id: 5,
-					name: "Animal Shelter Support",
-					organiser_id: "Paws & Care",
-					start_date: "2025-04-18",
-					location: "Happy Tails Shelter",
-					description:
-						"Help walk, groom, and care for shelter animals awaiting their forever homes.",
-					cause: "Animal Welfare",
-					max_volunteers: 12,
-				},
-				{
-					id: 6,
-					name: "Literacy Program",
-					organiser_id: "Education Matters",
-					start_date: "2025-04-25",
-					location: "Public Library",
-					description:
-						"Volunteer to read with children and support literacy skills development.",
-					cause: "Education",
-					max_volunteers: 10,
-				},
-			];
-
-			setEvents(mockEvents);
-			setFilteredEvents(mockEvents);
-			setLoading(false);
-		}, 1000);
+		fetchEvents();
+		
+		// Add event listener for when the page regains focus
+		const handleFocus = () => {
+			// Refresh the events when the user returns to this page
+			// (e.g., after signup/removal from the event detail page)
+			fetchEvents(searchTerm);
+		};
+		
+		window.addEventListener('focus', handleFocus);
+		
+		// Clean up the event listener
+		return () => {
+			window.removeEventListener('focus', handleFocus);
+		};
 	}, []);
 
-	// Filter events based on search term and filter settings
+	// Fetch events from API
+	const fetchEvents = async (searchQuery = "") => {
+		setLoading(true);
+		setError(null);
+		
+		try {
+			// Construct the API URL with search parameter if provided
+			let apiUrl = `${Api.SERVER_PREFIX}/events`;
+			
+			// Only add search parameter if searchQuery is not empty
+			if (searchQuery && searchQuery.trim() !== "") {
+				apiUrl += `?search=${encodeURIComponent(searchQuery.trim())}`;
+			}
+			
+			const response = await fetch(apiUrl);
+			
+			if (!response.ok) {
+				throw new Error(`API error with status: ${response.status}`);
+			}
+			
+			const data = await response.json();
+			
+			// API might return either 'events' array or direct array
+			const eventsData = data.events || data;
+			
+			// If no events found but didn't get an error, just set empty arrays
+			if (!eventsData || eventsData.length === 0) {
+				setEvents([]);
+				setFilteredEvents([]);
+			} else {
+				setEvents(eventsData);
+				setFilteredEvents(eventsData);
+			}
+		} catch (err) {
+			console.error("Error fetching events:", err);
+			// Don't show error for no results, just set empty arrays
+			setEvents([]);
+			setFilteredEvents([]);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	// Handle search when search button is clicked
+	const handleSearchSubmit = () => {
+		fetchEvents(searchTerm);
+	};
+
+	// Handle input change for search
+	const handleSearchInputChange = (e) => {
+		const newSearchTerm = e.target.value;
+		setSearchTerm(newSearchTerm);
+		
+		// If search is cleared completely, fetch all events immediately
+		if (newSearchTerm.trim() === "") {
+			fetchEvents("");
+		}
+	};
+	
+	// Handle Enter key press in search input
+	const handleKeyDown = (e) => {
+		if (e.key === 'Enter') {
+			handleSearchSubmit();
+		}
+	};
+
+	// Apply client-side filters (category, location, date)
 	useEffect(() => {
 		if (events.length === 0) return;
 
 		let results = [...events];
-
-		// Apply search filter
-		if (searchTerm) {
-			const term = searchTerm.toLowerCase();
-			results = results.filter(
-				(event) =>
-					event.name.toLowerCase().includes(term) ||
-					event.description.toLowerCase().includes(term) ||
-					event.location.toLowerCase().includes(term) ||
-					event.cause.toLowerCase().includes(term)
-			);
-		}
 
 		// Apply category filter
 		if (filters.category && filters.category !== "all") {
@@ -135,7 +131,7 @@ function Home() {
 		// Apply location filter
 		if (filters.location && filters.location !== "all") {
 			results = results.filter((event) =>
-				event.location.includes(filters.location)
+				(event.location || '').includes(filters.location)
 			);
 		}
 
@@ -157,12 +153,7 @@ function Home() {
 		}
 
 		setFilteredEvents(results);
-	}, [searchTerm, filters, events]);
-
-	// Handle search input
-	const handleSearch = (e) => {
-		setSearchTerm(e.target.value);
-	};
+	}, [filters, events]);
 
 	// Handle filter changes
 	const handleFilterChange = (filterName, value) => {
@@ -197,8 +188,8 @@ function Home() {
 	};
 
 	// Get unique categories and locations for filter options
-	const categories = [...new Set(events.map((event) => event.cause))];
-	const locations = [...new Set(events.map((event) => event.location))];
+	const categories = [...new Set(events.map((event) => event.cause).filter(Boolean))];
+	const locations = [...new Set(events.map((event) => event.location).filter(Boolean))];
 
 	return (
 		<>
@@ -212,11 +203,26 @@ function Home() {
 					<div className="h-px bg-border mt-2 mb-4"></div>
 				</div>
 
-				{/* Search bar */}
-				<Searchbar 
-					searchTerm={searchTerm} 
-					handleSearch={handleSearch}
-				/>
+				{/* Custom Search bar */}
+				<div className="relative mb-6">
+					<div className="flex">
+						<Input
+							type="text"
+							placeholder="Search for volunteer opportunities..."
+							value={searchTerm}
+							onChange={handleSearchInputChange}
+							onKeyDown={handleKeyDown}
+							className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+						/>
+						<Button 
+							className="rounded-l-none" 
+							onClick={handleSearchSubmit}
+						>
+							<Search className="h-4 w-4 mr-2" />
+							Search
+						</Button>
+					</div>
+				</div>
 
 				{/* Filter section */}
 				<FilterControls
@@ -228,6 +234,12 @@ function Home() {
 
 				{/* Results count */}
 				<ResultsHeader eventCount={filteredEvents.length} />
+
+				{error && (
+					<div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded mb-6">
+						{error}
+					</div>
+				)}
 
 				{/* Event cards grid */}
 				{loading ? (
