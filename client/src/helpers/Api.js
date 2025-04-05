@@ -183,8 +183,8 @@ const Api = {
 		});
 	},
 
-	ggetAdminDashboardStats() {
-		return fetch(`${SERVER_PREFIX}/api/admin/dashboard`, {
+	getAdminDashboardStats() {
+		return fetch(`${SERVER_PREFIX}/admin/dashboard`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
@@ -194,7 +194,7 @@ const Api = {
 	// User management
 	getAdminUsers(params = {}) {
 		const queryString = new URLSearchParams(params).toString();
-		return fetch(`${SERVER_PREFIX}/api/admin/users?${queryString}`, {
+		return fetch(`${SERVER_PREFIX}/admin/users?${queryString}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
@@ -202,7 +202,7 @@ const Api = {
 	},
 
 	getUserById(id) {
-		return fetch(`${SERVER_PREFIX}/api/admin/users/${id}`, {
+		return fetch(`${SERVER_PREFIX}/admin/users/${id}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
@@ -210,7 +210,7 @@ const Api = {
 	},
 
 	updateUserStatus(id, status, reason) {
-		return fetch(`${SERVER_PREFIX}/api/admin/users/${id}/status`, {
+		return fetch(`${SERVER_PREFIX}/admin/users/${id}/status`, {
 			method: 'PUT',
 			headers: {
 				Accept: "application/json",
@@ -224,15 +224,16 @@ const Api = {
 	// Verification management
 	getPendingVerifications(params = {}) {
 		const queryString = new URLSearchParams(params).toString();
-		return fetch(`${SERVER_PREFIX}/api/admin/volunteers/verifications?${queryString}`, {
+		return fetch(`${SERVER_PREFIX}/admin/volunteers/verifications?${queryString}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
 		});
 	},
 
+	// For volunteer NRIC verification
 	updateVerificationStatus(id, verified, reason) {
-		return fetch(`${SERVER_PREFIX}/api/admin/volunteers/${id}/verification`, {
+		return fetch(`${SERVER_PREFIX}/admin/volunteers/${id}/verification`, {
 			method: 'PUT',
 			headers: {
 				Accept: "application/json",
@@ -243,18 +244,31 @@ const Api = {
 		});
 	},
 
+	// For organiser account verification
+	updateOrganiserVerification(id, status, reason) {
+		return fetch(`${SERVER_PREFIX}/admin/organisers/${id}/verification`, {
+			method: 'PUT',
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ status, reason }),
+		});
+	},
+
 	// Reports management
-	getReports(params = {}) {
+	getAdminReports(params = {}) {
 		const queryString = new URLSearchParams(params).toString();
-		return fetch(`${SERVER_PREFIX}/api/admin/reports?${queryString}`, {
+		return fetch(`${SERVER_PREFIX}/admin/reports?${queryString}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
 		});
 	},
 
-	getReportById(id) {
-		return fetch(`${SERVER_PREFIX}/api/admin/reports/${id}`, {
+	getAdminReportById(id) {
+		return fetch(`${SERVER_PREFIX}/admin/reports/${id}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
@@ -262,7 +276,7 @@ const Api = {
 	},
 
 	updateReportStatus(id, status, adminNotes, resolutionAction) {
-		return fetch(`${SERVER_PREFIX}/api/admin/reports/${id}`, {
+		return fetch(`${SERVER_PREFIX}/admin/reports/${id}`, {
 			method: 'PUT',
 			headers: {
 				Accept: "application/json",
@@ -280,7 +294,7 @@ const Api = {
 	// Admin actions
 	getAdminActions(params = {}) {
 		const queryString = new URLSearchParams(params).toString();
-		return fetch(`${SERVER_PREFIX}/api/admin/actions?${queryString}`, {
+		return fetch(`${SERVER_PREFIX}/admin/actions?${queryString}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
@@ -288,7 +302,7 @@ const Api = {
 	},
 
 	createAdminAction(data) {
-		return fetch(`${SERVER_PREFIX}/api/admin/actions`, {
+		return fetch(`${SERVER_PREFIX}/admin/actions`, {
 			method: 'POST',
 			headers: {
 				Accept: "application/json",
@@ -302,7 +316,7 @@ const Api = {
 	// Admin event management
 	getAdminEvents(params = {}) {
 		const queryString = new URLSearchParams(params).toString();
-		return fetch(`${SERVER_PREFIX}/api/events?${queryString}`, {
+		return fetch(`${SERVER_PREFIX}/admin/events?${queryString}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
@@ -310,10 +324,22 @@ const Api = {
 	},
 
 	getAdminEventById(id) {
-		return fetch(`${SERVER_PREFIX}/api/admin/events/${id}`, {
+		return fetch(`${SERVER_PREFIX}/admin/events/${id}`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
+		});
+	},
+
+	updateEventStatus(id, status, reason) {
+		return fetch(`${SERVER_PREFIX}/admin/events/${id}/status`, {
+			method: 'PUT',
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ status, reason }),
 		});
 	},
 };

@@ -118,9 +118,9 @@ exports.getDashboardStats = async (req, res) => {
 				attendanceRate:
 					totalRegistrations > 0
 						? (
-								(attendedRegistrations / totalRegistrations) *
-								100
-						  ).toFixed(2)
+							(attendedRegistrations / totalRegistrations) *
+							100
+						).toFixed(2)
 						: 0,
 			},
 			reports: {
@@ -454,8 +454,8 @@ exports.updateUserStatus = async (req, res) => {
 					status === "suspended"
 						? "suspension"
 						: status === "active"
-						? "activation"
-						: "deactivation",
+							? "activation"
+							: "deactivation",
 				target_type: user.role,
 				target_id: profile._id,
 				reason: reason || `User ${status} by admin`,
@@ -669,8 +669,7 @@ exports.updateVerificationStatus = async (req, res) => {
 				target_id: volunteer._id,
 				reason:
 					reason ||
-					`NRIC verification ${
-						verified ? "approved" : "rejected"
+					`NRIC verification ${verified ? "approved" : "rejected"
 					} by admin`,
 				date: new Date(),
 			});
@@ -686,9 +685,8 @@ exports.updateVerificationStatus = async (req, res) => {
 			session.endSession();
 
 			return res.status(200).json({
-				message: `NRIC verification ${
-					verified ? "approved" : "rejected"
-				}`,
+				message: `NRIC verification ${verified ? "approved" : "rejected"
+					}`,
 				volunteer: {
 					_id: volunteer._id,
 					name: volunteer.name,
@@ -1355,66 +1353,241 @@ exports.createAction = async (req, res) => {
  * 5. Get reports related to this event
  * 6. Return event data
  */
+/**
+ * Get specific event details for admin view
+ */
 exports.getEventById = async (req, res) => {
-    try {
-        // Step 1: Verify user has admin permissions
-        const userId = req.user.id;
-        const admin = await Admin.findOne({ user_id: userId });
+	try {
+		const { id } = req.params;
 
-        if (!admin) {
-            return res.status(403).json({
-                message: "Access denied. Admin permissions required.",
-            });
-        }
+		// Validate event ID format
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid event ID" });
+		}
 
-        const { id } = req.params;
+		// Get event with organiser details
+		const event = await Event.findById(id).populate({
+			path: "organiser_id",
+			select: "organisation_name description profile_picture_url phone verification_status",
+			populate: {
+				path: "user_id",
+				select: "email status created_at"
+			}
+		});
 
-        // Step 2: Validate event ID format
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid event ID" });
-        }
+		if (!event) {
+			return res.status(404).json({ message: "Event not found" });
+		}
 
-        // Step 3: Get event with organiser details
-        const event = await Event.findById(id).populate({
-            path: "organiser_id",
-            select: "organisation_name description profile_picture_url",
-            populate: {
-                path: "user_id",
-                select: "email status created_at"
-            }
-        });
+		// Get registrations for this event
+		const registrations = await EventRegistration.find({ event_id: id })
+			.populate({
+				path: "volunteer_id",
+				select: "name profile_picture_url user_id"
+			})
+			.sort({ registration_date: -1 });
 
-        if (!event) {
-            return res.status(404).json({ message: "Event not found" });
-        }
+		// Get reports related to this event
+		const reports = await Report.find({
+			$or: [
+				{ reported_type: "Event", reported_id: id },
+				{ event_id: id }
+			]
+		}).populate("reporter_id", "email");
 
-        // Step 4: Get registrations for this event
-        const registrations = await EventRegistration.find({ event_id: id })
-            .populate({
-                path: "volunteer_id",
-                select: "name profile_picture_url"
-            })
-            .sort({ registration_date: -1 });
+		// Return event data
+		return res.status(200).json({
+			event,
+			registrations,
+			reports
+		});
+	} catch (error) {
+		console.error("Error getting event:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
 
-        // Step 5: Get reports related to this event
-        const reports = await Report.find({
-            $or: [
-                { reported_type: "Event", reported_id: id },
-                { event_id: id }
-            ]
-        }).populate("reporter_id", "email");
+/**
+ * Update event status
+ */
+exports.updateEventStatus = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { status, reason } = req.body;
 
-        // Step 6: Return event data
-        return res.status(200).json({
-            event,
-            registrations,
-            reports
-        });
-    } catch (error) {
-        console.error("Error getting event:", error);
-        return res.status(500).json({
-            message: "Server error",
-            error: error.message,
-        });
-    }
+		// Validate event ID
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid event ID" });
+		}
+
+		// Validate status
+		if (!status || !["active", "cancelled", "completed", "draft"].includes(status)) {
+			return res.status(400).json({ message: "Invalid status" });
+		}
+
+		// Find event
+		const event = await Event.findById(id);
+		if (!event) {
+			return res.status(404).json({ message: "Event not found" });
+		}
+
+		// Update event status
+		event.status = status;
+		await event.save();
+
+		// Create admin action record
+		const admin = await Admin.findOne({ user_id: req.user.id });
+
+		if (admin) {
+			const action = new AdminAction({
+				admin_id: admin._id,
+				action: status === "cancelled" ? "event_removed" : "status_change",
+				target_type: "event",
+				target_id: event._id,
+				reason: reason || `Event ${status} by admin`,
+				date: new Date(),
+			});
+
+			await action.save();
+		}
+
+		return res.status(200).json({
+			message: "Event status updated successfully",
+			event
+		});
+	} catch (error) {
+		console.error("Error updating event status:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+/**
+ * Get events for admin view with filters and pagination
+ */
+exports.getEvents = async (req, res) => {
+	try {
+		// Extract query parameters
+		const { status, cause, search, page = 1, limit = 10 } = req.query;
+
+		// Build query
+		let query = {};
+
+		// Add status filter
+		if (status) {
+			query.status = status;
+		}
+
+		// Add cause filter
+		if (cause) {
+			query.causes = { $in: [cause] };
+		}
+
+		// Add search filter
+		if (search) {
+			query.$or = [
+				{ name: { $regex: search, $options: "i" } },
+				{ description: { $regex: search, $options: "i" } },
+				{ location: { $regex: search, $options: "i" } },
+			];
+		}
+
+		// Calculate pagination
+		const skip = (parseInt(page) - 1) * parseInt(limit);
+
+		// Find events
+		const events = await Event.find(query)
+			.sort({ created_at: -1 })
+			.skip(skip)
+			.limit(parseInt(limit))
+			.populate({
+				path: "organiser_id",
+				select: "organisation_name phone verification_status user_id",
+				populate: {
+					path: "user_id",
+					select: "email"
+				}
+			});
+
+		// Count total matching events
+		const total = await Event.countDocuments(query);
+
+		// Return events with pagination info
+		return res.status(200).json({
+			events,
+			pagination: {
+				total,
+				page: parseInt(page),
+				pages: Math.ceil(total / parseInt(limit)),
+				limit: parseInt(limit),
+			},
+		});
+	} catch (error) {
+		console.error("Error getting events:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * Update organiser verification status
+ */
+exports.updateOrganiserVerification = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { status, reason } = req.body;
+
+		// Validate organiser ID
+		if (!mongoose.Types.ObjectId.isValid(id)) {
+			return res.status(400).json({ message: "Invalid organiser ID" });
+		}
+
+		// Validate status
+		if (!status || !["verified", "rejected", "pending"].includes(status)) {
+			return res.status(400).json({ message: "Invalid verification status" });
+		}
+
+		// Find organiser
+		const organiser = await Organiser.findById(id);
+		if (!organiser) {
+			return res.status(404).json({ message: "Organiser not found" });
+		}
+
+		// Update verification status
+		organiser.verification_status = status;
+		await organiser.save();
+
+		// Create admin action record
+		const admin = await Admin.findOne({ user_id: req.user.id });
+
+		if (admin) {
+			const action = new AdminAction({
+				admin_id: admin._id,
+				action: status === "verified" ? "verification_approved" : "verification_rejected",
+				target_type: "organiser",
+				target_id: organiser._id,
+				reason: reason || `Organisation verification ${status} by admin`,
+				date: new Date(),
+			});
+
+			await action.save();
+		}
+
+		return res.status(200).json({
+			message: `Organisation verification status updated to ${status}`,
+			organiser
+		});
+	} catch (error) {
+		console.error("Error updating organiser verification:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
 };

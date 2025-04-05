@@ -31,6 +31,8 @@ import AdminUserDetail from "../containers/Admin/UserDetail";
 import AdminReports from "../containers/Admin/Reports";
 import AdminReportDetail from "../containers/Admin/ReportDetail";
 import AdminVerifications from "../containers/Admin/Verifications";
+import AdminEvents from "../containers/Admin/Events";
+import AdminEventDetail from "../containers/Admin/EventDetail";
 
 import { useAuth } from "../contexts/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -141,6 +143,9 @@ const AppRoutes = () => {
 				<Route path="reports" element={<AdminReports />} />
 				<Route path="reports/:id" element={<AdminReportDetail />} />
 				<Route path="verifications" element={<AdminVerifications />} />
+				{/* Add the new events routes here */}
+				<Route path="events" element={<AdminEvents />} />
+				<Route path="events/:id" element={<AdminEventDetail />} />
 			</Route>
 		</Routes>
 	);

@@ -129,14 +129,31 @@ router.post(
 );
 
 /**
- * @route   GET /admin/events/:id
- * @desc    Get detailed information for a specific event including registrations and reports
- * @access  Private (Admin with manage_events permission)
+ * @route   GET /admin/events
+ * @desc    Get paginated list of events with filtering options
+ * @access  Private (Admin only)
  */
-router.get(
-    "/events/:id",
-    requirePermission("manage_events"),
-    adminController.getEventById
-);
+router.get("/events", adminController.getEvents);
+
+/**
+ * @route   GET /admin/events/:id
+ * @desc    Get detailed information for a specific event
+ * @access  Private (Admin only)
+ */
+router.get("/events/:id", adminController.getEventById);
+
+/**
+ * @route   PUT /admin/events/:id/status
+ * @desc    Update an event's status
+ * @access  Private (Admin only)
+ */
+router.put("/events/:id/status", adminController.updateEventStatus);
+
+/**
+ * @route   PUT /admin/organisers/:id/verification
+ * @desc    Update organiser verification status
+ * @access  Private (Admin only)
+ */
+router.put("/organisers/:id/verification", adminController.updateOrganiserVerification);
 
 module.exports = router;

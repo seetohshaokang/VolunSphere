@@ -1,5 +1,7 @@
+// src/containers/Admin/UserDetail/index.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import ContentHeader from "../../../components/ContentHeader";
 import Api from "../../../helpers/Api";
 
 const AdminUserDetail = () => {
@@ -8,7 +10,7 @@ const AdminUserDetail = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // State for status update modal
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [newStatus, setNewStatus] = useState('');
@@ -22,13 +24,13 @@ const AdminUserDetail = () => {
   const fetchUserData = async () => {
     try {
       setLoading(true);
-      const response = await Api.getAdminUserById(id);
+      const response = await Api.getUserById(id);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch user details');
       }
-      
+
       setUserData(data);
       // Initialize new status with current status
       if (data.user) {
@@ -52,11 +54,11 @@ const AdminUserDetail = () => {
       setStatusUpdateLoading(true);
       const response = await Api.updateUserStatus(id, newStatus, statusReason);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || 'Failed to update user status');
       }
-      
+
       // Update local state with new status
       setUserData(prev => ({
         ...prev,
@@ -65,11 +67,11 @@ const AdminUserDetail = () => {
           status: newStatus
         }
       }));
-      
+
       // Close modal and reset
       setShowStatusModal(false);
       setStatusReason('');
-      
+
       // Show success notification
       alert('User status updated successfully');
     } catch (err) {
@@ -88,7 +90,7 @@ const AdminUserDetail = () => {
 
   // Function to get appropriate badge for different statuses
   const getStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case 'active':
         return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>;
       case 'suspended':
@@ -100,12 +102,77 @@ const AdminUserDetail = () => {
     }
   };
 
+  // Function to handle NRIC verification
+  const handleVerifyNRIC = async (isApproved) => {
+    try {
+      // This would need to be implemented in your API
+      const response = await Api.updateVolunteerVerification(
+        userData.profile._id,
+        isApproved,
+        `NRIC ${isApproved ? 'verified' : 'rejected'} by admin`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update verification status');
+      }
+
+      // Update local state
+      setUserData(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          nric_image: {
+            ...prev.profile.nric_image,
+            verified: isApproved
+          }
+        }
+      }));
+
+      alert(`NRIC verification ${isApproved ? 'approved' : 'rejected'} successfully`);
+    } catch (err) {
+      console.error('Error updating NRIC verification:', err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  // Function to handle organization verification
+  const handleVerifyOrganization = async (isApproved) => {
+    try {
+      // This would need to be implemented in your API
+      const response = await Api.updateOrganiserVerification(
+        userData.profile._id,
+        isApproved ? 'verified' : 'rejected',
+        `Organization ${isApproved ? 'verified' : 'rejected'} by admin`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update verification status');
+      }
+
+      // Update local state
+      setUserData(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          verification_status: isApproved ? 'verified' : 'rejected'
+        }
+      }));
+
+      alert(`Organization verification ${isApproved ? 'approved' : 'rejected'} successfully`);
+    } catch (err) {
+      console.error('Error updating organization verification:', err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="spinner-border text-primary" role="status">
-          <span className="sr-only">Loading...</span>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -116,13 +183,13 @@ const AdminUserDetail = () => {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           <p>Error: {error}</p>
           <div className="flex justify-between mt-4">
-            <button 
+            <button
               className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
               onClick={fetchUserData}
             >
               Try Again
             </button>
-            <button 
+            <button
               className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
               onClick={() => navigate('/admin/users')}
             >
@@ -137,30 +204,30 @@ const AdminUserDetail = () => {
   if (!userData) return null;
 
   const { user, profile, events = [], registrations = [], reports = [], actions = [] } = userData;
-  
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">User Details</h1>
-        <div>
-          <button 
-            onClick={() => setShowStatusModal(true)}
-            className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mr-2"
-          >
-            Change Status
-          </button>
-          <Link 
-            to="/admin/users"
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Back to Users
-          </Link>
-        </div>
+    <>
+      <ContentHeader
+        title="User Details"
+        links={[
+          { to: "/admin", label: "Dashboard" },
+          { to: "/admin/users", label: "Users" },
+          { label: profile?.name || profile?.organisation_name || user.email, isActive: true },
+        ]}
+      />
+
+      <div className="flex justify-end mb-6">
+        <button
+          onClick={() => setShowStatusModal(true)}
+          className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded"
+        >
+          Change User Status
+        </button>
       </div>
 
       {/* User and Profile Information */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6 col-span-2">
+        <div className="bg-white rounded-lg border p-6 col-span-2">
           <h2 className="text-xl font-semibold mb-4">User Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -186,7 +253,7 @@ const AdminUserDetail = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg border p-6">
           <h2 className="text-xl font-semibold mb-4">Profile Details</h2>
           {user.role === 'volunteer' ? (
             <div className="space-y-3">
@@ -198,35 +265,53 @@ const AdminUserDetail = () => {
                 <p className="text-gray-600">Phone:</p>
                 <p className="font-medium">{profile?.phone || 'Not provided'}</p>
               </div>
-              <div>
-                <p className="text-gray-600">NRIC Verified:</p>
-                <p className="font-medium">
-                  {profile?.nric_image?.verified 
-                    ? <span className="text-green-600">Yes</span> 
-                    : <span className="text-red-600">No</span>}
-                </p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-gray-600">NRIC Verified:</p>
+                  <p className="font-medium">
+                    {profile?.nric_image?.verified
+                      ? <span className="text-green-600">Yes</span>
+                      : <span className="text-red-600">No</span>}
+                  </p>
+                </div>
+                {!profile?.nric_image?.verified && (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleVerifyNRIC(true)}
+                      className="bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleVerifyNRIC(false)}
+                      className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-gray-600">Skills:</p>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {profile?.skills?.length > 0 
+                  {profile?.skills?.length > 0
                     ? profile.skills.map((skill, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                          {skill}
-                        </span>
-                      ))
+                      <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        {skill}
+                      </span>
+                    ))
                     : <span className="text-gray-500">No skills listed</span>}
                 </div>
               </div>
               <div>
                 <p className="text-gray-600">Preferred Causes:</p>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {profile?.preferred_causes?.length > 0 
+                  {profile?.preferred_causes?.length > 0
                     ? profile.preferred_causes.map((cause, index) => (
-                        <span key={index} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                          {cause}
-                        </span>
-                      ))
+                      <span key={index} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                        {cause}
+                      </span>
+                    ))
                     : <span className="text-gray-500">No causes listed</span>}
                 </div>
               </div>
@@ -241,15 +326,33 @@ const AdminUserDetail = () => {
                 <p className="text-gray-600">Phone:</p>
                 <p className="font-medium">{profile?.phone || 'Not provided'}</p>
               </div>
-              <div>
-                <p className="text-gray-600">Verification Status:</p>
-                <p className="font-medium">
-                  {profile?.verification_status === 'verified' 
-                    ? <span className="text-green-600">Verified</span> 
-                    : profile?.verification_status === 'rejected'
-                      ? <span className="text-red-600">Rejected</span>
-                      : <span className="text-yellow-600">Pending</span>}
-                </p>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-gray-600">Verification Status:</p>
+                  <p className="font-medium">
+                    {profile?.verification_status === 'verified'
+                      ? <span className="text-green-600">Verified</span>
+                      : profile?.verification_status === 'rejected'
+                        ? <span className="text-red-600">Rejected</span>
+                        : <span className="text-yellow-600">Pending</span>}
+                  </p>
+                </div>
+                {profile?.verification_status === 'pending' && (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleVerifyOrganization(true)}
+                      className="bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleVerifyOrganization(false)}
+                      className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-gray-600">Website:</p>
@@ -263,9 +366,9 @@ const AdminUserDetail = () => {
       </div>
 
       {/* Activity Details Tabs */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
+      <div className="bg-white rounded-lg border p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Activity</h2>
-        
+
         {/* Events (for organisers) */}
         {user.role === 'organiser' && (
           <div className="mb-6">
@@ -287,10 +390,18 @@ const AdminUserDetail = () => {
                       <tr key={event._id}>
                         <td className="px-6 py-4 whitespace-nowrap">{event.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{formatDate(event.start_datetime || event.recurrence_start_date)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{event.status}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full ${event.status === 'active' ? 'bg-green-100 text-green-800' :
+                              event.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                event.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                            }`}>
+                            {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                          </span>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">{event.registered_count} / {event.max_volunteers || 'Unlimited'}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Link to={`/events/${event._id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
+                          <Link to={`/admin/events/${event._id}`} className="text-primary hover:text-primary/80">View</Link>
                         </td>
                       </tr>
                     ))}
@@ -302,7 +413,7 @@ const AdminUserDetail = () => {
             )}
           </div>
         )}
-        
+
         {/* Registrations (for volunteers) */}
         {user.role === 'volunteer' && (
           <div className="mb-6">
@@ -323,9 +434,17 @@ const AdminUserDetail = () => {
                       <tr key={reg._id}>
                         <td className="px-6 py-4 whitespace-nowrap">{reg.event_id?.name || 'Unknown Event'}</td>
                         <td className="px-6 py-4 whitespace-nowrap">{formatDate(reg.registration_date)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{reg.status}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Link to={`/events/${reg.event_id?._id}`} className="text-indigo-600 hover:text-indigo-900">View Event</Link>
+                          <span className={`px-2 py-1 text-xs rounded-full ${reg.status === 'registered' ? 'bg-blue-100 text-blue-800' :
+                              reg.status === 'attended' ? 'bg-green-100 text-green-800' :
+                                reg.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                            }`}>
+                            {reg.status.charAt(0).toUpperCase() + reg.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Link to={`/admin/events/${reg.event_id?._id}`} className="text-primary hover:text-primary/80">View Event</Link>
                         </td>
                       </tr>
                     ))}
@@ -337,7 +456,7 @@ const AdminUserDetail = () => {
             )}
           </div>
         )}
-        
+
         {/* Reports */}
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-3">Submitted Reports</h3>
@@ -359,9 +478,17 @@ const AdminUserDetail = () => {
                       <td className="px-6 py-4 whitespace-nowrap">{formatDate(report.created_at)}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{report.reported_type}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{report.reason.substring(0, 30)}...</td>
-                      <td className="px-6 py-4 whitespace-nowrap">{report.status}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Link to={`/admin/reports/${report._id}`} className="text-indigo-600 hover:text-indigo-900">View</Link>
+                        <span className={`px-2 py-1 text-xs rounded-full ${report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            report.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
+                              report.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                                'bg-gray-100 text-gray-800'
+                          }`}>
+                          {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Link to={`/admin/reports/${report._id}`} className="text-primary hover:text-primary/80">View</Link>
                       </td>
                     </tr>
                   ))}
@@ -372,7 +499,7 @@ const AdminUserDetail = () => {
             <p className="text-gray-500">No reports submitted by this user.</p>
           )}
         </div>
-        
+
         {/* Admin Actions */}
         <div>
           <h3 className="text-lg font-medium mb-3">Admin Actions</h3>
@@ -407,10 +534,10 @@ const AdminUserDetail = () => {
 
       {/* Status Update Modal */}
       {showStatusModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
           <div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Update User Status</h3>
+            <div className="mt-3">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 text-center">Update User Status</h3>
               <div className="mt-4 px-2">
                 <div className="mb-4">
                   <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -448,7 +575,7 @@ const AdminUserDetail = () => {
                   </button>
                   <button
                     onClick={handleStatusUpdate}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                     disabled={statusUpdateLoading || !newStatus || newStatus === userData.user.status}
                   >
                     {statusUpdateLoading ? 'Updating...' : 'Update Status'}
@@ -459,7 +586,7 @@ const AdminUserDetail = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

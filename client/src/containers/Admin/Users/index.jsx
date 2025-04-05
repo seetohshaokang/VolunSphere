@@ -12,7 +12,7 @@ const AdminUsers = () => {
     limit: 10,
     total: 0
   });
-  
+
   // Filters
   const [filters, setFilters] = useState({
     role: '',
@@ -30,11 +30,11 @@ const AdminUsers = () => {
       setLoading(true);
       const response = await Api.getAdminUsers(filters);
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch users');
       }
-      
+
       setUsers(data.users);
       setPagination(data.pagination);
     } catch (err) {
@@ -69,7 +69,7 @@ const AdminUsers = () => {
 
   // Function to get appropriate status badge
   const getStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case 'active':
         return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>;
       case 'suspended':
@@ -83,7 +83,7 @@ const AdminUsers = () => {
 
   // Function to render role badge
   const getRoleBadge = (role) => {
-    switch(role) {
+    switch (role) {
       case 'volunteer':
         return <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">Volunteer</span>;
       case 'organiser':
@@ -95,11 +95,25 @@ const AdminUsers = () => {
     }
   };
 
+  // Function to get verification status badge
+  const getVerificationBadge = (status) => {
+    switch (status) {
+      case 'verified':
+        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Verified</span>;
+      case 'pending':
+        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
+      case 'rejected':
+        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Rejected</span>;
+      default:
+        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Unverified</span>;
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Manage Users</h1>
-        <Link 
+        <Link
           to="/admin"
           className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
         >
@@ -128,7 +142,7 @@ const AdminUsers = () => {
               <option value="admin">Admin</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="status">
               Status
@@ -146,7 +160,7 @@ const AdminUsers = () => {
               <option value="inactive">Inactive</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="search">
               Search by Email
@@ -161,7 +175,7 @@ const AdminUsers = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             />
           </div>
-          
+
           <div className="flex items-end">
             <button
               type="submit"
@@ -185,7 +199,7 @@ const AdminUsers = () => {
       {error && !loading && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           <p>Error: {error}</p>
-          <button 
+          <button
             className="mt-2 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             onClick={fetchUsers}
           >
@@ -225,10 +239,10 @@ const AdminUsers = () => {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           {user.profile?.profile_picture_url ? (
-                            <img 
-                              className="h-10 w-10 rounded-full" 
-                              src={user.profile.profile_picture_url} 
-                              alt={user.profile?.name || user.profile?.organisation_name || 'User'} 
+                            <img
+                              className="h-10 w-10 rounded-full"
+                              src={user.profile.profile_picture_url}
+                              alt={user.profile?.name || user.profile?.organisation_name || 'User'}
                             />
                           ) : (
                             <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600">
@@ -255,30 +269,30 @@ const AdminUsers = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.role === 'volunteer' ? (
                         <span>
-                          Skills: {user.profile?.skills?.length || 0} | 
-                          Causes: {user.profile?.preferred_causes?.length || 0}
+                          Verification: {user.profile?.nric_image?.verified
+                            ? getVerificationBadge('verified')
+                            : getVerificationBadge('pending')}
                         </span>
                       ) : user.role === 'organiser' ? (
                         <span>
-                          Verification: {user.profile?.verification_status || 'Unknown'}
+                          Verification: {getVerificationBadge(user.profile?.verification_status || 'pending')}
                         </span>
                       ) : (
                         <span>Admin Account</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link 
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <Link
                         to={`/admin/users/${user._id}`}
                         className="text-indigo-600 hover:text-indigo-900 mr-4"
                       >
                         View
                       </Link>
-                      <button 
-                        className={`${
-                          user.status === 'active' 
-                            ? 'text-yellow-600 hover:text-yellow-900' 
+                      <button
+                        className={`${user.status === 'active'
+                            ? 'text-yellow-600 hover:text-yellow-900'
                             : 'text-green-600 hover:text-green-900'
-                        }`}
+                          }`}
                         onClick={() => {
                           // This would typically open a confirmation modal
                           alert(`This would ${user.status === 'active' ? 'suspend' : 'activate'} the user account.`);
@@ -313,22 +327,20 @@ const AdminUsers = () => {
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className={`px-4 py-2 border rounded ${
-                pagination.page === 1 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              className={`px-4 py-2 border rounded ${pagination.page === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Previous
             </button>
             <button
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.pages}
-              className={`px-4 py-2 border rounded ${
-                pagination.page === pagination.pages 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+              className={`px-4 py-2 border rounded ${pagination.page === pagination.pages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Next
             </button>
