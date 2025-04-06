@@ -205,20 +205,20 @@ function Home() {
 
 				{/* Custom Search bar */}
 				<div className="relative mb-6">
-					<div className="flex">
+					<div className="flex w-full">
 						<Input
 							type="text"
 							placeholder="Search for volunteer opportunities..."
 							value={searchTerm}
 							onChange={handleSearchInputChange}
 							onKeyDown={handleKeyDown}
-							className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+							className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12"
 						/>
 						<Button 
-							className="rounded-l-none" 
+							className="rounded-l-none h-12 border border-input" 
 							onClick={handleSearchSubmit}
 						>
-							<Search className="h-4 w-4 mr-2" />
+							<Search className="h-5 w-5 mr-2" />
 							Search
 						</Button>
 					</div>

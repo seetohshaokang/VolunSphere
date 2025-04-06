@@ -12,10 +12,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { getProfileImageUrl } from "../../helpers/profileHelper";
+import { useState, useEffect } from "react";
 
 function Navbar() {
-	const { user, logout } = useAuth();
+	const { user, logout, profileData, profileTimestamp } = useAuth();
 	const navigate = useNavigate();
+	const [name, setName] = useState({ firstName: "", lastName: "" });
+
+	useEffect(() => {
+		if (profileData?.name) {
+			// Parse name (assuming it comes as full name)
+			let firstName = profileData.name || "";
+			let lastName = "";
+
+			if (firstName.includes(" ")) {
+				const nameParts = firstName.split(" ");
+				firstName = nameParts[0];
+				lastName = nameParts.slice(1).join(" ");
+			}
+			
+			setName({ firstName, lastName });
+		}
+	}, [profileData]);
 
 	const handleLogin = () => {
 		navigate("/login");
@@ -23,6 +42,11 @@ function Navbar() {
 
 	const handleSignup = () => {
 		navigate("/registration");
+	};
+
+	// Get avatar URL from profile data
+	const getAvatarUrl = () => {
+		return getProfileImageUrl(user, user?.profilePicture || profileData?.profile_picture_url, profileTimestamp);
 	};
 
 	return (
@@ -57,16 +81,12 @@ function Navbar() {
 									>
 										<Avatar>
 											<AvatarImage
-												src={
-													user.photoURL ||
-													(user.role === "organiser"
-														? "/src/assets/default-avatar-red.png"
-														: "/src/assets/default-avatar-blue.png")
-												}
+												src={getAvatarUrl()}
 												alt="Profile"
 											/>
 											<AvatarFallback>
-												{user.name?.charAt(0) || "U"}
+												{name.firstName?.charAt(0) || ""}
+												{name.lastName?.charAt(0) || ""}
 											</AvatarFallback>
 										</Avatar>
 									</Button>
