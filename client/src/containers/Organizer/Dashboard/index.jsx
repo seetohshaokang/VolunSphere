@@ -73,6 +73,11 @@ function OrganizerDashboard() {
     fetchOrganizedEvents();
   }, []);
 
+  // Function to handle card click
+  const handleCardClick = (eventId) => {
+    navigate(`/organizer/events/${eventId}`);
+  };
+
   // If auth error, show a message with login button
   if (authError) {
     return (
@@ -205,7 +210,8 @@ function OrganizerDashboard() {
               {events.map((event) => (
                 <div
                   key={event._id || event.id}
-                  className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                  className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleCardClick(event._id || event.id)}
                 >
                   <div className="relative">
                     <img
@@ -231,9 +237,16 @@ function OrganizerDashboard() {
                     <h3 className="font-bold text-lg mb-2">{event.name}</h3>
                     <div className="flex items-center text-sm text-gray-600 mb-1">
                       <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(
-                        event.start_datetime || event.start_date || Date.now()
-                      ).toLocaleDateString()}
+                      {/* Display date for recurring and non-recurring events */}
+                      {event.is_recurring && event.recurrence_start_date
+                        ? new Date(
+                            event.recurrence_start_date
+                          ).toLocaleDateString()
+                        : event.start_datetime
+                        ? new Date(event.start_datetime).toLocaleDateString()
+                        : event.start_date
+                        ? new Date(event.start_date).toLocaleDateString()
+                        : "Date TBD"}
                     </div>
                     <div className="flex items-center text-sm text-gray-600 mb-1">
                       <MapPin className="h-4 w-4 mr-1" />
@@ -244,12 +257,15 @@ function OrganizerDashboard() {
                       {event.registered_count || 0} /{" "}
                       {event.max_volunteers || 0} volunteers
                     </div>
-                    <Link
-                      to={`/organizer/events/${event._id || event.id}`}
+                    <div
                       className="block w-full bg-primary text-white text-center py-2 rounded-md hover:bg-primary/90 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent triggering the card click
+                        navigate(`/organizer/events/${event._id || event.id}`);
+                      }}
                     >
                       Manage Event
-                    </Link>
+                    </div>
                   </div>
                 </div>
               ))}

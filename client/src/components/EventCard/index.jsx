@@ -8,9 +8,11 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function EventCard({ event }) {
+  const navigate = useNavigate();
+
   // Default image if none provided
   const DEFAULT_IMAGE = "/src/assets/default-event.jpg";
 
@@ -41,8 +43,16 @@ function EventCard({ event }) {
     return "N/A";
   };
 
+  // Handle card click
+  const handleCardClick = () => {
+    navigate(`/events/${event._id || event.id}`);
+  };
+
   return (
-    <Card className="h-full flex flex-col overflow-hidden">
+    <Card
+      className="h-full flex flex-col overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      onClick={handleCardClick}
+    >
       <div className="relative">
         <img
           crossorigin="anonymous"
@@ -77,7 +87,9 @@ function EventCard({ event }) {
 
         <p className="text-sm flex items-center gap-2">
           <Calendar className="h-4 w-4 text-primary" />
-          {event.start_datetime
+          {event.is_recurring && event.recurrence_start_date
+            ? new Date(event.recurrence_start_date).toLocaleDateString()
+            : event.start_datetime
             ? new Date(event.start_datetime).toLocaleDateString()
             : event.start_date
             ? new Date(event.start_date).toLocaleDateString()
@@ -95,8 +107,14 @@ function EventCard({ event }) {
       </CardContent>
 
       <CardFooter className="px-4 py-3 mt-auto">
-        <Button asChild className="w-full">
-          <Link to={`/events/${event._id || event.id}`}>View Details</Link>
+        <Button
+          className="w-full"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click from triggering
+            navigate(`/events/${event._id || event.id}`);
+          }}
+        >
+          View Details
         </Button>
       </CardFooter>
     </Card>

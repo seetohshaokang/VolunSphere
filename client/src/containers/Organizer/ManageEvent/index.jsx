@@ -17,12 +17,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
 import Api from "../../../helpers/Api";
+
+const DAYS_OF_WEEK = [
+  { value: 0, label: "Sunday" },
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+];
 
 function OrganizerManageEvent() {
   const { id } = useParams();
@@ -33,14 +44,24 @@ function OrganizerManageEvent() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    start_date: "",
-    end_date: "",
-    start_time: "",
-    end_time: "",
     location: "",
     cause: "",
     max_volunteers: 10,
     status: "active",
+
+    // Single event fields
+    date: "",
+    start_time: "",
+    end_time: "",
+
+    // Recurring event fields
+    is_recurring: false,
+    recurrence_pattern: "weekly",
+    recurrence_days: [1], // Default to Monday
+    recurrence_start_date: "",
+    recurrence_end_date: "",
+    recurrence_time_start: "09:00",
+    recurrence_time_end: "12:00",
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -57,6 +78,7 @@ function OrganizerManageEvent() {
         try {
           const response = await Api.getEvent(id);
           const eventData = await response.json();
+          console.log("Fetched event data:", eventData);
 
           // Set current image URL if exists
           if (eventData.image_url) {
@@ -64,30 +86,51 @@ function OrganizerManageEvent() {
             setImagePreview(eventData.image_url);
           }
 
-          // Parse dates for form
-          let startDate = "";
-          let endDate = "";
+          // Handle dates and times based on event type
+          let date = "";
           let startTime = "";
           let endTime = "";
+          let isRecurring = eventData.is_recurring || false;
+          let recurrenceData = {};
 
-          if (eventData.start_datetime) {
+          // For single events
+          if (!isRecurring && eventData.start_datetime) {
             const startDateTime = new Date(eventData.start_datetime);
-            startDate = startDateTime.toISOString().split("T")[0];
+            date = startDateTime.toISOString().split("T")[0];
             startTime = startDateTime.toTimeString().slice(0, 5);
+
+            if (eventData.end_datetime) {
+              const endDateTime = new Date(eventData.end_datetime);
+              endTime = endDateTime.toTimeString().slice(0, 5);
+            }
           }
 
-          if (eventData.end_datetime) {
-            const endDateTime = new Date(eventData.end_datetime);
-            endDate = endDateTime.toISOString().split("T")[0];
-            endTime = endDateTime.toTimeString().slice(0, 5);
+          // For recurring events
+          if (isRecurring) {
+            recurrenceData = {
+              recurrence_pattern: eventData.recurrence_pattern || "weekly",
+              recurrence_days: eventData.recurrence_days || [1],
+              recurrence_start_date: eventData.recurrence_start_date
+                ? new Date(eventData.recurrence_start_date)
+                    .toISOString()
+                    .split("T")[0]
+                : "",
+              recurrence_end_date: eventData.recurrence_end_date
+                ? new Date(eventData.recurrence_end_date)
+                    .toISOString()
+                    .split("T")[0]
+                : "",
+              recurrence_time_start:
+                eventData.recurrence_time?.start || "09:00",
+              recurrence_time_end: eventData.recurrence_time?.end || "12:00",
+            };
           }
 
           // Update form with event data
           setFormData({
             name: eventData.name || "",
             description: eventData.description || "",
-            start_date: startDate,
-            end_date: endDate,
+            date: date,
             start_time: startTime,
             end_time: endTime,
             location: eventData.location || "",
@@ -97,6 +140,8 @@ function OrganizerManageEvent() {
                 : "",
             max_volunteers: eventData.max_volunteers || 10,
             status: eventData.status || "active",
+            is_recurring: isRecurring,
+            ...recurrenceData,
           });
         } catch (err) {
           console.error("Error fetching event:", err);
@@ -123,6 +168,38 @@ function OrganizerManageEvent() {
       ...formData,
       [name]: value,
     });
+  };
+
+  const handleRecurringToggle = (checked) => {
+    setFormData({
+      ...formData,
+      is_recurring: checked,
+    });
+  };
+
+  const handleDayToggle = (day, checked) => {
+    const currentDays = [...formData.recurrence_days];
+
+    if (checked) {
+      // Add the day if not present
+      if (!currentDays.includes(day)) {
+        currentDays.push(day);
+      }
+    } else {
+      // Remove the day
+      const index = currentDays.indexOf(day);
+      if (index !== -1) {
+        currentDays.splice(index, 1);
+      }
+    }
+
+    // Ensure at least one day is selected
+    if (currentDays.length > 0 || !checked) {
+      setFormData({
+        ...formData,
+        recurrence_days: currentDays.sort((a, b) => a - b), // Sort numerically
+      });
+    }
   };
 
   const handleImageChange = (e) => {
@@ -176,9 +253,51 @@ function OrganizerManageEvent() {
     setError(null);
 
     try {
+      // Prepare the data for submission
+      const eventData = { ...formData };
+
+      // Format the data differently based on whether it's recurring or not
+      if (eventData.is_recurring) {
+        // For recurring events, format the recurrence data
+        eventData.recurrence_time = {
+          start: eventData.recurrence_time_start,
+          end: eventData.recurrence_time_end,
+        };
+
+        // Remove single event fields
+        delete eventData.date;
+        delete eventData.start_time;
+        delete eventData.end_time;
+      } else {
+        // For single events, we need to reformat to match the expected backend format
+        eventData.start_date = eventData.date;
+        eventData.end_date = eventData.date; // Same date for non-recurring events
+
+        // Remove date field as it's not expected by the backend
+        delete eventData.date;
+
+        // Remove recurring fields
+        delete eventData.recurrence_pattern;
+        delete eventData.recurrence_days;
+        delete eventData.recurrence_start_date;
+        delete eventData.recurrence_end_date;
+        delete eventData.recurrence_time_start;
+        delete eventData.recurrence_time_end;
+      }
+
+      // Fix the data format for causes
+      eventData.causes = eventData.cause ? [eventData.cause] : [];
+      delete eventData.cause;
+
+      // Remove helper fields
+      delete eventData.recurrence_time_start;
+      delete eventData.recurrence_time_end;
+
+      console.log("Submitting event data:", eventData);
+
       if (isEditMode) {
         // Update existing event
-        const response = await Api.updateEvent(id, formData, imageFile);
+        const response = await Api.updateEvent(id, eventData, imageFile);
 
         if (response.ok) {
           navigate("/organizer");
@@ -188,7 +307,7 @@ function OrganizerManageEvent() {
         }
       } else {
         // Create new event
-        const response = await Api.createEvent(formData, imageFile);
+        const response = await Api.createEvent(eventData, imageFile);
 
         if (response.ok) {
           navigate("/organizer");
@@ -318,53 +437,172 @@ function OrganizerManageEvent() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="start_date">Start Date</Label>
-                <Input
-                  id="start_date"
-                  name="start_date"
-                  type="date"
-                  value={formData.start_date}
-                  onChange={handleChange}
-                  required
+            {/* Event Type Selection */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="is_recurring"
+                  checked={formData.is_recurring}
+                  onCheckedChange={handleRecurringToggle}
                 />
+                <Label htmlFor="is_recurring" className="cursor-pointer">
+                  This is a recurring event
+                </Label>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="end_date">End Date</Label>
-                <Input
-                  id="end_date"
-                  name="end_date"
-                  type="date"
-                  value={formData.end_date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <p className="text-sm text-gray-500">
+                {formData.is_recurring
+                  ? "This event repeats on a regular schedule"
+                  : "This is a one-time event"}
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="start_time">Start Time</Label>
-                <Input
-                  id="start_time"
-                  name="start_time"
-                  type="time"
-                  value={formData.start_time}
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="end_time">End Time</Label>
-                <Input
-                  id="end_time"
-                  name="end_time"
-                  type="time"
-                  value={formData.end_time}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+            {/* Conditional fields based on event type */}
+            {formData.is_recurring ? (
+              // Recurring Event Fields
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="recurrence_pattern">Recurrence Pattern</Label>
+                  <Select
+                    value={formData.recurrence_pattern}
+                    onValueChange={(value) =>
+                      handleSelectChange("recurrence_pattern", value)
+                    }
+                  >
+                    <SelectTrigger id="recurrence_pattern">
+                      <SelectValue placeholder="Select pattern" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Only show days selection for weekly or custom patterns */}
+                {(formData.recurrence_pattern === "weekly" ||
+                  formData.recurrence_pattern === "custom") && (
+                  <div className="space-y-2">
+                    <Label>Recurring Days</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                      {DAYS_OF_WEEK.map((day) => (
+                        <div
+                          key={day.value}
+                          className="flex items-center gap-2"
+                        >
+                          <Checkbox
+                            id={`day-${day.value}`}
+                            checked={formData.recurrence_days.includes(
+                              day.value
+                            )}
+                            onCheckedChange={(checked) =>
+                              handleDayToggle(day.value, checked)
+                            }
+                          />
+                          <Label
+                            htmlFor={`day-${day.value}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {day.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence_start_date">Start Date</Label>
+                    <Input
+                      id="recurrence_start_date"
+                      name="recurrence_start_date"
+                      type="date"
+                      value={formData.recurrence_start_date}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence_end_date">End Date</Label>
+                    <Input
+                      id="recurrence_end_date"
+                      name="recurrence_end_date"
+                      type="date"
+                      value={formData.recurrence_end_date}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence_time_start">Start Time</Label>
+                    <Input
+                      id="recurrence_time_start"
+                      name="recurrence_time_start"
+                      type="time"
+                      value={formData.recurrence_time_start}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrence_time_end">End Time</Label>
+                    <Input
+                      id="recurrence_time_end"
+                      name="recurrence_time_end"
+                      type="time"
+                      value={formData.recurrence_time_end}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              // Single Event Fields
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    name="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="start_time">Start Time</Label>
+                    <Input
+                      id="start_time"
+                      name="start_time"
+                      type="time"
+                      value={formData.start_time}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_time">End Time</Label>
+                    <Input
+                      id="end_time"
+                      name="end_time"
+                      type="time"
+                      value={formData.end_time}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>

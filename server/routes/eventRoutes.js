@@ -93,4 +93,16 @@ router.get(
   eventController.getRecommendedEvents
 );
 
+/**
+ * @route   GET /api/events/:id/volunteers
+ * @desc    Get registered volunteers for an event
+ * @access  Private (Event Organiser)
+ */
+router.get(
+  "/:id/volunteers",
+  protectRoute,
+  requireRole("organiser"),
+  eventController.getEventVolunteers
+);
+
 module.exports = router;

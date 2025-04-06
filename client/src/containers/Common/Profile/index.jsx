@@ -36,9 +36,12 @@ function Profile() {
     dob: "",
     bio: "",
     avatar: null,
+    avatarFile: null,
     skills: [],
     address: "",
   });
+  // Add timestamp for cache busting
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
   // Format date for input field (YYYY-MM-DD)
   const formatDateForInput = (dateString) => {
@@ -70,7 +73,7 @@ function Profile() {
       }
 
       const data = await response.json();
-      console.log(data);
+      console.log("Profile data received:", data);
 
       // Parse name (assuming it comes as full name)
       let firstName = data.profile.name || "";
@@ -82,17 +85,22 @@ function Profile() {
         lastName = nameParts.slice(1).join(" ");
       }
 
+      // Log the avatar URL we're going to use
+      console.log("Setting avatar to:", data.profile.profile_picture_url);
+
       setProfile({
         firstName,
         lastName,
-        email: data.user.email || "Email not provided", // Use data.user.email
+        email: data.user.email || "Email not provided",
         phone: data.profile.phone || "",
         dob: data.profile.dob ? formatDateForInput(data.profile.dob) : "",
-        bio: data.profile.description || "",
+        bio: data.profile.bio || data.profile.description || "",
         avatar: data.profile.profile_picture_url,
         address: data.profile.address || "",
         skills:
-          data.profile.volunteer_skills?.map((skill) => skill.skill_name) || [],
+          data.profile.skills ||
+          data.profile.volunteer_skills?.map((skill) => skill.skill_name) ||
+          [],
       });
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -153,8 +161,7 @@ function Profile() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Create FormData in the submission function instead of here
-      // Just store the file reference for preview
+      // Create a preview URL for display purposes
       const imageUrl = URL.createObjectURL(file);
       setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
     }
@@ -173,7 +180,6 @@ function Profile() {
         "name",
         `${profile.firstName} ${profile.lastName}`.trim()
       );
-      formData.append("email", profile.email);
       formData.append("phone", profile.phone);
       formData.append("bio", profile.bio);
       formData.append("dob", profile.dob);
@@ -183,7 +189,6 @@ function Profile() {
         formData.append("profile_picture", profile.avatarFile);
       }
 
-      // If the user is a volunteer and has skills
       if (
         user.role === "volunteer" &&
         profile.skills &&
@@ -192,15 +197,17 @@ function Profile() {
         formData.append("skills", JSON.stringify(profile.skills));
       }
 
+      // This is a nested try block that can stay or be flattened
       const data = await Api.updateUserProfile(formData);
       console.log("API Response:", data);
+
       if (!data || !data.profile) {
         throw new Error("Failed to update profile");
       }
 
+      setImageTimestamp(Date.now());
       setSuccess("Profile updated successfully!");
       setIsEditing(false);
-      // Refetch the profile to get the updated data
       fetchUserProfile();
     } catch (err) {
       console.error("Error updating profile:", err);
@@ -218,6 +225,28 @@ function Profile() {
       </div>
     );
   }
+
+  // Function to handle avatar URL with potential cache busting
+  const getAvatarUrl = () => {
+    if (!profile.avatar) {
+      return user?.role === "organiser"
+        ? "/src/assets/default-avatar-red.png"
+        : "/src/assets/default-avatar-blue.png";
+    }
+
+    // If it's a full URL
+    if (profile.avatar.startsWith("http")) {
+      return `${profile.avatar}?t=${imageTimestamp}`;
+    }
+
+    // If it's a relative path
+    if (profile.avatar.startsWith("/")) {
+      return `${profile.avatar}?t=${imageTimestamp}`;
+    }
+
+    // If it's just a filename
+    return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
+  };
 
   return (
     <>
@@ -245,16 +274,7 @@ function Profile() {
         <Card className="md:col-span-1">
           <CardContent className="p-6 flex flex-col items-center text-center">
             <Avatar className="w-24 h-24 border-4 border-primary">
-              <AvatarImage
-                src={
-                  profile.profile_picture_url
-                    ? `http://localhost:8000/uploads/profiles/${profile.profile_picture_url}`
-                    : user?.role === "organiser"
-                    ? "/src/assets/default-avatar-red.png"
-                    : "/src/assets/default-avatar-blue.png"
-                }
-                alt="User profile"
-              />
+              <AvatarImage src={getAvatarUrl()} alt="User profile" />
               <AvatarFallback>
                 {profile.firstName?.charAt(0) || ""}
                 {profile.lastName?.charAt(0) || ""}

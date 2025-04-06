@@ -5,9 +5,9 @@ const port = process.env.PORT || 8000;
 
 // Start the server
 const server = app.listen(port, () => {
-	console.log(`✅ VolunSphere Server running on http://localhost:${port}`);
-	console.log(`🕒 Server started at: ${new Date().toLocaleString()}`);
-	console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`✅ VolunSphere Server running on http://localhost:${port}`);
+  console.log(`🕒 Server started at: ${new Date().toLocaleString()}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
 });
 
 // Configure proper shutdown
@@ -15,43 +15,43 @@ process.on("SIGTERM", gracefulShutdown);
 process.on("SIGINT", gracefulShutdown);
 
 function gracefulShutdown() {
-	console.log("🛑 Received shutdown signal, closing server...");
-	server.close(() => {
-		console.log("✅ HTTP server closed");
+  console.log("🛑 Received shutdown signal, closing server...");
+  server.close(() => {
+    console.log("✅ HTTP server closed");
 
-		// Close any database connections or other resources
-		console.log("🔄 Closing database connections...");
+    // Close any database connections or other resources
+    console.log("🔄 Closing database connections...");
 
-		// Exit process
-		console.log("👋 Process terminated gracefully");
-		process.exit(0);
-	});
+    // Exit process
+    console.log("👋 Process terminated gracefully");
+    process.exit(0);
+  });
 
-	// Force close after 10 seconds if graceful shutdown fails
-	setTimeout(() => {
-		console.error("⚠️ Forcing shutdown after timeout");
-		process.exit(1);
-	}, 10000);
+  // Force close after 10 seconds if graceful shutdown fails
+  setTimeout(() => {
+    console.error("⚠️ Forcing shutdown after timeout");
+    process.exit(1);
+  }, 10000);
 }
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (err) => {
-	console.log("❌ UNHANDLED REJECTION! Shutting down...");
-	console.log(err.name, err.message);
-	console.log(err.stack);
+  console.log("❌ UNHANDLED REJECTION! Shutting down...");
+  console.log(err.name, err.message);
+  console.log(err.stack);
 
-	// Graceful shutdown
-	server.close(() => {
-		process.exit(1);
-	});
+  // Graceful shutdown
+  server.close(() => {
+    process.exit(1);
+  });
 });
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (err) => {
-	console.log("❌ UNCAUGHT EXCEPTION! Shutting down...");
-	console.log(err.name, err.message);
-	console.log(err.stack);
+  console.log("❌ UNCAUGHT EXCEPTION! Shutting down...");
+  console.log(err.name, err.message);
+  console.log(err.stack);
 
-	// Graceful shutdown
-	process.exit(1);
+  // Graceful shutdown
+  process.exit(1);
 });
