@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Volunteer = require("../models/Volunteer");
 const Organiser = require("../models/Organiser");
+const Admin = require("../models/Admin");
 
 /**
  * Register a new volunteer
@@ -176,12 +177,13 @@ exports.registerUser = async (req, res) => {
  * 2. Find user by email
  * 3. Check if user is active
  * 4. Compare password with stored hash
- * 5. Get user profile based on role
+ * 5. Get user profile based on role (volunteer, organiser, or admin)
  * 6. Update last login time
  * 7. Generate JWT token
  * 8. Return token and user data
  */
 exports.loginUser = async (req, res) => {
+<<<<<<< HEAD
   try {
     const { email, password } = req.body;
 
@@ -257,6 +259,85 @@ exports.loginUser = async (req, res) => {
       error: error.message,
     });
   }
+=======
+    try {
+        const { email, password } = req.body;
+
+        // Step 1: Validate required input fields
+        if (!email || !password) {
+            return res
+                .status(400)
+                .json({ message: "Email and password are required" });
+        }
+
+        // Step 2: Find user by email
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        // Step 3: Check if user account is active
+        if (user.status !== "active") {
+            return res.status(401).json({ message: "Account is not active" });
+        }
+
+        // Step 4: Verify password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        // Step 5: Create JWT payload with user details
+        const payload = {
+            user: {
+                id: user._id,
+                email: user.email,
+                role: user.role,
+            },
+        };
+
+        // Step 6: Get user's profile based on role
+        let profile;
+        if (user.role === "volunteer") {
+            profile = await Volunteer.findOne({ user_id: user._id });
+        } else if (user.role === "organiser") {
+            profile = await Organiser.findOne({ user_id: user._id });
+        } else if (user.role === "admin") {
+            profile = await Admin.findOne({ user_id: user._id });
+        }
+
+        // Step 7: Update last login timestamp
+        user.last_login = new Date();
+        await user.save();
+
+        // Step 8: Sign JWT token and send response
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: "24h" },
+            (err, token) => {
+                if (err) throw err;
+                res.json({
+                    message: "Login successful",
+                    token,
+                    user: {
+                        id: user._id,
+                        email: user.email,
+                        role: user.role,
+                        name: profile?.name || profile?.organisation_name || "",
+                        profile: profile,
+                    },
+                });
+            }
+        );
+    } catch (error) {
+        console.error("Error logging in:", error);
+        res.status(500).json({
+            message: "Server error",
+            error: error.message,
+        });
+    }
+>>>>>>> b950c92c20aa5c4c129be1836c313129e71b32a6
 };
 
 /**

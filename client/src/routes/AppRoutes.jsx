@@ -28,6 +28,15 @@ import OrganizerProfile from "../containers/Volunteer/OrganizerProfile";
 // Review Page
 import ReviewPage from "../containers/Volunteer/Review";
 
+//Admin
+import AdminDashboard from "../containers/Admin/Dashboard";
+import AdminEventDetail from "../containers/Admin/EventDetail";
+import AdminEvents from "../containers/Admin/Events";
+import AdminReportDetail from "../containers/Admin/ReportDetail";
+import AdminReports from "../containers/Admin/Reports";
+import AdminUserDetail from "../containers/Admin/UserDetail";
+import AdminUsers from "../containers/Admin/Users";
+import AdminVerifications from "../containers/Admin/Verifications";
 
 import { useAuth } from "../contexts/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
@@ -61,7 +70,10 @@ const AppRoutes = () => {
 					element={<RegistrationVolunteer />}
 				/>
 				<Route path="/forgotpassword" element={<ForgotPassword />} />
-				<Route path="/resetpassword/:token" element={<ForgotPassword />} />
+				<Route
+					path="/resetpassword/:token"
+					element={<ForgotPassword />}
+				/>
 
 				{/* Events (Public View) */}
 				<Route
@@ -108,11 +120,7 @@ const AppRoutes = () => {
 				}
 			></Route>
 
-			<Route 
-				path="/organisers/:id" 
-				element={
-				<OrganizerProfile />} 
-			/>
+			<Route path="/organisers/:id" element={<OrganizerProfile />} />
 
 			{/* Organizer Routes */}
 			<Route
@@ -133,6 +141,25 @@ const AppRoutes = () => {
 			{/* Review Routes */}
 			<Route path="/events/:id/review" element={<ReviewPage />} />
 			<Route path="/organisers/:id/review" element={<ReviewPage />} />
+			{/* Admin Routes */}
+			<Route
+				path="/admin"
+				element={
+					<ProtectedRoute roleRequired="admin">
+						<MainLayout />
+					</ProtectedRoute>
+				}
+			>
+				<Route index element={<AdminDashboard />} />
+				<Route path="users" element={<AdminUsers />} />
+				<Route path="users/:id" element={<AdminUserDetail />} />
+				<Route path="reports" element={<AdminReports />} />
+				<Route path="reports/:id" element={<AdminReportDetail />} />
+				<Route path="verifications" element={<AdminVerifications />} />
+				{/* Add the new events routes here */}
+				<Route path="events" element={<AdminEvents />} />
+				<Route path="events/:id" element={<AdminEventDetail />} />
+			</Route>
 		</Routes>
 	);
 };

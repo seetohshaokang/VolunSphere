@@ -50,6 +50,8 @@ function Login() {
 				// Navigate based on role
 				if (data.user.role === "organiser") {
 					navigate("/organizer");
+				} else if (data.user.role === "admin") {
+					navigate("/admin");
 				} else {
 					navigate("/");
 				}
