@@ -92,6 +92,7 @@ router.get(
 );
 
 /**
+<<<<<<< HEAD
  * @route   GET /api/events/:id/reviews
  * @desc    Get all reviews for an event
  * @access  Public
@@ -118,5 +119,17 @@ router.put("/:id/reviews/:reviewId", protectRoute, reviewController.updateEventR
  * @access  Private (Review Owner)
  */
 router.delete("/:id/reviews/:reviewId", protectRoute, reviewController.deleteEventReview);
+=======
+ * @route   GET /api/events/:id/volunteers
+ * @desc    Get registered volunteers for an event
+ * @access  Private (Event Organiser)
+ */
+router.get(
+  "/:id/volunteers",
+  protectRoute,
+  requireRole("organiser"),
+  eventController.getEventVolunteers
+);
+>>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 module.exports = router;

@@ -739,3 +739,70 @@ exports.getRecommendedEvents = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get registered volunteers for an event
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - URL parameters
+ * @param {string} req.params.id - Event ID
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - User ID
+ * @param {Object} res - Express response object
+ *
+ * @returns {Object} JSON response with volunteers registered for the event
+ * @throws {Error} If server error occurs during retrieval
+ *
+ * Steps:
+ * 1. Validate event ID
+ * 2. Check if event exists
+ * 3. Verify user is the event organizer
+ * 4. Get all registrations with volunteer details
+ * 5. Return volunteers list
+ */
+exports.getEventVolunteers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // Validate event ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+
+    // Find event by ID
+    const event = await Event.findById(id);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Get organiser profile
+    const organiser = await Organiser.findOne({ user_id: userId });
+    if (!organiser) {
+      return res.status(404).json({ message: "Organiser profile not found" });
+    }
+
+    // Check if user is the event organiser
+    if (event.organiser_id.toString() !== organiser._id.toString()) {
+      return res.status(403).json({
+        message: "You are not authorized to view volunteers for this event",
+      });
+    }
+
+    // Get registrations with volunteer details
+    const registrations = await EventRegistration.find({ event_id: id })
+      .populate({
+        path: "volunteer_id",
+        select: "name phone dob profile_picture_url", // Include fields we want to display
+      })
+      .sort({ registration_date: -1 });
+
+    return res.status(200).json({ registrations });
+  } catch (error) {
+    console.error("Error getting event volunteers:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
