@@ -127,7 +127,6 @@ const DropdownMenuRadioItem = React.forwardRef(
 DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName;
 
 const DropdownMenuLabel = React.forwardRef(
-<<<<<<< HEAD
 	({ className, inset, ...props }, ref) => (
 		<DropdownMenuPrimitive.Label
 			ref={ref}
@@ -139,24 +138,10 @@ const DropdownMenuLabel = React.forwardRef(
 			{...props}
 		/>
 	)
-=======
-  ({ className, inset, ...props }, ref) => (
-    <DropdownMenuPrimitive.Label
-      ref={ref}
-      className={cn(
-        "px-2 py-1.5 text-sm font-semibold",
-        inset && "pl-8",
-        className
-      )}
-      {...props}
-    />
-  )
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 );
 DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
 
 const DropdownMenuSeparator = React.forwardRef(
-<<<<<<< HEAD
 	({ className, ...props }, ref) => (
 		<DropdownMenuPrimitive.Separator
 			ref={ref}
@@ -164,20 +149,10 @@ const DropdownMenuSeparator = React.forwardRef(
 			{...props}
 		/>
 	)
-=======
-  ({ className, ...props }, ref) => (
-    <DropdownMenuPrimitive.Separator
-      ref={ref}
-      className={cn("-mx-1 my-1 h-px bg-muted", className)}
-      {...props}
-    />
-  )
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 );
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
 
 const DropdownMenuShortcut = ({ className, ...props }) => {
-<<<<<<< HEAD
 	return (
 		<span
 			className={cn(
@@ -187,19 +162,10 @@ const DropdownMenuShortcut = ({ className, ...props }) => {
 			{...props}
 		/>
 	);
-=======
-  return (
-    <span
-      className={cn("ml-auto text-xs tracking-widest opacity-60", className)}
-      {...props}
-    />
-  );
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 };
 DropdownMenuShortcut.displayName = "DropdownMenuShortcut";
 
 export {
-<<<<<<< HEAD
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
@@ -215,21 +181,4 @@ export {
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
-=======
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 };
