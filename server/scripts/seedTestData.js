@@ -196,11 +196,11 @@ async function seedTestData() {
 		const firstEvent = createdEvents[0];
 
 		const registration = new EventRegistration({
-			volunteer_id: volunteer._id,
+			user_id: volunteer.user_id, // or savedVolunteerUser._id
 			event_id: firstEvent._id,
-			status: "registered",
-			registration_date: new Date(),
-		});
+			status: "confirmed", // Use a value from the enum
+			signup_date: new Date(),
+		  });
 
 		await registration.save();
 
