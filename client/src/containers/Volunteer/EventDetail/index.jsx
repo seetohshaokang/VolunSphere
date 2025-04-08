@@ -541,7 +541,7 @@ function EventDetail() {
 
       {/* Confirmation Dialog */}
       <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white">
           <DialogHeader>
             <DialogTitle>
               {isSignedUp ? "Cancel Signup" : "Confirm Signup"}
@@ -591,6 +591,7 @@ function EventDetail() {
             <Button
               variant={isSignedUp ? "destructive" : "default"}
               onClick={isSignedUp ? cancelSignup : confirmSignup}
+              className={isSignedUp ? "" : "border-2 border-black"}
             >
               {isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
             </Button>

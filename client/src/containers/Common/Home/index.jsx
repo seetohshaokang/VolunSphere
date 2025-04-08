@@ -214,25 +214,26 @@ function Home() {
 				<div className="h-px bg-border mt-2 mb-4"></div>
 			</div>
 
-			{/* Search bar */}
-			<Card className="mb-6">
-				<CardContent className="p-4">
-					<div className="flex w-full items-center space-x-2">
-						<Input
-							type="text"
-							placeholder="Search for volunteer opportunities..."
-							value={searchTerm}
-							onChange={handleSearchInputChange}
-							onKeyDown={handleKeyDown}
-							className="flex-grow"
-						/>
-						<Button type="submit" onClick={handleSearchSubmit}>
-							<Search className="h-4 w-4 mr-2" />
-							Search
-						</Button>
-					</div>
-				</CardContent>
-			</Card>
+			{/* Custom Search bar */}
+			<div className="relative mb-6">
+				<div className="flex w-full">
+					<Input
+						type="text"
+						placeholder="Search for volunteer opportunities..."
+						value={searchTerm}
+						onChange={handleSearchInputChange}
+						onKeyDown={handleKeyDown}
+						className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12"
+					/>
+					<Button
+						className="rounded-l-none h-12 border border-input"
+						onClick={handleSearchSubmit}
+					>
+						<Search className="h-5 w-5 mr-2" />
+						Search
+					</Button>
+				</div>
+			</div>
 
 			{/* Filter section */}
 			<FilterControls
