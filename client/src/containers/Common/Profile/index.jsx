@@ -1,4 +1,3 @@
-// src/containers/Profile/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +21,6 @@ import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 
 function Profile() {
-<<<<<<< HEAD
 	const { user } = useAuth();
 	const [isEditing, setIsEditing] = useState(false);
 	const [loading, setLoading] = useState(true);
@@ -43,28 +41,6 @@ function Profile() {
 	});
 	// Add timestamp for cache busting
 	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
-=======
-  const { user } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [profile, setProfile] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    dob: "",
-    bio: "",
-    avatar: null,
-    avatarFile: null,
-    skills: [],
-    address: "",
-  });
-  // Add timestamp for cache busting
-  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 	// Format date for input field (YYYY-MM-DD)
 	const formatDateForInput = (dateString) => {
@@ -95,13 +71,8 @@ function Profile() {
 				throw new Error("Failed to fetch profile data");
 			}
 
-<<<<<<< HEAD
 			const data = await response.json();
 			console.log("Profile data received:", data);
-=======
-      const data = await response.json();
-      console.log("Profile data received:", data);
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 			// Parse name (assuming it comes as full name)
 			let firstName = data.profile.name || "";
@@ -113,35 +84,8 @@ function Profile() {
 				lastName = nameParts.slice(1).join(" ");
 			}
 
-<<<<<<< HEAD
 			// Log the avatar URL we're going to use
 			console.log("Setting avatar to:", data.profile.profile_picture_url);
-=======
-      // Log the avatar URL we're going to use
-      console.log("Setting avatar to:", data.profile.profile_picture_url);
-
-      setProfile({
-        firstName,
-        lastName,
-        email: data.user.email || "Email not provided",
-        phone: data.profile.phone || "",
-        dob: data.profile.dob ? formatDateForInput(data.profile.dob) : "",
-        bio: data.profile.bio || data.profile.description || "",
-        avatar: data.profile.profile_picture_url,
-        address: data.profile.address || "",
-        skills:
-          data.profile.skills ||
-          data.profile.volunteer_skills?.map((skill) => skill.skill_name) ||
-          [],
-      });
-    } catch (err) {
-      console.error("Error fetching profile:", err);
-      setError("Failed to load profile data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 			setProfile({
 				firstName,
@@ -212,21 +156,10 @@ function Profile() {
 		}
 	};
 
-<<<<<<< HEAD
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setProfile({ ...profile, [name]: value });
 	};
-=======
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Create a preview URL for display purposes
-      const imageUrl = URL.createObjectURL(file);
-      setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
-    }
-  };
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 	const handleFileChange = (e) => {
 		const file = e.target.files[0];
@@ -237,25 +170,11 @@ function Profile() {
 		}
 	};
 
-<<<<<<< HEAD
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		setLoading(true);
 		setError(null);
 		setSuccess(null);
-=======
-    try {
-      // Create FormData for the API call
-      const formData = new FormData();
-      formData.append(
-        "name",
-        `${profile.firstName} ${profile.lastName}`.trim()
-      );
-      formData.append("phone", profile.phone);
-      formData.append("bio", profile.bio);
-      formData.append("dob", profile.dob);
-      formData.append("address", profile.address);
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 		try {
 			// Create FormData for the API call
@@ -269,7 +188,6 @@ function Profile() {
 			formData.append("dob", profile.dob);
 			formData.append("address", profile.address);
 
-<<<<<<< HEAD
 			if (profile.avatarFile) {
 				formData.append("profile_picture", profile.avatarFile);
 			}
@@ -285,41 +203,11 @@ function Profile() {
 			// This is a nested try block that can stay or be flattened
 			const data = await Api.updateUserProfile(formData);
 			console.log("API Response:", data);
-=======
-      if (
-        user.role === "volunteer" &&
-        profile.skills &&
-        profile.skills.length > 0
-      ) {
-        formData.append("skills", JSON.stringify(profile.skills));
-      }
-
-      // This is a nested try block that can stay or be flattened
-      const data = await Api.updateUserProfile(formData);
-      console.log("API Response:", data);
-
-      if (!data || !data.profile) {
-        throw new Error("Failed to update profile");
-      }
-
-      setImageTimestamp(Date.now());
-      setSuccess("Profile updated successfully!");
-      setIsEditing(false);
-      fetchUserProfile();
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      setError("Failed to update profile. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 			if (!data || !data.profile) {
 				throw new Error("Failed to update profile");
 			}
 
-<<<<<<< HEAD
 			setImageTimestamp(Date.now());
 			setSuccess("Profile updated successfully!");
 			setIsEditing(false);
@@ -331,39 +219,6 @@ function Profile() {
 			setLoading(false);
 		}
 	};
-=======
-  // Function to handle avatar URL with potential cache busting
-  const getAvatarUrl = () => {
-    if (!profile.avatar) {
-      return user?.role === "organiser"
-        ? "/src/assets/default-avatar-red.png"
-        : "/src/assets/default-avatar-blue.png";
-    }
-
-    // If it's a full URL
-    if (profile.avatar.startsWith("http")) {
-      return `${profile.avatar}?t=${imageTimestamp}`;
-    }
-
-    // If it's a relative path
-    if (profile.avatar.startsWith("/")) {
-      return `${profile.avatar}?t=${imageTimestamp}`;
-    }
-
-    // If it's just a filename
-    return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
-  };
-
-  return (
-    <>
-      <ContentHeader
-        title="My Profile"
-        links={[
-          { to: "/", label: "Home" },
-          { label: "Profile", isActive: true },
-        ]}
-      />
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 	if (loading && !profile.email) {
 		return (
@@ -382,45 +237,10 @@ function Profile() {
 				: "/src/assets/default-avatar-blue.png";
 		}
 
-<<<<<<< HEAD
 		// If it's a full URL
 		if (profile.avatar.startsWith("http")) {
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
-=======
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1">
-          <CardContent className="p-6 flex flex-col items-center text-center">
-            <Avatar className="w-24 h-24 border-4 border-primary">
-              <AvatarImage src={getAvatarUrl()} alt="User profile" />
-              <AvatarFallback>
-                {profile.firstName?.charAt(0) || ""}
-                {profile.lastName?.charAt(0) || ""}
-              </AvatarFallback>
-            </Avatar>
-            <h2 className="text-xl font-bold mt-4">
-              {profile.firstName} {profile.lastName}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {user?.role === "volunteer" ? "Volunteer" : "Event Organizer"}
-            </p>
-            {user?.role === "volunteer" &&
-              profile.skills &&
-              profile.skills.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-semibold mb-2">Skills</h3>
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    {profile.skills.map((skill, index) => (
-                      <Badge key={index} variant="secondary">
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-          </CardContent>
-        </Card>
->>>>>>> 2ad8cdb6ef5529cb50a2428fb70510a2b6c49280
 
 		// If it's a relative path
 		if (profile.avatar.startsWith("/")) {
