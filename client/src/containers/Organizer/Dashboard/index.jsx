@@ -130,7 +130,7 @@ function OrganizerDashboard() {
       <ContentHeader
         title="Organizer Dashboard"
         links={[
-          { to: "/", label: "Home" },
+          { to: "/organizer", label: "Home" },
           { label: "Dashboard", isActive: true },
         ]}
       />
