@@ -14,6 +14,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
+import { getEventImageUrl } from "../../../helpers/eventHelper";
 
 function OrganisationProfile() {
 	const { id } = useParams();
@@ -28,8 +29,9 @@ function OrganisationProfile() {
 	const [reportDetails, setReportDetails] = useState("");
 	const [submittingReport, setSubmittingReport] = useState(false);
 	const [reportSuccess, setReportSuccess] = useState(false);
+	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-  useEffect(() => {
+	useEffect(() => {
 		const fetchOrganisationData = async () => {
 			setLoading(true);
 			setError(null);
@@ -102,6 +104,12 @@ function OrganisationProfile() {
 
 		fetchOrganisationData();
 	}, [id]);
+
+	useEffect(() => {
+		if (events.length > 0) {
+			setImageTimestamp(Date.now());
+		}
+	}, [events]);
 
 	const handleReport = async () => {
 		if (!reportReason) {
@@ -367,7 +375,7 @@ function OrganisationProfile() {
 												<div key={event.id} className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
 													<div className="md:w-1/4">
 														<img 
-															src={event.image_url} 
+															src={getEventImageUrl(event.image_url, imageTimestamp)} 
 															alt={event.name} 
 															className="rounded-md w-full h-32 object-cover"
 														/>

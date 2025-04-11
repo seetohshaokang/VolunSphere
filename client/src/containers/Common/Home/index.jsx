@@ -39,12 +39,31 @@ function Home() {
 			// (e.g., after signup/removal from the event detail page)
 			fetchEvents(searchTerm);
 		};
+		
+		// Add visibility change listener to refresh when tab becomes visible again
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				console.log('Page visibility changed to visible, refreshing events');
+				fetchEvents(searchTerm);
+			}
+		};
+
+		// Set up periodic refresh of events (every 30 seconds)
+		const refreshInterval = setInterval(() => {
+			if (document.visibilityState === 'visible') {
+				console.log('Periodic refresh of events');
+				fetchEvents(searchTerm);
+			}
+		}, 30000);
 
 		window.addEventListener("focus", handleFocus);
+		document.addEventListener("visibilitychange", handleVisibilityChange);
 
-		// Clean up the event listener
+		// Clean up the event listeners and interval
 		return () => {
 			window.removeEventListener("focus", handleFocus);
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			clearInterval(refreshInterval);
 		};
 	}, []);
 
@@ -73,21 +92,30 @@ function Home() {
 			}
 
 			const data = await response.json();
+			console.log("Raw API response for events:", data);
 
 			// Process the data as in the 2ad8cdb6 version
-			const apiEvents = (data.events || []).map((event) => ({
-				id: event._id,
-				name: event.name,
-				organiser_id: event.organiser_id?.name || "Unknown",
-				start_date: event.start_datetime
-					? event.start_datetime.split("T")[0]
-					: "",
-				location: event.location,
-				description: event.description,
-				cause: event.causes?.[0] || "General",
-				max_volunteers: event.max_volunteers,
-			}));
+			const apiEvents = (data.events || []).map((event) => {
+				console.log(`Event ${event._id} image_url:`, event.image_url);
+				
+				return {
+					id: event._id,
+					name: event.name,
+					organiser_id: event.organiser_id?.name || "Unknown",
+					start_date: event.start_datetime
+						? event.start_datetime.split("T")[0]
+						: "",
+					location: event.location,
+					description: event.description,
+					cause: event.causes?.[0] || "General",
+					max_volunteers: event.max_volunteers,
+					registered_count: event.registered_count || 0,
+					image_url: event.image_url || null,
+					status: event.status || "active"
+				};
+			});
 
+			console.log("Processed events with images:", apiEvents);
 			setEvents(apiEvents);
 			setFilteredEvents(apiEvents);
 		} catch (err) {

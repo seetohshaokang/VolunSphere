@@ -15,6 +15,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import ReviewSection from "../../../components/ReviewSection";
+import { getEventImageUrl } from "../../../helpers/eventHelper";
 
 function EventDetail() {
 	const { eventId } = useParams();
@@ -28,6 +29,32 @@ function EventDetail() {
 	const [error, setError] = useState(null);
 	const [reviews, setReviews] = useState([]);
 	const [reviewsLoading, setReviewsLoading] = useState(true);
+	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+
+	// Update timestamp after fetching event details
+	useEffect(() => {
+		if (event) {
+			setImageTimestamp(Date.now());
+		}
+	}, [event]);
+
+	// Reset the signup status when user changes or logs out
+	useEffect(() => {
+		fetchEventDetails();
+		// Only fetch details when eventId changes, not when user changes
+		// User changes are handled in a separate effect
+	}, [eventId]);
+
+	// Separate useEffect for handling authentication changes
+	useEffect(() => {
+		// If user is null (logged out), always reset signup status
+		if (!user) {
+			setIsSignedUp(false);
+		} else if (event) {
+			// Only check signup status if user is logged in and event is loaded
+			checkSignupStatus();
+		}
+	}, [user, event]);
 
 	// Fetch event details
 	const fetchEventDetails = async () => {
@@ -51,10 +78,7 @@ function EventDetail() {
 			const eventData = await response.json();
 			setEvent(eventData);
 
-			// Check if user is logged in, fetch signup status
-			if (user) {
-				checkSignupStatus();
-			}
+			// We don't check signup status here anymore since it's handled in a separate useEffect
 		} catch (err) {
 			console.error("Error fetching event details:", err);
 			setError(
@@ -94,6 +118,12 @@ function EventDetail() {
 
 	// Check if user is already signed up
 	const checkSignupStatus = async () => {
+		// Do nothing if user is not logged in
+		if (!user) {
+			setIsSignedUp(false);
+			return;
+		}
+
 		try {
 			const response = await Api.checkEventSignupStatus(eventId);
 			
@@ -294,8 +324,9 @@ function EventDetail() {
           <div className="relative w-full h-96 mb-6 rounded-lg overflow-hidden shadow-md">
             <img
               src={
-                event.image_url ||
-                `https://source.unsplash.com/random/800x400/?${
+                event.image_url 
+                ? getEventImageUrl(event.image_url, imageTimestamp)
+                : `https://source.unsplash.com/random/800x400/?${
                   event.cause || "volunteer"
                 }`
               }
@@ -476,7 +507,7 @@ function EventDetail() {
               </div>
             </div>
 
-            {isSignedUp ? (
+            {user && isSignedUp ? (
               <button
                 onClick={() => setShowConfirmModal(true)}
                 className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md text-base font-medium transition-colors"
@@ -544,10 +575,10 @@ function EventDetail() {
         <DialogContent className="sm:max-w-md bg-white">
           <DialogHeader>
             <DialogTitle>
-              {isSignedUp ? "Cancel Signup" : "Confirm Signup"}
+              {user && isSignedUp ? "Cancel Signup" : "Confirm Signup"}
             </DialogTitle>
             <DialogDescription>
-              {isSignedUp ? (
+              {user && isSignedUp ? (
                 <p>
                   Are you sure you want to cancel your signup for this
                   event? This action cannot be undone.
@@ -589,11 +620,11 @@ function EventDetail() {
               Cancel
             </Button>
             <Button
-              variant={isSignedUp ? "destructive" : "default"}
-              onClick={isSignedUp ? cancelSignup : confirmSignup}
-              className={isSignedUp ? "" : "border-2 border-black"}
+              variant={user && isSignedUp ? "destructive" : "default"}
+              onClick={user && isSignedUp ? cancelSignup : confirmSignup}
+              className={user && isSignedUp ? "" : "border-2 border-black"}
             >
-              {isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
+              {user && isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
             </Button>
           </DialogFooter>
         </DialogContent>

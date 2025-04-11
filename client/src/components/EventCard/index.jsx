@@ -9,43 +9,41 @@ import {
 } from "@/components/ui/card";
 import { Calendar, MapPin, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { getEventImageUrl, getRemainingSpots, getFormattedEventDate } from "../../helpers/eventHelper";
 
 function EventCard({ event }) {
 	const navigate = useNavigate();
+	// Add timestamp for cache busting
+	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+	
+	// Update timestamp when event changes or component mounts
+	useEffect(() => {
+		// Force refresh timestamp every time
+		setImageTimestamp(Date.now());
+		
+		// Set up an interval to refresh the timestamp periodically (every 5 seconds)
+		// This helps ensure the image is always fresh
+		const intervalId = setInterval(() => {
+			setImageTimestamp(Date.now());
+		}, 5000);
+		
+		return () => clearInterval(intervalId);
+	}, [event]);
 
 	// Default image if none provided
 	const DEFAULT_IMAGE = "/src/assets/default-event.jpg";
 
-	// Format image URL to use the full server URL if it's a relative path
-	const getImageUrl = (imageUrl) => {
-		if (!imageUrl) return DEFAULT_IMAGE;
-
-		// If it already has http:// or https://, use it as is
-		if (imageUrl.startsWith("http")) return imageUrl;
-
-		// If it's a relative path from the server like /uploads/events/...
-		// Prepend the server URL
-		const serverUrl = "http://localhost:8000";
-		if (imageUrl.startsWith("/uploads")) {
-			return `${serverUrl}${imageUrl}`;
-		}
-
-		return DEFAULT_IMAGE;
-	};
-
-	// Get spots count based on max_volunteers property
-	const getSpots = () => {
-		if (event.max_volunteers) {
-			const remainingSpots =
-				event.max_volunteers - (event.registered_count || 0);
-			return Math.max(0, remainingSpots); // Ensure we don't display negative spots
-		}
-		return "N/A";
-	};
-
 	// Handle card click
 	const handleCardClick = () => {
 		navigate(`/events/${event._id || event.id}`);
+	};
+	
+	// Handle any load or error issues with images
+	const handleImageError = (e) => {
+		console.error("Error loading event image:", event.image_url);
+		e.target.onerror = null; // Prevent infinite loop
+		e.target.src = DEFAULT_IMAGE;
 	};
 
 	return (
@@ -56,20 +54,17 @@ function EventCard({ event }) {
 			<div className="relative">
 				<img
 					crossOrigin="anonymous"
-					src={getImageUrl(event.image_url)}
+					src={getEventImageUrl(event.image_url, imageTimestamp)}
 					alt={event.name || "Event"}
 					className="h-48 w-full object-cover"
-					onError={(e) => {
-						e.target.onerror = null; // Prevent infinite loop if default image fails
-						e.target.src = DEFAULT_IMAGE;
-					}}
+					onError={handleImageError}
 				/>
 				<div className="absolute top-3 left-3">
 					<Badge
 						variant="secondary"
 						className="bg-white text-gray-800"
 					>
-						{getSpots()} spots left
+						{getRemainingSpots(event.max_volunteers, event.registered_count)} spots left
 					</Badge>
 				</div>
 			</div>
@@ -90,15 +85,7 @@ function EventCard({ event }) {
 
 				<p className="text-sm flex items-center gap-2">
 					<Calendar className="h-4 w-4 text-primary" />
-					{event.is_recurring && event.recurrence_start_date
-						? new Date(
-								event.recurrence_start_date
-						  ).toLocaleDateString()
-						: event.start_datetime
-						? new Date(event.start_datetime).toLocaleDateString()
-						: event.start_date
-						? new Date(event.start_date).toLocaleDateString()
-						: "Date TBD"}
+					{getFormattedEventDate(event)}
 				</p>
 
 				<p className="text-sm flex items-center gap-2">
