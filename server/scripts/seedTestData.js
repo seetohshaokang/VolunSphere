@@ -8,14 +8,74 @@ const Organiser = require("../models/Organiser");
 const Event = require("../models/Event");
 const EventRegistration = require("../models/EventRegistration");
 const Admin = require("../models/Admin");
+const Report = require("../models/Report");
+const Review = require("../models/Review");
 
 // MongoDB connection URI
 const MONGODB_URI =
 	process.env.MONGODB_URI || "mongodb://localhost:27017/volunsphere";
 
+// Sample reviews for seeding
+const sampleReviews = [
+	{
+		rating: 5,
+		comment:
+			"Great experience! Well organized and very fulfilling. The kids were amazing and the staff was very supportive.",
+	},
+	{
+		rating: 4,
+		comment:
+			"Really enjoyed volunteering here. The only downside was the location was a bit hard to find.",
+	},
+	{
+		rating: 5,
+		comment:
+			"Fantastic event! I learned a lot and met some wonderful people. Will definitely join again.",
+	},
+	{
+		rating: 3,
+		comment:
+			"The event was okay. The concept was good but the execution could have been better. I hope they improve next time.",
+	},
+	{
+		rating: 5,
+		comment:
+			"An absolute joy to be part of this initiative! The impact we made was immediately visible and the team was very welcoming.",
+	},
+	{
+		rating: 4,
+		comment:
+			"Meaningful experience that I would recommend to others. The organization was good and the cause is definitely worthwhile.",
+	},
+];
+
+// Sample report reasons and details
+const reportReasons = [
+	{
+		reason: "Inappropriate behavior",
+		details: "The volunteer was making offensive comments to other participants.",
+	},
+	{
+		reason: "Misleading event description",
+		details: "The event description did not match the actual activities at all. We were told we would be working on environmental cleanup but ended up doing data entry work instead.",
+	},
+	{
+		reason: "Safety concerns",
+		details: "There were insufficient safety measures at the event. Volunteers were asked to handle hazardous materials without proper protection.",
+	},
+	{
+		reason: "No-show organizer",
+		details: "The event organizer didn't show up, and nobody was there to guide volunteers.",
+	},
+	{
+		reason: "Fake event",
+		details: "I believe this event may be fraudulent as the location doesn't exist.",
+	}
+];
+
 async function seedTestData() {
 	try {
-		console.log("🌱 Seeding test users and events...");
+		console.log("🌱 Seeding test users, events, reports, and reviews...");
 
 		// Connect to MongoDB
 		await mongoose.connect(MONGODB_URI, {
@@ -90,7 +150,6 @@ async function seedTestData() {
 			`✅ Created organiser profile for: ${savedOrganiserUser.email}`
 		);
 
-		// *** ADD ADMIN USER ***
 		// Create test admin user
 		const adminUser = new User({
 			email: "admin@volunsphere.com",
@@ -124,7 +183,6 @@ async function seedTestData() {
 
 		await admin.save();
 		console.log(`✅ Created admin profile for: ${savedAdminUser.email}`);
-		// *** END ADMIN USER ADDITION ***
 
 		// Create events
 		const events = [
@@ -200,7 +258,7 @@ async function seedTestData() {
 			event_id: firstEvent._id,
 			status: "confirmed", // Use a value from the enum
 			signup_date: new Date(),
-		  });
+		});
 
 		await registration.save();
 
@@ -212,6 +270,154 @@ async function seedTestData() {
 		console.log(
 			`✅ Registered test volunteer for "${firstEvent.name}" event`
 		);
+
+		// Create test reports
+		console.log("🔍 Creating test reports...");
+
+		const reports = [
+			// Pending report about an event (from volunteer)
+			{
+				reporter_id: savedVolunteerUser._id,
+				reporter_role: "volunteer",
+				reported_type: "Event",
+				reported_id: createdEvents[1]._id, // Report about the second event
+				event_id: createdEvents[1]._id,
+				reason: reportReasons[1].reason,
+				details: reportReasons[1].details,
+				created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+				status: "pending"
+			},
+
+			// Under review report about an organizer (from volunteer)
+			{
+				reporter_id: savedVolunteerUser._id,
+				reporter_role: "volunteer",
+				reported_type: "Organiser",
+				reported_id: savedOrganiser._id,
+				event_id: createdEvents[0]._id, // Related to first event
+				reason: reportReasons[3].reason,
+				details: reportReasons[3].details,
+				created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+				status: "under_review"
+			},
+
+			// Resolved report about an event (from organizer)
+			{
+				reporter_id: savedOrganiserUser._id,
+				reporter_role: "organiser",
+				reported_type: "Event",
+				reported_id: createdEvents[2]._id, // Report about the third event
+				reason: reportReasons[4].reason,
+				details: reportReasons[4].details,
+				created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+				status: "resolved",
+				admin_notes: "Investigated the event and confirmed it was legitimate. Location details were confusing but have been clarified with the organizer.",
+				resolved_by: admin._id,
+				resolution_date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
+				resolution_action: "none"
+			},
+
+			// Dismissed report about a volunteer (from organizer)
+			{
+				reporter_id: savedOrganiserUser._id,
+				reporter_role: "organiser",
+				reported_type: "Volunteer",
+				reported_id: volunteer._id,
+				event_id: createdEvents[0]._id,
+				reason: reportReasons[0].reason,
+				details: "The volunteer was not following instructions and was disruptive.",
+				created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+				status: "dismissed",
+				admin_notes: "After speaking with multiple participants, we found no evidence of the reported behavior.",
+				resolved_by: admin._id,
+				resolution_date: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000), // 18 days ago
+				resolution_action: "none"
+			},
+
+			// Another pending report about the same event (from another user - we'll use the organizer as reporter for simplicity)
+			{
+				reporter_id: savedOrganiserUser._id,
+				reporter_role: "organiser",
+				reported_type: "Event",
+				reported_id: createdEvents[1]._id,
+				event_id: createdEvents[1]._id,
+				reason: reportReasons[2].reason,
+				details: reportReasons[2].details,
+				created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+				status: "pending"
+			}
+		];
+
+		// Insert reports
+		const createdReports = await Report.insertMany(reports);
+		console.log(`✅ Created ${createdReports.length} reports`);
+
+		// Seed reviews
+		console.log("📝 Creating event reviews...");
+
+		// Clear existing reviews
+		await Review.deleteMany({});
+
+		const reviews = [];
+
+		// Create 2-3 reviews for each event
+		for (const event of createdEvents) {
+			// Create 2-3 reviews per event
+			const numReviews = Math.floor(Math.random() * 2) + 2; // 2-3 reviews
+
+			// First review from our test volunteer
+			const userReview = {
+				reviewer_id: savedVolunteerUser._id,
+				entity_type: "Event",
+				entity_id: event._id,
+				rating: Math.floor(Math.random() * 3) + 3, // 3-5 rating for test volunteer
+				comment: sampleReviews[Math.floor(Math.random() * sampleReviews.length)].comment,
+				created_at: new Date(Date.now() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000), // Random date in the last 10 days
+				updated_at: new Date(),
+			};
+			reviews.push(userReview);
+
+			// Additional reviews (1-2 more)
+			// We'll create some temporary users for these reviews
+			for (let i = 0; i < numReviews - 1; i++) {
+				// Create a temporary user for the review
+				const tempUser = new User({
+					email: `reviewer${i}@example.com`,
+					password: hashedPassword,
+					role: "volunteer",
+					status: "active",
+					created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+				});
+				const savedTempUser = await tempUser.save();
+
+				// Create a temp volunteer profile
+				const tempVolunteer = new Volunteer({
+					user_id: savedTempUser._id,
+					name: `Reviewer ${i + 1}`,
+					phone: `9${Math.floor(Math.random() * 10000000)}`,
+					dob: new Date("1985-05-15"),
+					skills: ["Communication"],
+					preferred_causes: ["education"],
+				});
+				await tempVolunteer.save();
+
+				// Create the review
+				const review = {
+					reviewer_id: savedTempUser._id,
+					entity_type: "Event",
+					entity_id: event._id,
+					rating: Math.floor(Math.random() * 5) + 1, // 1-5 rating
+					comment: sampleReviews[Math.floor(Math.random() * sampleReviews.length)].comment,
+					created_at: new Date(Date.now() - Math.floor(Math.random() * 20) * 24 * 60 * 60 * 1000), // Random date in the last 20 days
+					updated_at: new Date(),
+				};
+				reviews.push(review);
+			}
+		}
+
+		// Insert all reviews
+		await Review.insertMany(reviews);
+		console.log(`✅ Created ${reviews.length} reviews`);
 
 		console.log("🎉 Seeding complete!");
 		console.log("\nTest Account Information:");

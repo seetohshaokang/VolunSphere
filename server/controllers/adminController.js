@@ -1380,12 +1380,24 @@ exports.getEventById = async (req, res) => {
 		}
 
 		// Get registrations for this event
-		const registrations = await EventRegistration.find({ event_id: id })
-			.populate({
-				path: "volunteer_id",
-				select: "name profile_picture_url user_id"
-			})
+		const basicRegistrations = await EventRegistration.find({ event_id: id })
+			.populate("user_id", "email _id")
 			.sort({ registration_date: -1 });
+
+		// Process registrations to include volunteer information
+		const registrations = await Promise.all(
+			basicRegistrations.map(async (reg) => {
+				// Find the volunteer profile for this user
+				const volunteer = await Volunteer.findOne({ user_id: reg.user_id._id })
+					.select("name phone dob profile_picture_url");
+
+				// Return enhanced registration object with volunteer details
+				return {
+					...reg.toObject(),
+					volunteer_id: volunteer
+				};
+			})
+		);
 
 		// Get reports related to this event
 		const reports = await Report.find({
