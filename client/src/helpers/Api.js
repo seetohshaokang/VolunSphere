@@ -621,6 +621,54 @@ const Api = {
 			body: JSON.stringify({ status, reason }),
 		});
 	},
+	// For volunteer NRIC verification
+	updateVerificationStatus(id, verified, reason) {
+		return fetch(`${SERVER_PREFIX}/admin/volunteers/${id}/verification`, {
+			method: "PUT",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ verified, reason }),
+		});
+	},
+
+	// Function to handle volunteer NRIC verification
+	updateVolunteerVerification(volunteerId, verified, reason) {
+		return fetch(`${SERVER_PREFIX}/admin/volunteers/${volunteerId}/verification`, {
+			method: "PUT",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ verified, reason }),
+		});
+	},
+	updateVerificationStatus(id, verified, reason) {
+		return fetch(`${SERVER_PREFIX}/admin/volunteers/${id}/verification`, {
+			method: "PUT",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ verified, reason }),
+		});
+	},
+
+	updateOrganiserVerification(organiserId, status, reason) {
+		return fetch(`${SERVER_PREFIX}/admin/organisers/${organiserId}/verification`, {
+			method: "PUT",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			body: JSON.stringify({ status, reason }),
+		});x
+	},
 };
 
 export default Api;

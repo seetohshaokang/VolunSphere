@@ -113,6 +113,12 @@ async function seedTestData() {
 			profile_picture_url: null,
 			skills: ["Education", "Healthcare", "Environment"],
 			preferred_causes: ["education", "healthcare", "environment"],
+			nric_image: {
+				data: Buffer.from('This is fake image data', 'utf-8'), 
+				contentType: 'vite.svg', 
+				uploaded_at: new Date(),  
+				verified: false           
+			}
 		});
 
 		await volunteer.save();
@@ -128,6 +134,7 @@ async function seedTestData() {
 			status: "active",
 			created_at: new Date(),
 			last_login: new Date(),
+
 		});
 
 		const savedOrganiserUser = await organiserUser.save();

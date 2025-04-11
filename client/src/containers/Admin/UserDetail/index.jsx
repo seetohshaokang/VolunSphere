@@ -103,9 +103,9 @@ const AdminUserDetail = () => {
   };
 
   // Function to handle NRIC verification
+
   const handleVerifyNRIC = async (isApproved) => {
     try {
-      // This would need to be implemented in your API
       const response = await Api.updateVolunteerVerification(
         userData.profile._id,
         isApproved,
@@ -118,22 +118,20 @@ const AdminUserDetail = () => {
         throw new Error(data.message || 'Failed to update verification status');
       }
 
-      // Update local state
+      // Update local state, ensuring we handle missing nric_image properly
       setUserData(prev => ({
         ...prev,
         profile: {
           ...prev.profile,
           nric_image: {
-            ...prev.profile.nric_image,
+            ...(prev.profile.nric_image || {}),  // Create nric_image object if it doesn't exist
             verified: isApproved
           }
         }
       }));
 
-      alert(`NRIC verification ${isApproved ? 'approved' : 'rejected'} successfully`);
     } catch (err) {
       console.error('Error updating NRIC verification:', err);
-      alert(`Error: ${err.message}`);
     }
   };
 
@@ -392,9 +390,9 @@ const AdminUserDetail = () => {
                         <td className="px-6 py-4 whitespace-nowrap">{formatDate(event.start_datetime || event.recurrence_start_date)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs rounded-full ${event.status === 'active' ? 'bg-green-100 text-green-800' :
-                              event.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                                event.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                  'bg-gray-100 text-gray-800'
+                            event.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                              event.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
                             }`}>
                             {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
                           </span>
@@ -436,9 +434,9 @@ const AdminUserDetail = () => {
                         <td className="px-6 py-4 whitespace-nowrap">{formatDate(reg.registration_date)}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs rounded-full ${reg.status === 'registered' ? 'bg-blue-100 text-blue-800' :
-                              reg.status === 'attended' ? 'bg-green-100 text-green-800' :
-                                reg.status === 'no_show' ? 'bg-red-100 text-red-800' :
-                                  'bg-gray-100 text-gray-800'
+                            reg.status === 'attended' ? 'bg-green-100 text-green-800' :
+                              reg.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
                             }`}>
                             {reg.status.charAt(0).toUpperCase() + reg.status.slice(1)}
                           </span>
@@ -480,9 +478,9 @@ const AdminUserDetail = () => {
                       <td className="px-6 py-4 whitespace-nowrap">{report.reason.substring(0, 30)}...</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs rounded-full ${report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            report.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
-                              report.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                                'bg-gray-100 text-gray-800'
+                          report.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
+                            report.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
                           }`}>
                           {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('_', ' ')}
                         </span>

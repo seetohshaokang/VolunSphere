@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Volunteer = require("../models/Volunteer");
 const Organiser = require("../models/Organiser");
+const Admin = require("../models/Admin");
 const Event = require("../models/Event");
 const EventRegistration = require("../models/EventRegistration");
 const mongoose = require("mongoose");
@@ -85,6 +86,16 @@ exports.fetchProfile = async (req, res) => {
 			profile = await Organiser.findOne({ user_id: userId });
 			console.log(
 				"📌 Organiser findOne query result:",
+				profile ? "Found" : "Not found"
+			);
+		} else if (user.role === "admin") {
+			console.log(
+				"📌 Attempting to find admin profile for user_id:",
+				userId
+			);
+			profile = await Admin.findOne({ user_id: userId });
+			console.log(
+				"📌 Admin findOne query result:",
 				profile ? "Found" : "Not found"
 			);
 		} else {
