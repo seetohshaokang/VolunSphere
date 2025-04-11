@@ -53,7 +53,7 @@ function Navbar() {
 	};
 
 	const handleHomeClick = (e) => {
-		e.preventDefaut();
+		e.preventDefault();
 		if (user) {
 			switch (user.role) {
 				case "admin":
