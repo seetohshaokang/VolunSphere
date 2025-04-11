@@ -293,7 +293,7 @@ function Profile() {
 				<ContentHeader
 					title="My Profile"
 					links={[
-						{ to: "/", label: "Home" },
+						{ to: "/organizer", label: "Home" },
 						{ label: "Profile", isActive: true },
 					]}
 					className="mt-8 mb-8"
