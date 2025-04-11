@@ -540,7 +540,9 @@ exports.removeEventSignup = async (req, res) => {
     });
 
     if (!registration) {
-      return res.status(404).json({ message: "You are not signed up for this event" });
+      return res
+        .status(404)
+        .json({ message: "You are not signed up for this event" });
     }
 
     // Delete registration
@@ -550,8 +552,8 @@ exports.removeEventSignup = async (req, res) => {
     const event = await Event.findById(id);
     if (event && event.registered_count > 0) {
       // Update registered_count in a separate operation
-      await Event.findByIdAndUpdate(id, { 
-        registered_count: event.registered_count - 1
+      await Event.findByIdAndUpdate(id, {
+        registered_count: event.registered_count - 1,
       });
     }
 
@@ -587,7 +589,7 @@ exports.checkSignupStatus = async (req, res) => {
     });
 
     return res.status(200).json({
-      isSignedUp: !!registration
+      isSignedUp: !!registration,
     });
   } catch (error) {
     console.error("Error checking signup status:", error);
@@ -752,32 +754,48 @@ exports.getRecommendedEvents = async (req, res) => {
  *
  * @returns {Object} JSON response with volunteers registered for the event
  * @throws {Error} If server error occurs during retrieval
- *
- * Steps:
- * 1. Validate event ID
- * 2. Check if event exists
- * 3. Verify user is the event organizer
- * 4. Get all registrations with volunteer details
- * 5. Return volunteers list
  */
 exports.getEventVolunteers = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
+    console.log(
+      `Getting volunteers for event: ${id}, requested by user: ${userId}`
+    );
+
     // Validate event ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid event ID" });
+      return res.status(400).json({ message: "Invalid event ID format" });
     }
 
     // Find event by ID
-    const event = await Event.findById(id);
+    let event;
+    try {
+      event = await Event.findById(id);
+    } catch (err) {
+      console.error("Error finding event:", err);
+      return res
+        .status(500)
+        .json({ message: "Error retrieving event", error: err.message });
+    }
+
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
     // Get organiser profile
-    const organiser = await Organiser.findOne({ user_id: userId });
+    let organiser;
+    try {
+      organiser = await Organiser.findOne({ user_id: userId });
+    } catch (err) {
+      console.error("Error finding organiser:", err);
+      return res.status(500).json({
+        message: "Error retrieving organiser profile",
+        error: err.message,
+      });
+    }
+
     if (!organiser) {
       return res.status(404).json({ message: "Organiser profile not found" });
     }
@@ -790,12 +808,66 @@ exports.getEventVolunteers = async (req, res) => {
     }
 
     // Get registrations with volunteer details
-    const registrations = await EventRegistration.find({ event_id: id })
-      .populate({
-        path: "volunteer_id",
-        select: "name phone dob profile_picture_url", // Include fields we want to display
-      })
-      .sort({ registration_date: -1 });
+    let registrations = [];
+    try {
+      // First, find all registrations for this event
+      const eventRegistrations = await EventRegistration.find({ event_id: id });
+      console.log(
+        `Found ${eventRegistrations.length} registrations for event ${id}`
+      );
+
+      // If no registrations are found, return an empty array
+      if (eventRegistrations.length === 0) {
+        return res.status(200).json({ registrations: [] });
+      }
+
+      // For each registration, manually populate volunteer details
+      registrations = await Promise.all(
+        eventRegistrations.map(async (registration) => {
+          // First get the user data
+          const user = await User.findById(registration.user_id);
+
+          // Then get the volunteer data for this user
+          let volunteer = null;
+          if (user && user.role === "volunteer") {
+            volunteer = await Volunteer.findOne({ user_id: user._id });
+          }
+
+          // Return the registration with embedded volunteer data
+          return {
+            _id: registration._id,
+            event_id: registration.event_id,
+            status: registration.status || "confirmed",
+            signup_date: registration.signup_date,
+            attendance_status: registration.attendance_status,
+            check_in_time: registration.check_in_time,
+            check_out_time: registration.check_out_time,
+            feedback: registration.feedback,
+            volunteer_id: volunteer
+              ? {
+                  _id: volunteer._id,
+                  name: volunteer.name,
+                  phone: volunteer.phone,
+                  dob: volunteer.dob,
+                  profile_picture_url: volunteer.profile_picture_url,
+                }
+              : user
+              ? {
+                  _id: user._id,
+                  name: user.email.split("@")[0], // Fallback to email name if volunteer not found
+                  email: user.email,
+                }
+              : null,
+          };
+        })
+      );
+    } catch (err) {
+      console.error("Error processing registrations:", err);
+      return res.status(500).json({
+        message: "Error retrieving event registrations",
+        error: err.message,
+      });
+    }
 
     return res.status(200).json({ registrations });
   } catch (error) {

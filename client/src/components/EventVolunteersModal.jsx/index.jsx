@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { AlertCircle, CheckCircle, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import Api from "../../helpers/Api";
 
@@ -23,6 +24,9 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
   const [volunteers, setVolunteers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredVolunteers, setFilteredVolunteers] = useState([]);
 
   useEffect(() => {
     // Only fetch when the modal is open
@@ -30,6 +34,35 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
       fetchEventVolunteers();
     }
   }, [isOpen, eventId]);
+
+  // Filter volunteers whenever search query or volunteer list changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredVolunteers(volunteers);
+      return;
+    }
+
+    const lowercaseQuery = searchQuery.toLowerCase();
+    const filtered = volunteers.filter((registration) => {
+      const volunteerName = safeGet(
+        registration,
+        "volunteer_id.name",
+        ""
+      ).toLowerCase();
+      const volunteerPhone = safeGet(
+        registration,
+        "volunteer_id.phone",
+        ""
+      ).toLowerCase();
+
+      return (
+        volunteerName.includes(lowercaseQuery) ||
+        volunteerPhone.includes(lowercaseQuery)
+      );
+    });
+
+    setFilteredVolunteers(filtered);
+  }, [searchQuery, volunteers]);
 
   // Function to fetch volunteers for this event
   const fetchEventVolunteers = async () => {
@@ -43,12 +76,49 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
 
       console.log("Volunteers data received:", result);
 
-      if (result && Array.isArray(result.registrations)) {
-        setVolunteers(result.registrations);
-        console.log(`Found ${result.registrations.length} volunteers`);
-      } else {
-        console.warn("No registrations array in response:", result);
+      // Enhanced error logging to debug response structure
+      if (!result) {
+        console.error("API returned null or undefined result");
         setVolunteers([]);
+        setFilteredVolunteers([]);
+        setError("Failed to load volunteers. Invalid response from server.");
+        return;
+      }
+
+      // Check for different possible response formats
+      if (Array.isArray(result)) {
+        // Handle case where result is directly an array
+        console.log("Response is an array, using directly");
+        setVolunteers(result);
+        setFilteredVolunteers(result);
+      } else if (result.registrations && Array.isArray(result.registrations)) {
+        // Handle standard format with registrations array
+        console.log(
+          `Found ${result.registrations.length} volunteers in registrations array`
+        );
+        setVolunteers(result.registrations);
+        setFilteredVolunteers(result.registrations);
+      } else if (result.data && Array.isArray(result.data)) {
+        // Handle case where data might be in a data property
+        console.log(`Found ${result.data.length} volunteers in data array`);
+        setVolunteers(result.data);
+        setFilteredVolunteers(result.data);
+      } else {
+        // If none of the expected formats match, try to extract any array
+        const possibleArrays = Object.values(result).filter((val) =>
+          Array.isArray(val)
+        );
+        if (possibleArrays.length > 0) {
+          console.log(
+            `Found array with ${possibleArrays[0].length} items in unexpected location`
+          );
+          setVolunteers(possibleArrays[0]);
+          setFilteredVolunteers(possibleArrays[0]);
+        } else {
+          console.warn("No array found in response:", result);
+          setVolunteers([]);
+          setFilteredVolunteers([]);
+        }
       }
     } catch (error) {
       console.error("Error in volunteer fetch:", error);
@@ -76,22 +146,101 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
     return age;
   };
 
-  // Handle volunteer check-in
-  const handleCheckIn = async (registrationId) => {
+  // Helper function to safely access nested properties
+  const safeGet = (obj, path, defaultValue = "Not provided") => {
     try {
-      // Implement API call to update volunteer status
-      console.log("Checking in volunteer:", registrationId);
+      const parts = path.split(".");
+      let current = obj;
 
-      // Temporary check-in logic (replace with actual API call)
-      const updatedVolunteers = volunteers.map((registration) =>
-        registration._id === registrationId
-          ? { ...registration, status: "attended" }
-          : registration
+      for (const part of parts) {
+        if (current === null || current === undefined) {
+          return defaultValue;
+        }
+        current = current[part];
+      }
+
+      return current === null || current === undefined ? defaultValue : current;
+    } catch (e) {
+      console.warn(`Error accessing path ${path}:`, e);
+      return defaultValue;
+    }
+  };
+
+  // Handle volunteer check-in or check-out
+  const handleAttendanceToggle = async (registration) => {
+    setCheckingIn(true);
+    try {
+      // Check if already attended to determine if we're checking in or out
+      const isCheckingOut = registration.status === "attended";
+      console.log(
+        isCheckingOut ? "Checking out volunteer:" : "Checking in volunteer:",
+        registration._id
       );
 
-      setVolunteers(updatedVolunteers);
+      try {
+        // Make the API call to check in/out volunteer
+        const endpoint = isCheckingOut
+          ? `${Api.SERVER_PREFIX}/registrations/${registration._id}/check-out`
+          : `${Api.SERVER_PREFIX}/registrations/${registration._id}/check-in`;
+
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // Update local state after successful API call
+        setVolunteers(
+          volunteers.map((vol) =>
+            vol._id === registration._id
+              ? {
+                  ...vol,
+                  status: isCheckingOut ? "registered" : "attended",
+                  check_in_time: isCheckingOut ? null : new Date(),
+                  check_out_time: isCheckingOut
+                    ? new Date()
+                    : vol.check_out_time,
+                }
+              : vol
+          )
+        );
+
+        // Also update filtered volunteers to keep the UI in sync
+        setFilteredVolunteers(
+          filteredVolunteers.map((vol) =>
+            vol._id === registration._id
+              ? {
+                  ...vol,
+                  status: isCheckingOut ? "registered" : "attended",
+                  check_in_time: isCheckingOut ? null : new Date(),
+                  check_out_time: isCheckingOut
+                    ? new Date()
+                    : vol.check_out_time,
+                }
+              : vol
+          )
+        );
+      } catch (apiError) {
+        console.error(
+          `API error when ${isCheckingOut ? "checking out" : "checking in"}:`,
+          apiError
+        );
+        alert(
+          `Failed to ${
+            isCheckingOut ? "check out" : "check in"
+          } volunteer. Please try again.`
+        );
+      }
     } catch (error) {
-      console.error("Error checking in volunteer:", error);
+      console.error("Error toggling attendance:", error);
+    } finally {
+      setCheckingIn(false);
     }
   };
 
@@ -114,6 +263,34 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
           </DialogTitle>
         </DialogHeader>
 
+        {/* Search bar */}
+        <div className="mb-4 relative">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search by name or phone"
+              className="pl-10 pr-4"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          {searchQuery && filteredVolunteers.length > 0 && (
+            <div className="mt-1 text-sm text-gray-500">
+              Found {filteredVolunteers.length} of {volunteers.length}{" "}
+              volunteers
+            </div>
+          )}
+        </div>
+
         {loading ? (
           <div className="flex justify-center items-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -128,13 +305,23 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
           <div className="text-center py-8 text-gray-500">
             No volunteers have registered for this event yet.
           </div>
+        ) : filteredVolunteers.length === 0 && searchQuery ? (
+          <div className="text-center py-8 text-gray-500">
+            No volunteers match your search query "{searchQuery}".
+            <button
+              onClick={() => setSearchQuery("")}
+              className="ml-2 text-primary hover:underline"
+            >
+              Clear search
+            </button>
+          </div>
         ) : (
           <div className="overflow-x-auto max-h-[60vh]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Age</TableHead>
                   <TableHead>Registered On</TableHead>
                   <TableHead>Status</TableHead>
@@ -142,33 +329,42 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {volunteers.map((registration) => (
-                  <TableRow key={registration._id}>
+                {filteredVolunteers.map((registration) => (
+                  <TableRow key={registration._id || `reg-${Math.random()}`}>
                     <TableCell className="font-medium">
-                      {registration.volunteer_id?.name || "Unknown"}
+                      {safeGet(registration, "volunteer_id.name")}
                     </TableCell>
                     <TableCell>
-                      {registration.volunteer_id?.phone || "Not provided"}
+                      {safeGet(registration, "volunteer_id.phone")}
                     </TableCell>
                     <TableCell>
-                      {calculateAge(registration.volunteer_id?.dob)}
+                      {calculateAge(
+                        safeGet(registration, "volunteer_id.dob", null)
+                      )}
                     </TableCell>
                     <TableCell>
-                      {new Date(
-                        registration.registration_date
-                      ).toLocaleDateString()}
+                      {registration.registration_date
+                        ? new Date(
+                            registration.registration_date
+                          ).toLocaleDateString()
+                        : registration.signup_date
+                        ? new Date(
+                            registration.signup_date
+                          ).toLocaleDateString()
+                        : "Unknown date"}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          registration.status === "registered"
+                          registration.status === "registered" ||
+                          registration.status === "confirmed"
                             ? "outline"
                             : registration.status === "attended"
                             ? "default"
                             : "secondary"
                         }
                       >
-                        {registration.status}
+                        {registration.status || "registered"}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -179,13 +375,19 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
                             ? "outline"
                             : "default"
                         }
-                        disabled={registration.status === "attended"}
-                        onClick={() => handleCheckIn(registration._id)}
+                        disabled={checkingIn}
+                        onClick={() => handleAttendanceToggle(registration)}
                       >
                         {registration.status === "attended" ? (
                           <>
-                            <CheckCircle className="h-4 w-4 mr-1" /> Checked In
+                            <CheckCircle className="h-4 w-4 mr-1" /> Undo Check
+                            In
                           </>
+                        ) : checkingIn ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
+                            Processing...
+                          </div>
                         ) : (
                           "Check In"
                         )}
