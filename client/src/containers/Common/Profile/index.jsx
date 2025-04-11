@@ -636,12 +636,18 @@ function Profile() {
 															asChild
 														>
 															<Link
-																to={`/events/${
-																	event.id ||
-																	event.event_id ||
-																	event.event?._id ||
-																	event._id
-																}`}
+																to={user?.role === "organiser" 
+																	? `/organizer/events/${
+																		event.id ||
+																		event._id
+																	}` 
+																	: `/events/${
+																		event.id ||
+																		event.event_id ||
+																		event.event?._id ||
+																		event._id
+																	}`
+																}
 															>
 																<Eye className="h-4 w-4" />
 															</Link>
