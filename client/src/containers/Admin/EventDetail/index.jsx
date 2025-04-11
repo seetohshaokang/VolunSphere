@@ -22,16 +22,27 @@ const AdminEventDetail = () => {
         fetchEventDetails();
     }, [id]);
 
+    // In src/containers/Admin/EventDetail/index.jsx
+
     const fetchEventDetails = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            setLoading(true);
+            console.log(`Fetching event with ID: ${id}`);
+
+            // Call the API
             const response = await Api.getAdminEventById(id);
-            const data = await response.json();
+            console.log("Response status:", response.status);
 
             if (!response.ok) {
-                throw new Error(data.message || 'Failed to fetch event details');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch event details');
             }
 
+            const data = await response.json();
+            console.log("Event data received:", data);
+
+            // Set state with received data
             setEvent(data.event);
             setRegistrations(data.registrations || []);
             setReports(data.reports || []);
@@ -40,14 +51,13 @@ const AdminEventDetail = () => {
             if (data.event) {
                 setNewStatus(data.event.status);
             }
-        } catch (err) {
-            console.error('Error fetching event details:', err);
-            setError(err.message);
+        } catch (error) {
+            console.error("Error fetching event details:", error);
+            setError(error.message);
         } finally {
             setLoading(false);
         }
     };
-
     const handleStatusUpdate = async () => {
         if (!newStatus || newStatus === event.status) {
             setShowStatusModal(false);
@@ -309,9 +319,9 @@ const AdminEventDetail = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs rounded-full ${reg.status === 'registered' ? 'bg-blue-100 text-blue-800' :
-                                                    reg.status === 'attended' ? 'bg-green-100 text-green-800' :
-                                                        reg.status === 'no_show' ? 'bg-red-100 text-red-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                reg.status === 'attended' ? 'bg-green-100 text-green-800' :
+                                                    reg.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                                                        'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {reg.status.charAt(0).toUpperCase() + reg.status.slice(1)}
                                             </span>
@@ -321,10 +331,10 @@ const AdminEventDetail = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <Link
-                                                to={`/admin/users/${reg.volunteer_id?.user_id}`}
+                                                to={`/admin/users/${reg.user_id?._id}`}
                                                 className="text-indigo-600 hover:text-indigo-900"
                                             >
-                                                View Volunteer
+                                                View Volunteer Profile
                                             </Link>
                                         </td>
                                     </tr>
@@ -367,9 +377,9 @@ const AdminEventDetail = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs rounded-full ${report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                    report.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
-                                                        report.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                report.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
+                                                    report.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                                                        'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('_', ' ')}
                                             </span>

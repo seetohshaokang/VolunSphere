@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { getCurrentUser, logoutUser } from "../helpers/authService";
 import Api from "../helpers/Api";
+import { getCurrentUser, logoutUser } from "../helpers/authService";
 
 // Create AuthContext
 const AuthContext = createContext();
@@ -32,25 +32,27 @@ export const AuthProvider = ({ children }) => {
 	// Function to fetch user profile
 	const fetchUserProfile = async (currentUser) => {
 		if (!currentUser) return;
-		
+
 		setProfileLoading(true);
 		try {
+			console.log("Sending token:", localStorage.getItem("token"));
 			const response = await Api.getUserProfile({
 				headers: {
 					"Cache-Control": "no-cache",
 					Pragma: "no-cache",
 				},
 			});
+			console.log("Profile fetch status:", response.status);
 
 			if (response.ok) {
 				const data = await response.json();
 				console.log("Profile data fetched in AuthContext:", data);
 				setProfileData(data.profile);
-				
+
 				// Update the stored user with profile picture
 				const updatedUser = {
 					...currentUser,
-					profilePicture: data.profile.profile_picture_url
+					profilePicture: data.profile.profile_picture_url,
 				};
 				setUser(updatedUser);
 				localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -91,16 +93,18 @@ export const AuthProvider = ({ children }) => {
 	};
 
 	return (
-		<AuthContext.Provider value={{ 
-			user, 
-			login, 
-			logout, 
-			loading,
-			profileData,
-			profileLoading,
-			profileTimestamp,
-			refreshProfile
-		}}>
+		<AuthContext.Provider
+			value={{
+				user,
+				login,
+				logout,
+				loading,
+				profileData,
+				profileLoading,
+				profileTimestamp,
+				refreshProfile,
+			}}
+		>
 			{children}
 		</AuthContext.Provider>
 	);

@@ -9,7 +9,7 @@ const adminActionSchema = new Schema({
 	},
 	action: {
 		type: String,
-		enum: ["warning", "suspension", "ban", "event_removed"],
+		enum: ["warning", "suspension", "ban", "event_removed", "verification_approved", "verification_rejected"],
 		required: true,
 	},
 	target_type: {

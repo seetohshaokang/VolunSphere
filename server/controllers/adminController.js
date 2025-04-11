@@ -650,55 +650,38 @@ exports.updateVerificationStatus = async (req, res) => {
 				.json({ message: "Volunteer does not have an NRIC image" });
 		}
 
-		// Step 6: Start a MongoDB transaction to ensure data consistency
-		const session = await mongoose.startSession();
-		session.startTransaction();
+		// Step 6: Update volunteer verification status
+		volunteer.nric_image.verified = verified;
+		await volunteer.save();
 
-		try {
-			// Step 7: Update volunteer verification status
-			volunteer.nric_image.verified = verified;
-			await volunteer.save({ session });
+		// Step 7: Create admin action record for audit trail
+		const action = new AdminAction({
+			admin_id: admin._id,
+			action: verified
+				? "verification_approved"
+				: "verification_rejected",
+			target_type: "volunteer",
+			target_id: volunteer._id,
+			reason:
+				reason ||
+				`NRIC verification ${verified ? "approved" : "rejected"} by admin`,
+			date: new Date(),
+		});
+		await action.save();
 
-			// Step 8: Create admin action record for audit trail
-			const action = new AdminAction({
-				admin_id: admin._id,
-				action: verified
-					? "verification_approved"
-					: "verification_rejected",
-				target_type: "volunteer",
-				target_id: volunteer._id,
-				reason:
-					reason ||
-					`NRIC verification ${verified ? "approved" : "rejected"
-					} by admin`,
-				date: new Date(),
-			});
+		// Step 8: Update admin's reports_handled count
+		admin.reports_handled += 1;
+		await admin.save();
 
-			await action.save({ session });
-
-			// Step 9: Update admin's reports_handled count for performance tracking
-			admin.reports_handled += 1;
-			await admin.save({ session });
-
-			// Step 10: Commit the transaction
-			await session.commitTransaction();
-			session.endSession();
-
-			return res.status(200).json({
-				message: `NRIC verification ${verified ? "approved" : "rejected"
-					}`,
-				volunteer: {
-					_id: volunteer._id,
-					name: volunteer.name,
-					nric_verified: volunteer.nric_image.verified,
-				},
-			});
-		} catch (error) {
-			// Roll back transaction on error
-			await session.abortTransaction();
-			session.endSession();
-			throw error;
-		}
+		// Step 9: Respond with success
+		return res.status(200).json({
+			message: `NRIC verification ${verified ? "approved" : "rejected"}`,
+			volunteer: {
+				_id: volunteer._id,
+				name: volunteer.name,
+				nric_verified: volunteer.nric_image.verified,
+			},
+		});
 	} catch (error) {
 		console.error("Error updating verification status:", error);
 		return res.status(500).json({
@@ -707,6 +690,7 @@ exports.updateVerificationStatus = async (req, res) => {
 		});
 	}
 };
+
 
 /**
  * Get list of all reports
@@ -1380,12 +1364,24 @@ exports.getEventById = async (req, res) => {
 		}
 
 		// Get registrations for this event
-		const registrations = await EventRegistration.find({ event_id: id })
-			.populate({
-				path: "volunteer_id",
-				select: "name profile_picture_url user_id"
-			})
+		const basicRegistrations = await EventRegistration.find({ event_id: id })
+			.populate("user_id", "email _id")
 			.sort({ registration_date: -1 });
+
+		// Process registrations to include volunteer information
+		const registrations = await Promise.all(
+			basicRegistrations.map(async (reg) => {
+				// Find the volunteer profile for this user
+				const volunteer = await Volunteer.findOne({ user_id: reg.user_id._id })
+					.select("name phone dob profile_picture_url");
+
+				// Return enhanced registration object with volunteer details
+				return {
+					...reg.toObject(),
+					volunteer_id: volunteer
+				};
+			})
+		);
 
 		// Get reports related to this event
 		const reports = await Report.find({
