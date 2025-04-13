@@ -134,14 +134,6 @@ function Navbar() {
 											Profile
 										</Link>
 									</DropdownMenuItem>
-									<DropdownMenuItem asChild>
-										<Link
-											to="/events/user/registered"
-											className="cursor-pointer w-full px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-										>
-											My Events
-										</Link>
-									</DropdownMenuItem>
 									<DropdownMenuSeparator className="bg-gray-200" />
 									<DropdownMenuItem
 										onClick={logout}
