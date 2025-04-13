@@ -22,7 +22,12 @@ const Api = {
 	},
 
 	registerUser(userData) {
-		return fetch(`${SERVER_PREFIX}/auth/signup`, {
+		const endpoint =
+			userData.role === "volunteer"
+				? `${SERVER_PREFIX}/auth/register/volunteer`
+				: `${SERVER_PREFIX}/auth/register/organiser`;
+
+		return fetch(endpoint, {
 			headers: {
 				Accept: "application/json",
 				"Content-Type": "application/json",
