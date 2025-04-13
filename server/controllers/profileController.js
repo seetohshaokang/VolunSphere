@@ -409,7 +409,7 @@ exports.uploadNRIC = async (req, res) => {
 
 		// Update volunteer's NRIC image
 		volunteer.nric_image = {
-			data: req.file.buffer,
+			filename: req.file.filename,
 			contentType: req.file.mimetype,
 			uploaded_at: new Date(),
 			verified: false,
@@ -421,6 +421,9 @@ exports.uploadNRIC = async (req, res) => {
 		return res.status(200).json({
 			message:
 				"NRIC uploaded successfully. It will be verified by an administrator.",
+			nric_image: {
+				filename: req.file.filename,
+			},
 		});
 	} catch (error) {
 		console.error("❌ Error uploading NRIC:", error);

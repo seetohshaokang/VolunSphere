@@ -13,21 +13,14 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit, Eye, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
+import NricUploader from "../../../components/NricUploader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
-import { Link, useNavigate } from "react-router-dom";
 
 function Profile() {
 	const { user, logout, refreshProfile } = useAuth();
@@ -49,6 +42,10 @@ function Profile() {
 		skills: [],
 		address: "",
 	});
+
+	const [nricFile, setNricFile] = useState(null);
+	const [uploadingNric, setUploadingNric] = useState(false);
+
 	// Add timestamp for cache busting
 	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
@@ -83,6 +80,7 @@ function Profile() {
 
 			const data = await response.json();
 			console.log("Profile data received:", data);
+			console.log("NRIC data:", data.profile.nric_image);
 
 			// Parse name (assuming it comes as full name)
 			let firstName = data.profile.name || "";
@@ -114,6 +112,7 @@ function Profile() {
 						(skill) => skill.skill_name
 					) ||
 					[],
+				nric_image: data.profile.nric_image || null,
 			});
 		} catch (err) {
 			console.error("Error fetching profile:", err);
@@ -205,11 +204,14 @@ function Profile() {
 				bio: profile.bio,
 				dob: profile.dob,
 				address: profile.address,
-				hasAvatarFile: profile.avatarFile ? 'Yes' : 'No'
+				hasAvatarFile: profile.avatarFile ? "Yes" : "No",
 			});
 
 			if (profile.avatarFile) {
-				console.log("Attaching profile picture file:", profile.avatarFile.name);
+				console.log(
+					"Attaching profile picture file:",
+					profile.avatarFile.name
+				);
 				formData.append("profile_picture", profile.avatarFile);
 			}
 
@@ -232,18 +234,59 @@ function Profile() {
 			setImageTimestamp(Date.now());
 			setSuccess("Profile updated successfully!");
 			setIsEditing(false);
-			
+
 			// Update the profile data in the auth context
-			if (typeof refreshProfile === 'function') {
+			if (typeof refreshProfile === "function") {
 				refreshProfile();
 			}
-			
+
 			fetchUserProfile();
 		} catch (err) {
 			console.error("Error updating profile:", err);
 			setError("Failed to update profile. Please try again.");
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const handleNricFileChange = (e) => {
+		const file = e.target.files[0];
+		if (file) {
+			setNricFile(file);
+		}
+	};
+
+	const handleNricUpload = async () => {
+		if (!nricFile) return;
+		setUploadingNric(true);
+		setError(null);
+		setSuccess(null);
+
+		try {
+			// Create Form Data for the API call
+			const formData = new FormData();
+			formData.append("nric_image", nricFile);
+
+			const response = await Api.uploadNRIC(formData);
+
+			if (response.ok) {
+				const data = await response.json();
+				setSuccess(
+					data.message ||
+						"NRIC uploaded successfully. It will be verified by an adminstrator."
+				);
+				setNricFile(null);
+				// Refresh profile data to show updated NRIC status
+				fetchUserProfile();
+			} else {
+				const errorData = await response.json();
+				setError(errorData.message || "Failed to upload NRIC");
+			}
+		} catch (err) {
+			console.error("Error uploading NRIC:", err);
+			setError("Failed to upload NRIC> Please try again.");
+		} finally {
+			setUploadingNric(false);
 		}
 	};
 
@@ -276,8 +319,13 @@ function Profile() {
 		// If it's a relative path with a file extension
 		if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
 			// Determine if it's a server-hosted image or a local asset
-			if (profile.avatar.startsWith("/uploads/") || profile.avatar.includes("profile-")) {
-				return `http://localhost:8000${profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"}${profile.avatar}?t=${imageTimestamp}`;
+			if (
+				profile.avatar.startsWith("/uploads/") ||
+				profile.avatar.includes("profile-")
+			) {
+				return `http://localhost:8000${
+					profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"
+				}${profile.avatar}?t=${imageTimestamp}`;
 			}
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
@@ -340,14 +388,16 @@ function Profile() {
 											Skills
 										</h3>
 										<div className="flex flex-wrap gap-1 justify-center">
-											{profile.skills.map((skill, index) => (
-												<Badge
-													key={index}
-													variant="secondary"
-												>
-													{skill}
-												</Badge>
-											))}
+											{profile.skills.map(
+												(skill, index) => (
+													<Badge
+														key={index}
+														variant="secondary"
+													>
+														{skill}
+													</Badge>
+												)
+											)}
 										</div>
 									</div>
 								)}
@@ -364,7 +414,8 @@ function Profile() {
 									onClick={() => setIsEditing(true)}
 									disabled={loading}
 								>
-									<Edit className="h-4 w-4 mr-2" /> Edit Profile
+									<Edit className="h-4 w-4 mr-2" /> Edit
+									Profile
 								</Button>
 							)}
 						</CardHeader>
@@ -374,17 +425,22 @@ function Profile() {
 									<div className="grid grid-cols-3 gap-4">
 										<span className="font-bold">Name:</span>
 										<span className="col-span-2">
-											{profile.firstName} {profile.lastName}
+											{profile.firstName}{" "}
+											{profile.lastName}
 										</span>
 									</div>
 									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">Email:</span>
+										<span className="font-bold">
+											Email:
+										</span>
 										<span className="col-span-2">
 											{profile.email}
 										</span>
 									</div>
 									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">Phone:</span>
+										<span className="font-bold">
+											Phone:
+										</span>
 										<span className="col-span-2">
 											{profile.phone || "Not provided"}
 										</span>
@@ -402,7 +458,9 @@ function Profile() {
 										</span>
 									</div>
 									<div className="grid grid-cols-3 gap-4">
-										<span className="font-bold">Address:</span>
+										<span className="font-bold">
+											Address:
+										</span>
 										<span className="col-span-2">
 											{profile.address || "Not provided"}
 										</span>
@@ -425,13 +483,23 @@ function Profile() {
 												{profile.avatar && (
 													<div className="flex justify-center my-2">
 														<Avatar className="w-20 h-20 border-2 border-primary">
-															<AvatarImage 
-																src={profile.avatarFile ? URL.createObjectURL(profile.avatarFile) : getAvatarUrl()} 
-																alt="Profile preview" 
+															<AvatarImage
+																src={
+																	profile.avatarFile
+																		? URL.createObjectURL(
+																				profile.avatarFile
+																		  )
+																		: getAvatarUrl()
+																}
+																alt="Profile preview"
 															/>
 															<AvatarFallback>
-																{profile.firstName?.charAt(0) || ""}
-																{profile.lastName?.charAt(0) || ""}
+																{profile.firstName?.charAt(
+																	0
+																) || ""}
+																{profile.lastName?.charAt(
+																	0
+																) || ""}
 															</AvatarFallback>
 														</Avatar>
 													</div>
@@ -445,18 +513,26 @@ function Profile() {
 															Choose file
 														</label>
 														<span className="text-sm text-gray-600">
-															{profile.avatarFile ? profile.avatarFile.name : "No file chosen"}
+															{profile.avatarFile
+																? profile
+																		.avatarFile
+																		.name
+																: "No file chosen"}
 														</span>
 														<Input
 															id="avatar"
 															type="file"
 															accept="image/*"
-															onChange={handleFileChange}
+															onChange={
+																handleFileChange
+															}
 															className="hidden"
 														/>
 													</div>
 													<p className="text-xs text-muted-foreground mt-1">
-														Accepted formats: JPEG, PNG, WebP. Max size: 5MB.
+														Accepted formats: JPEG,
+														PNG, WebP. Max size:
+														5MB.
 													</p>
 												</div>
 											</div>
@@ -524,7 +600,9 @@ function Profile() {
 											/>
 										</div>
 										<div className="space-y-2">
-											<Label htmlFor="address">Address</Label>
+											<Label htmlFor="address">
+												Address
+											</Label>
 											<Input
 												id="address"
 												name="address"
@@ -546,7 +624,9 @@ function Profile() {
 											<Button
 												type="button"
 												variant="outline"
-												onClick={() => setIsEditing(false)}
+												onClick={() =>
+													setIsEditing(false)
+												}
 												disabled={loading}
 											>
 												Cancel
@@ -571,6 +651,16 @@ function Profile() {
 							)}
 						</CardContent>
 					</Card>
+
+					{/* NRIC Verification Card - Only show for volunteers */}
+					{user?.role === "volunteer" && (
+						<NricUploader
+							profile={profile}
+							onUploadSuccess={fetchUserProfile}
+							setError={setError}
+							setSuccess={setSuccess}
+						/>
+					)}
 
 					<Card className="md:col-span-3">
 						<CardHeader>
@@ -622,7 +712,8 @@ function Profile() {
 													>
 														{(
 															event.status ||
-															event.event?.status ||
+															event.event
+																?.status ||
 															"active"
 														).toUpperCase()}
 													</Badge>
@@ -636,17 +727,21 @@ function Profile() {
 															asChild
 														>
 															<Link
-																to={user?.role === "organiser" 
-																	? `/organizer/events/${
-																		event.id ||
-																		event._id
-																	}` 
-																	: `/events/${
-																		event.id ||
-																		event.event_id ||
-																		event.event?._id ||
-																		event._id
-																	}`
+																to={
+																	user?.role ===
+																	"organiser"
+																		? `/organizer/events/${
+																				event.id ||
+																				event._id
+																		  }`
+																		: `/events/${
+																				event.id ||
+																				event.event_id ||
+																				event
+																					.event
+																					?._id ||
+																				event._id
+																		  }`
 																}
 															>
 																<Eye className="h-4 w-4" />
@@ -661,7 +756,10 @@ function Profile() {
 																asChild
 															>
 																<Link
-																	to={`/events/edit/${event.id || event._id}`}
+																	to={`/events/edit/${
+																		event.id ||
+																		event._id
+																	}`}
 																>
 																	<Edit className="h-4 w-4" />
 																</Link>
