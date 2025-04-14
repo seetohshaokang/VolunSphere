@@ -2,12 +2,12 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Share } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -18,256 +18,257 @@ import ReviewSection from "../../../components/ReviewSection";
 import { getEventImageUrl } from "../../../helpers/eventHelper";
 
 function EventDetail() {
-	const { eventId } = useParams();
-	const navigate = useNavigate();
-	const { user } = useAuth();
-	const [event, setEvent] = useState(null);
-	const [loading, setLoading] = useState(true);
-	const [isSignedUp, setIsSignedUp] = useState(false);
-	const [showConfirmModal, setShowConfirmModal] = useState(false);
-	const [signupSuccess, setSignupSuccess] = useState(false);
-	const [error, setError] = useState(null);
-	const [reviews, setReviews] = useState([]);
-	const [reviewsLoading, setReviewsLoading] = useState(true);
-	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+  const { eventId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isSignedUp, setIsSignedUp] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [error, setError] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-	// Update timestamp after fetching event details
-	useEffect(() => {
-		if (event) {
-			setImageTimestamp(Date.now());
-		}
-	}, [event]);
+  // Update timestamp after fetching event details
+  useEffect(() => {
+    if (event) {
+      setImageTimestamp(Date.now());
+    }
+  }, [event]);
 
-	// Reset the signup status when user changes or logs out
-	useEffect(() => {
-		fetchEventDetails();
-		// Only fetch details when eventId changes, not when user changes
-		// User changes are handled in a separate effect
-	}, [eventId]);
+  // Reset the signup status when user changes or logs out
+  useEffect(() => {
+    fetchEventDetails();
+    // Only fetch details when eventId changes, not when user changes
+    // User changes are handled in a separate effect
+  }, [eventId]);
 
-	// Separate useEffect for handling authentication changes
-	useEffect(() => {
-		// If user is null (logged out), always reset signup status
-		if (!user) {
-			setIsSignedUp(false);
-		} else if (event) {
-			// Only check signup status if user is logged in and event is loaded
-			checkSignupStatus();
-		}
-	}, [user, event]);
+  // Separate useEffect for handling authentication changes
+  useEffect(() => {
+    // If user is null (logged out), always reset signup status
+    if (!user) {
+      setIsSignedUp(false);
+    } else if (event) {
+      // Only check signup status if user is logged in and event is loaded
+      checkSignupStatus();
+    }
+  }, [user, event]);
 
-	// Fetch event details
-	const fetchEventDetails = async () => {
-		setLoading(true);
-		setError(null);
+  // Fetch event details
+  const fetchEventDetails = async () => {
+    setLoading(true);
+    setError(null);
 
-		try {
-			// Using the Api helper to fetch event
-			const response = await Api.getEvent(eventId);
-			
-			if (!response.ok) {
-				// Handle non-200 responses
-				if (response.status === 404) {
-					throw new Error("Event not found");
-				} else {
-					const errorData = await response.json().catch(() => ({}));
-					throw new Error(errorData.message || "Failed to load event details");
-				}
-			}
-			
-			const eventData = await response.json();
-			setEvent(eventData);
+    try {
+      // Using the Api helper to fetch event
+      const response = await Api.getEvent(eventId);
 
-			// We don't check signup status here anymore since it's handled in a separate useEffect
-		} catch (err) {
-			console.error("Error fetching event details:", err);
-			setError(
-				err.message || "Failed to load event details. Please try again later."
-			);
-		} finally {
-			setLoading(false);
-		}
-	};
+      if (!response.ok) {
+        // Handle non-200 responses
+        if (response.status === 404) {
+          throw new Error("Event not found");
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || "Failed to load event details");
+        }
+      }
 
-	useEffect(() => {
-		fetchEventDetails();
-	}, [eventId, user]);
+      const eventData = await response.json();
+      setEvent(eventData);
 
-	// Fetch event reviews
-	useEffect(() => {
-		const fetchReviews = async () => {
-			setReviewsLoading(true);
-			
-			try {
-				const response = await Api.getEventReviews(eventId);
-				const reviewsData = await response.json();
-				setReviews(reviewsData);
-			} catch (err) {
-				console.error("Error fetching event reviews:", err);
-				// Not showing error for reviews as it's not critical
-				setReviews([]);
-			} finally {
-				setReviewsLoading(false);
-			}
-		};
+      // We don't check signup status here anymore since it's handled in a separate useEffect
+    } catch (err) {
+      console.error("Error fetching event details:", err);
+      setError(
+        err.message || "Failed to load event details. Please try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-		if (eventId) {
-			fetchReviews();
-		}
-	}, [eventId]);
+  useEffect(() => {
+    fetchEventDetails();
+  }, [eventId, user]);
 
-	// Check if user is already signed up
-	const checkSignupStatus = async () => {
-		// Do nothing if user is not logged in
-		if (!user) {
-			setIsSignedUp(false);
-			return;
-		}
+  // Fetch event reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      setReviewsLoading(true);
 
-		try {
-			const response = await Api.checkEventSignupStatus(eventId);
-			
-			if (response.ok) {
-				const data = await response.json();
-				setIsSignedUp(data.isSignedUp);
-			} else {
-				// If there's an error, assume not signed up
-				setIsSignedUp(false);
-			}
-		} catch (err) {
-			console.error("Error checking signup status:", err);
-			// Non-critical error, assume not signed up
-			setIsSignedUp(false);
-		}
-	};
+      try {
+        const response = await Api.getEventReviews(eventId);
+        const reviewsData = await response.json();
+        setReviews(reviewsData);
+      } catch (err) {
+        console.error("Error fetching event reviews:", err);
+        // Not showing error for reviews as it's not critical
+        setReviews([]);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
 
-	const handleSignupClick = () => {
-		if (!user) {
-			// Redirect to login if not logged in
-			navigate("/login", { state: { from: `/events/${eventId}` } });
-			return;
-		}
+    if (eventId) {
+      fetchReviews();
+    }
+  }, [eventId]);
 
-		// Check if event is at capacity before showing confirmation modal
-		if (
-			event.max_volunteers > 0 &&
-			(event.registered_count || 0) >= event.max_volunteers
-		) {
-			setError(
-				"This event has reached maximum capacity. No more slots available."
-			);
-			return;
-		}
+  // Check if user is already signed up
+  const checkSignupStatus = async () => {
+    // Do nothing if user is not logged in
+    if (!user) {
+      setIsSignedUp(false);
+      return;
+    }
 
-		// Show confirmation modal
-		setShowConfirmModal(true);
-	};
+    try {
+      const response = await Api.checkEventSignupStatus(eventId);
 
-	const confirmSignup = async () => {
-		try {
-			const response = await Api.signupForEvent(eventId);
-			
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || "Failed to sign up for event");
-			}
-			
-			// Re-fetch the event to get the updated capacity count
-			await fetchEventDetails();
+      if (response.ok) {
+        const data = await response.json();
+        setIsSignedUp(data.isSignedUp);
+      } else {
+        // If there's an error, assume not signed up
+        setIsSignedUp(false);
+      }
+    } catch (err) {
+      console.error("Error checking signup status:", err);
+      // Non-critical error, assume not signed up
+      setIsSignedUp(false);
+    }
+  };
 
-			setIsSignedUp(true);
-			setShowConfirmModal(false);
-			setSignupSuccess(true);
+  const handleSignupClick = () => {
+    if (!user) {
+      // Redirect to login if not logged in
+      navigate("/login", { state: { from: `/events/${eventId}` } });
+      return;
+    }
 
-			// Hide success message after 3 seconds
-			setTimeout(() => {
-				setSignupSuccess(false);
-			}, 3000);
-		} catch (err) {
-			console.error("Error signing up for event:", err);
-			setError(err.message || "Failed to sign up for event. Please try again.");
-			setShowConfirmModal(false);
-		}
-	};
+    // Check if event is at capacity before showing confirmation modal
+    if (
+      event.max_volunteers > 0 &&
+      (event.registered_count || 0) >= event.max_volunteers
+    ) {
+      setError(
+        "This event has reached maximum capacity. No more slots available."
+      );
+      return;
+    }
 
-	const cancelSignup = async () => {
-		try {
-			const response = await Api.removeEventSignup(eventId);
-			
-			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || "Failed to cancel signup");
-			}
-			
-			// Re-fetch the event to get the updated capacity count
-			await fetchEventDetails();
+    // Show confirmation modal
+    setShowConfirmModal(true);
+  };
 
-			setIsSignedUp(false);
-			setShowConfirmModal(false);
-		} catch (err) {
-			console.error("Error cancelling signup:", err);
-			setError(err.message || "Failed to cancel signup. Please try again.");
-		}
-	};
+  const confirmSignup = async () => {
+    try {
+      const response = await Api.registerForEvent(eventId);
 
-	// Helper function to format date strings
-	const formatDateRange = () => {
-		if (event.start_date && event.end_date) {
-			const startDate = new Date(event.start_date);
-			const endDate = new Date(event.end_date);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to sign up for event");
+      }
 
-			const options = {
-				weekday: "short",
-				year: "numeric",
-				month: "short",
-				day: "2-digit",
-			};
+      // Re-fetch the event to get the updated capacity count
+      await fetchEventDetails();
 
-			if (startDate.toDateString() === endDate.toDateString()) {
-				return startDate.toLocaleDateString(undefined, options);
-			} else {
-				return `${startDate.toLocaleDateString(
-					undefined,
-					options
-				)} - ${endDate.toLocaleDateString(undefined, options)}`;
-			}
-		}
+      setIsSignedUp(true);
+      setShowConfirmModal(false);
+      setSignupSuccess(true);
 
-		return "Date information unavailable";
-	};
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setSignupSuccess(false);
+      }, 3000);
+    } catch (err) {
+      console.error("Error signing up for event:", err);
+      setError(err.message || "Failed to sign up for event. Please try again.");
+      setShowConfirmModal(false);
+    }
+  };
 
-	if (loading) {
-		return (
-			<div className="flex justify-center py-12">
-				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-				<p className="ml-3 text-lg">Loading event details...</p>
-			</div>
-		);
-	}
+  const cancelSignup = async () => {
+    try {
+      const response = await Api.cancelEventRegistration(eventId);
 
-	if (error) {
-		return (
-			<Alert variant="destructive" className="my-6">
-				<AlertDescription>{error}</AlertDescription>
-			</Alert>
-		);
-	}
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to cancel signup");
+      }
 
-	if (!event) {
-		return (
-			<Alert variant="destructive" className="my-6">
-				<AlertDescription>
-					Event not found or has been removed.
-				</AlertDescription>
-			</Alert>
-		);
-	}
+      // Re-fetch the event to get the updated capacity count
+      await fetchEventDetails();
 
-	// Check if event is at capacity
-	const isEventFull = event.max_volunteers > 0 && 
-		(event.registered_count || 0) >= event.max_volunteers;
+      setIsSignedUp(false);
+      setShowConfirmModal(false);
+    } catch (err) {
+      console.error("Error cancelling signup:", err);
+      setError(err.message || "Failed to cancel signup. Please try again.");
+    }
+  };
 
-	return (
+  // Helper function to format date strings
+  const formatDateRange = () => {
+    if (event.start_date && event.end_date) {
+      const startDate = new Date(event.start_date);
+      const endDate = new Date(event.end_date);
+
+      const options = {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      };
+
+      if (startDate.toDateString() === endDate.toDateString()) {
+        return startDate.toLocaleDateString(undefined, options);
+      } else {
+        return `${startDate.toLocaleDateString(
+          undefined,
+          options
+        )} - ${endDate.toLocaleDateString(undefined, options)}`;
+      }
+    }
+
+    return "Date information unavailable";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <p className="ml-3 text-lg">Loading event details...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="my-6">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!event) {
+    return (
+      <Alert variant="destructive" className="my-6">
+        <AlertDescription>
+          Event not found or has been removed.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Check if event is at capacity
+  const isEventFull =
+    event.max_volunteers > 0 &&
+    (event.registered_count || 0) >= event.max_volunteers;
+
+  return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 mt-6">
       {/* Breadcrumb navigation */}
       <nav className="mb-5">
@@ -324,11 +325,11 @@ function EventDetail() {
           <div className="relative w-full h-96 mb-6 rounded-lg overflow-hidden shadow-md">
             <img
               src={
-                event.image_url 
-                ? getEventImageUrl(event.image_url, imageTimestamp)
-                : `https://source.unsplash.com/random/800x400/?${
-                  event.cause || "volunteer"
-                }`
+                event.image_url
+                  ? getEventImageUrl(event.image_url, imageTimestamp)
+                  : `https://source.unsplash.com/random/800x400/?${
+                      event.cause || "volunteer"
+                    }`
               }
               alt={event.name}
               className="w-full h-full object-cover"
@@ -517,9 +518,7 @@ function EventDetail() {
             ) : (
               <button
                 onClick={handleSignupClick}
-                disabled={
-                  event.status !== "active" || isEventFull
-                }
+                disabled={event.status !== "active" || isEventFull}
                 className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${
                   event.status !== "active" || isEventFull
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -547,7 +546,8 @@ function EventDetail() {
                     className="bg-blue-600 h-full rounded-full"
                     style={{
                       width: `${
-                        ((event.registered_count || 0) / event.max_volunteers) * 100
+                        ((event.registered_count || 0) / event.max_volunteers) *
+                        100
                       }%`,
                     }}
                   ></div>
@@ -580,8 +580,8 @@ function EventDetail() {
             <DialogDescription>
               {user && isSignedUp ? (
                 <p>
-                  Are you sure you want to cancel your signup for this
-                  event? This action cannot be undone.
+                  Are you sure you want to cancel your signup for this event?
+                  This action cannot be undone.
                 </p>
               ) : (
                 <>

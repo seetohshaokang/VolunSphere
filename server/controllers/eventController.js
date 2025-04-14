@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * Get all events with optional filters
+ * Get all events with optional filters and real-time status check
  */
 exports.getEvents = async (req, res) => {
   try {
@@ -26,7 +26,19 @@ exports.getEvents = async (req, res) => {
     } = req.query;
 
     // Build query
-    let query = { status };
+    let query = {};
+
+    // If specifically requesting active events, we'll handle this differently
+    // to account for date-based status checks
+    if (status !== "all") {
+      if (status === "active") {
+        // For active events, we'll filter in memory after retrieval
+        query.status = "active";
+      } else {
+        // For all other statuses (completed, cancelled, draft), use direct query
+        query.status = status;
+      }
+    }
 
     // Add search filter
     if (search) {
@@ -78,7 +90,7 @@ exports.getEvents = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Execute query with pagination
-    const events = await Event.find(query)
+    let events = await Event.find(query)
       .sort({ start_date: 1, created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
@@ -87,8 +99,48 @@ exports.getEvents = async (req, res) => {
         select: "name description profile_picture_url",
       });
 
-    // Get total count for pagination
+    // Get total count for pagination (before filtering for expired events)
     const total = await Event.countDocuments(query);
+
+    // Current date for checking expired events
+    const now = new Date();
+
+    // Update expired events' status in memory
+    events = events.map((event) => {
+      // Create a mutable copy
+      const eventObj = event.toObject();
+
+      // Check if the event should be marked as completed based on dates
+      if (eventObj.status === "active") {
+        if (
+          (eventObj.is_recurring &&
+            eventObj.recurrence_end_date &&
+            eventObj.recurrence_end_date < now) ||
+          (!eventObj.is_recurring &&
+            eventObj.end_datetime &&
+            eventObj.end_datetime < now)
+        ) {
+          eventObj.status = "completed";
+
+          // Asynchronously update the database (doesn't affect current response)
+          Event.findByIdAndUpdate(eventObj._id, { status: "completed" }).catch(
+            (err) => {
+              console.error(
+                `Error updating event ${eventObj._id} status:`,
+                err
+              );
+            }
+          );
+        }
+      }
+
+      return eventObj;
+    });
+
+    // If specifically requesting active events, filter out any that are now completed
+    if (status === "active") {
+      events = events.filter((event) => event.status === "active");
+    }
 
     return res.status(200).json({
       events,
@@ -219,7 +271,7 @@ exports.createEvent = async (req, res) => {
 };
 
 /**
- * Get details of a specific event
+ * Get details of a specific event with real-time status check
  */
 exports.getEventById = async (req, res) => {
   try {
@@ -245,10 +297,37 @@ exports.getEventById = async (req, res) => {
       event_id: id,
     });
 
-    // Return event with registration count
+    // Check if event has passed its end date
+    const now = new Date();
+    let dynamicStatus = event.status;
+
+    if (event.status === "active") {
+      if (
+        event.is_recurring &&
+        event.recurrence_end_date &&
+        event.recurrence_end_date < now
+      ) {
+        dynamicStatus = "completed";
+
+        // Optionally update the database record (can be removed if you prefer to only update via the scheduled job)
+        await Event.findByIdAndUpdate(id, { status: "completed" });
+      } else if (
+        !event.is_recurring &&
+        event.end_datetime &&
+        event.end_datetime < now
+      ) {
+        dynamicStatus = "completed";
+
+        // Optionally update the database record (can be removed if you prefer to only update via the scheduled job)
+        await Event.findByIdAndUpdate(id, { status: "completed" });
+      }
+    }
+
+    // Return event with registration count and dynamic status
     return res.status(200).json({
       ...event._doc,
       registered_count: registrationCount,
+      status: dynamicStatus,
     });
   } catch (error) {
     console.error("Error getting event:", error);
@@ -492,11 +571,16 @@ exports.signupForEvent = async (req, res) => {
         .status(400)
         .json({ message: "You are already signed up for this event" });
     }
+    const volunteer = await Volunteer.findOne({ user_id: userId });
+    if (!volunteer) {
+      return res.status(404).json({ message: "Volunteer profile not found" });
+    }
 
     // Create new registration
     const registration = new EventRegistration({
       user_id: userId,
       event_id: id,
+      volunteer_id: volunteer._id,
       status: "confirmed",
       signup_date: new Date(),
     });
@@ -527,22 +611,55 @@ exports.removeEventSignup = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
+    const { registrationId } = req.body;
 
     // Check if ID is valid
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid event ID" });
     }
 
-    // Find registration
-    const registration = await EventRegistration.findOne({
-      user_id: userId,
-      event_id: id,
-    });
+    let registration;
+
+    // If registrationId is provided, we're removing a specific registration (organizer action)
+    if (registrationId && mongoose.Types.ObjectId.isValid(registrationId)) {
+      // Verify user is organizer of the event
+      const user = await User.findById(userId);
+      if (!user || user.role !== "organiser") {
+        return res
+          .status(403)
+          .json({ message: "Only organisers can remove volunteers" });
+      }
+
+      const organiser = await Organiser.findOne({ user_id: userId });
+      if (!organiser) {
+        return res.status(404).json({ message: "Organiser profile not found" });
+      }
+
+      const event = await Event.findById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Check if user is the event organiser
+      if (event.organiser_id.toString() !== organiser._id.toString()) {
+        return res.status(403).json({
+          message:
+            "You are not authorized to manage this event's registrations",
+        });
+      }
+
+      // Find the specific registration by ID
+      registration = await EventRegistration.findById(registrationId);
+    } else {
+      // Otherwise, we're removing the current user's registration
+      registration = await EventRegistration.findOne({
+        user_id: userId,
+        event_id: id,
+      });
+    }
 
     if (!registration) {
-      return res
-        .status(404)
-        .json({ message: "You are not signed up for this event" });
+      return res.status(404).json({ message: "Registration not found" });
     }
 
     // Delete registration

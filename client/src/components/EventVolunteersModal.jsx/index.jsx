@@ -328,6 +328,53 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
     }
   };
 
+  // Add this function to your EventVolunteersModal component
+  const handleRemoveVolunteer = async (registration) => {
+    if (
+      window.confirm(
+        `Are you sure you want to remove ${safeGet(
+          registration,
+          "volunteer_id.name",
+          "this volunteer"
+        )} from the event?`
+      )
+    ) {
+      try {
+        // Get the event_id from the registration
+        const eventId = registration.event_id;
+
+        // Make API call to remove the registration
+        const response = await fetch(
+          `${Api.SERVER_PREFIX}/events/${eventId}/signup`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({ registrationId: registration._id }),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to remove volunteer: ${response.status}`);
+        }
+
+        // On success, update the local state to remove this registration
+        setVolunteers(volunteers.filter((vol) => vol._id !== registration._id));
+        setFilteredVolunteers(
+          filteredVolunteers.filter((vol) => vol._id !== registration._id)
+        );
+
+        // Show success message
+        alert("Volunteer removed successfully");
+      } catch (error) {
+        console.error("Error removing volunteer:", error);
+        alert("Failed to remove volunteer. Please try again.");
+      }
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
@@ -473,30 +520,41 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        variant={
-                          registration.status === "attended"
-                            ? "outline"
-                            : "default"
-                        }
-                        disabled={checkingIn}
-                        onClick={() => handleAttendanceToggle(registration)}
-                      >
-                        {registration.status === "attended" ? (
-                          <>
-                            <CheckCircle className="h-4 w-4 mr-1" /> Undo Check
-                            In
-                          </>
-                        ) : checkingIn ? (
-                          <div className="flex items-center">
-                            <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
-                            Processing...
-                          </div>
-                        ) : (
-                          "Check In"
-                        )}
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant={
+                            registration.status === "attended"
+                              ? "outline"
+                              : "default"
+                          }
+                          disabled={checkingIn}
+                          onClick={() => handleAttendanceToggle(registration)}
+                        >
+                          {registration.status === "attended" ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-1" /> Undo
+                              Check In
+                            </>
+                          ) : checkingIn ? (
+                            <div className="flex items-center">
+                              <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
+                              Processing...
+                            </div>
+                          ) : (
+                            "Check In"
+                          )}
+                        </Button>
+
+                        {/* Add Remove Volunteer Button */}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRemoveVolunteer(registration)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

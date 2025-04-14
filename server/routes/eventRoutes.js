@@ -18,11 +18,11 @@ router.get("/", eventController.getEvents);
  * @access  Private (Organiser only)
  */
 router.post(
-	"/",
-	protectRoute,
-	requireRole("organiser"),
-	eventImageUpload, // Add the image upload middleware
-	eventController.createEvent
+  "/",
+  protectRoute,
+  requireRole("organiser"),
+  eventImageUpload, // Add the image upload middleware
+  eventController.createEvent
 );
 
 /**
@@ -38,10 +38,10 @@ router.get("/:id", eventController.getEventById);
  * @access  Private (Event Owner)
  */
 router.put(
-	"/:id",
-	protectRoute,
-	eventImageUpload, // Add the image upload middleware
-	eventController.updateEvent
+  "/:id",
+  protectRoute,
+  eventImageUpload, // Add the image upload middleware
+  eventController.updateEvent
 );
 
 /**
@@ -66,14 +66,21 @@ router.post("/:id/signup", protectRoute, eventController.signupForEvent);
 router.delete("/:id/signup", protectRoute, eventController.removeEventSignup);
 
 /**
+ * @route   DELETE /api/events/:id/signup
+ * @desc    Remove signup from an event
+ * @access  Private
+ */
+router.delete("/:id/signup", protectRoute, eventController.removeEventSignup);
+
+/**
  * @route   GET /api/events/:id/signup/status
  * @desc    Check if user is signed up for an event
  * @access  Private
  */
 router.get(
-	"/:id/signup/status",
-	protectRoute,
-	eventController.checkSignupStatus
+  "/:id/signup/status",
+  protectRoute,
+  eventController.checkSignupStatus
 );
 
 /**
@@ -89,10 +96,10 @@ router.post("/:id/reports", protectRoute, eventController.reportEvent);
  * @access  Private (Volunteer only)
  */
 router.get(
-	"/recommendations",
-	protectRoute,
-	requireRole("volunteer"),
-	eventController.getRecommendedEvents
+  "/recommendations",
+  protectRoute,
+  requireRole("volunteer"),
+  eventController.getRecommendedEvents
 );
 
 /**
@@ -115,9 +122,9 @@ router.post("/:id/reviews", protectRoute, reviewController.createEventReview);
  * @access  Private (Review Owner)
  */
 router.put(
-	"/:id/reviews/:reviewId",
-	protectRoute,
-	reviewController.updateEventReview
+  "/:id/reviews/:reviewId",
+  protectRoute,
+  reviewController.updateEventReview
 );
 
 /**
@@ -126,9 +133,9 @@ router.put(
  * @access  Private (Review Owner)
  */
 router.delete(
-	"/:id/reviews/:reviewId",
-	protectRoute,
-	reviewController.deleteEventReview
+  "/:id/reviews/:reviewId",
+  protectRoute,
+  reviewController.deleteEventReview
 );
 
 /**
@@ -137,10 +144,10 @@ router.delete(
  * @access  Private (Event Organiser)
  */
 router.get(
-	"/:id/volunteers",
-	protectRoute,
-	requireRole("organiser"),
-	eventController.getEventVolunteers
+  "/:id/volunteers",
+  protectRoute,
+  requireRole("organiser"),
+  eventController.getEventVolunteers
 );
 
 module.exports = router;

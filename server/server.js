@@ -1,7 +1,12 @@
 const app = require("./app");
+const initCronJobs = require("./scripts/cronJobs");
 
 // Get port from environment or use default
 const port = process.env.PORT || 8000;
+
+if (process.env.NODE_ENV !== "test") {
+  initCronJobs();
+}
 
 // Start the server
 const server = app.listen(port, () => {
