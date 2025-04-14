@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, CheckCircle, Search } from "lucide-react";
+import { AlertCircle, CheckCircle, Search, FileDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import Api from "../../helpers/Api";
 
@@ -27,6 +27,7 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
   const [checkingIn, setCheckingIn] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredVolunteers, setFilteredVolunteers] = useState([]);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     // Only fetch when the modal is open
@@ -166,6 +167,89 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
     }
   };
 
+  // Export volunteer data to CSV
+  const exportToCSV = () => {
+    try {
+      setExporting(true);
+
+      // CSV header
+      const header = [
+        "Name",
+        "Phone",
+        "Age",
+        "Registration Date",
+        "Status",
+        "Check-in Status",
+      ];
+
+      // Transform volunteer data to CSV rows
+      const csvRows = volunteers.map((registration) => [
+        safeGet(registration, "volunteer_id.name"),
+        safeGet(registration, "volunteer_id.phone"),
+        calculateAge(safeGet(registration, "volunteer_id.dob", null)),
+        registration.registration_date
+          ? new Date(registration.registration_date).toLocaleDateString()
+          : registration.signup_date
+          ? new Date(registration.signup_date).toLocaleDateString()
+          : "Unknown",
+        registration.status || "registered",
+        registration.status === "attended" ? "Checked In" : "Not Checked In",
+      ]);
+
+      // Add header to the beginning of rows
+      const allRows = [header, ...csvRows];
+
+      // Convert rows to CSV text (handle commas, quotes, etc.)
+      const csvContent = allRows
+        .map((row) =>
+          row
+            .map((cell) => {
+              // Properly escape cells with commas, quotes, etc.
+              const cellStr = String(cell);
+              if (
+                cellStr.includes(",") ||
+                cellStr.includes('"') ||
+                cellStr.includes("\n")
+              ) {
+                return `"${cellStr.replace(/"/g, '""')}"`;
+              }
+              return cellStr;
+            })
+            .join(",")
+        )
+        .join("\n");
+
+      // Create a downloadable blob and trigger download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      // Create filename with event name and date
+      const dateStr = new Date().toISOString().split("T")[0];
+      const filename = `${eventName.replace(
+        /[^a-z0-9]/gi,
+        "_"
+      )}_Volunteers_${dateStr}.csv`;
+
+      // Create a temporary link to trigger download
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL object
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        setExporting(false);
+      }, 100);
+    } catch (error) {
+      console.error("Error exporting to CSV:", error);
+      alert("Failed to export volunteers to CSV. Please try again.");
+      setExporting(false);
+    }
+  };
+
   // Handle volunteer check-in or check-out
   const handleAttendanceToggle = async (registration) => {
     setCheckingIn(true);
@@ -263,9 +347,10 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
           </DialogTitle>
         </DialogHeader>
 
-        {/* Search bar */}
-        <div className="mb-4 relative">
-          <div className="relative">
+        {/* Search and Export Controls */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+          {/* Search bar */}
+          <div className="relative flex-grow max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               type="text"
@@ -283,13 +368,33 @@ function EventVolunteersModal({ isOpen, onClose, eventId, eventName }) {
               </button>
             )}
           </div>
-          {searchQuery && filteredVolunteers.length > 0 && (
-            <div className="mt-1 text-sm text-gray-500">
-              Found {filteredVolunteers.length} of {volunteers.length}{" "}
-              volunteers
-            </div>
-          )}
+
+          {/* Export button */}
+          <Button
+            variant="outline"
+            onClick={exportToCSV}
+            disabled={volunteers.length === 0 || loading || exporting}
+            className="flex items-center gap-2"
+          >
+            {exporting ? (
+              <>
+                <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Export to CSV
+              </>
+            )}
+          </Button>
         </div>
+
+        {searchQuery && filteredVolunteers.length > 0 && (
+          <div className="mt-1 mb-3 text-sm text-gray-500">
+            Found {filteredVolunteers.length} of {volunteers.length} volunteers
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center py-8">
