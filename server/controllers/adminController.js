@@ -644,13 +644,20 @@ exports.updateVerificationStatus = async (req, res) => {
 		}
 
 		// Step 5: Check if volunteer has an NRIC image to verify
-		if (!volunteer.nric_image || !volunteer.nric_image.data) {
+		// UPDATED: Check for existence of nric_image object OR filename 
+		// instead of requiring the data field
+		if (!volunteer.nric_image || (!volunteer.nric_image.data && !volunteer.nric_image.filename)) {
 			return res
 				.status(400)
 				.json({ message: "Volunteer does not have an NRIC image" });
 		}
 
-		// Step 6: Update volunteer verification status
+		// Step 6: Initialize nric_image object if it doesn't exist properly
+		if (!volunteer.nric_image) {
+			volunteer.nric_image = {};
+		}
+		
+		// Update verification status
 		volunteer.nric_image.verified = verified;
 		await volunteer.save();
 

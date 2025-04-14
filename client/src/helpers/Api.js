@@ -573,6 +573,19 @@ const Api = {
 
   // For volunteer NRIC verification - consolidated duplicate functions
   updateVolunteerVerification(volunteerId, verified, reason) {
+    // Get the filename from the UI data if possible
+    const requestData = { 
+      verified, 
+      reason 
+    };
+    
+    // Include the filename if it exists in localStorage or from other state
+    // This ensures the backend knows which image to verify
+    const nricFilename = localStorage.getItem("currentNricFilename");
+    if (nricFilename) {
+      requestData.filename = nricFilename;
+    }
+    
     return fetch(
       `${SERVER_PREFIX}/admin/volunteers/${volunteerId}/verification`,
       {
@@ -582,7 +595,7 @@ const Api = {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ verified, reason }),
+        body: JSON.stringify(requestData),
       }
     );
   },
@@ -637,7 +650,6 @@ const Api = {
     });
   },
 
-  // Admin actions
   getAdminActions(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return fetch(`${SERVER_PREFIX}/admin/actions?${queryString}`, {

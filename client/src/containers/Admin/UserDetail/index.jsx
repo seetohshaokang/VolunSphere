@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import ContentHeader from "../../../components/ContentHeader";
 import Api from "../../../helpers/Api";
+import NricViewer from "../../../components/NricViewer"; // Import the NricViewer component
 
 const AdminUserDetail = () => {
   const { id } = useParams();
@@ -103,35 +104,70 @@ const AdminUserDetail = () => {
   };
 
   // Function to handle NRIC verification
-
   const handleVerifyNRIC = async (isApproved) => {
     try {
+      // Store the filename in localStorage for the API to use
+      if (userData?.profile?.nric_image?.filename) {
+        localStorage.setItem("currentNricFilename", userData.profile.nric_image.filename);
+      }
+      
+      // Log what we're about to send to the API for debugging
+      console.log("Verifying NRIC:", {
+        volunteerId: userData.profile._id,
+        filename: userData?.profile?.nric_image?.filename,
+        isApproved
+      });
+      
       const response = await Api.updateVolunteerVerification(
         userData.profile._id,
         isApproved,
         `NRIC ${isApproved ? 'verified' : 'rejected'} by admin`
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update verification status');
+  
+      // Try to parse the response if possible
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        console.log("Could not parse response as JSON", e);
       }
-
-      // Update local state, ensuring we handle missing nric_image properly
-      setUserData(prev => ({
-        ...prev,
-        profile: {
-          ...prev.profile,
-          nric_image: {
-            ...(prev.profile.nric_image || {}),  // Create nric_image object if it doesn't exist
+  
+      if (!response.ok) {
+        throw new Error(data?.message || `Failed to update verification status: ${response.status}`);
+      }
+  
+      // Update local state correctly
+      setUserData(prev => {
+        // Create a deep copy to ensure we don't modify existing state directly
+        const updatedProfile = {...prev.profile};
+        
+        // Handle case where nric_image might not exist or be null
+        if (!updatedProfile.nric_image) {
+          updatedProfile.nric_image = {
+            filename: userData?.profile?.nric_image?.filename || null,
             verified: isApproved
-          }
+          };
+        } else {
+          updatedProfile.nric_image.verified = isApproved;
         }
-      }));
-
+        
+        return {
+          ...prev,
+          profile: updatedProfile
+        };
+      });
+      
+      // Clean up after successful operation
+      localStorage.removeItem("currentNricFilename");
+      
+      // Notify user of success
+      alert(`NRIC verification ${isApproved ? 'approved' : 'rejected'} successfully`);
+  
     } catch (err) {
       console.error('Error updating NRIC verification:', err);
+      alert(`Error: ${err.message}`);
+      // Clean up on error too
+      localStorage.removeItem("currentNricFilename");
     }
   };
 
@@ -289,6 +325,20 @@ const AdminUserDetail = () => {
                   </div>
                 )}
               </div>
+              
+              {/* NRIC Image Viewer Section */}
+              <div className="mt-4">
+                <p className="text-gray-600 mb-2">NRIC Image:</p>
+                {profile?.nric_image?.filename ? (
+                  <NricViewer 
+                    filename={profile.nric_image.filename} 
+                    className="w-full border rounded-md"
+                  />
+                ) : (
+                  <p className="text-gray-500">No NRIC image uploaded</p>
+                )}
+              </div>
+              
               <div>
                 <p className="text-gray-600">Skills:</p>
                 <div className="flex flex-wrap gap-1 mt-1">
