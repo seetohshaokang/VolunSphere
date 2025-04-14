@@ -560,40 +560,62 @@ exports.signupForEvent = async (req, res) => {
         .json({ message: "Event has reached maximum capacity" });
     }
 
-    // Check if already signed up
+    // Check if already signed up or was previously removed by organizer
     const existingRegistration = await EventRegistration.findOne({
       user_id: userId,
       event_id: id,
     });
 
     if (existingRegistration) {
-      return res
-        .status(400)
-        .json({ message: "You are already signed up for this event" });
+      if (
+        existingRegistration.status === "confirmed" ||
+        existingRegistration.status === "pending"
+      ) {
+        return res
+          .status(400)
+          .json({ message: "You are already signed up for this event" });
+      } else if (existingRegistration.status === "removed_by_organizer") {
+        return res.status(403).json({
+          message:
+            "You cannot register for this event as you were previously removed by the organizer",
+          wasRemoved: true,
+          removalReason:
+            existingRegistration.removal_reason || "Removed by event organizer",
+        });
+      }
     }
+
     const volunteer = await Volunteer.findOne({ user_id: userId });
     if (!volunteer) {
       return res.status(404).json({ message: "Volunteer profile not found" });
     }
 
-    // Create new registration
-    const registration = new EventRegistration({
-      user_id: userId,
-      event_id: id,
-      volunteer_id: volunteer._id,
-      status: "confirmed",
-      signup_date: new Date(),
-    });
+    // Create new registration or update existing one if it was previously cancelled
+    if (existingRegistration && existingRegistration.status === "cancelled") {
+      // Update the existing registration back to confirmed
+      existingRegistration.status = "confirmed";
+      existingRegistration.signup_date = new Date();
+      await existingRegistration.save();
+    } else {
+      // Create a new registration
+      const registration = new EventRegistration({
+        user_id: userId,
+        event_id: id,
+        volunteer_id: volunteer._id,
+        status: "confirmed",
+        signup_date: new Date(),
+      });
 
-    // Save registration
-    await registration.save();
+      // Save registration
+      await registration.save();
+    }
 
     // Increment registered_count on event
     await Event.findByIdAndUpdate(id, { $inc: { registered_count: 1 } });
 
     return res.status(201).json({
       message: "Successfully signed up for event",
-      registration,
+      success: true,
     });
   } catch (error) {
     console.error("Error signing up for event:", error);
@@ -611,7 +633,7 @@ exports.removeEventSignup = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { registrationId } = req.body;
+    const { registrationId, reason } = req.body;
 
     // Check if ID is valid
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -619,6 +641,7 @@ exports.removeEventSignup = async (req, res) => {
     }
 
     let registration;
+    let wasRemovalByOrganizer = false;
 
     // If registrationId is provided, we're removing a specific registration (organizer action)
     if (registrationId && mongoose.Types.ObjectId.isValid(registrationId)) {
@@ -650,8 +673,11 @@ exports.removeEventSignup = async (req, res) => {
 
       // Find the specific registration by ID
       registration = await EventRegistration.findById(registrationId);
+
+      // This is an organizer removing a volunteer
+      wasRemovalByOrganizer = true;
     } else {
-      // Otherwise, we're removing the current user's registration
+      // Otherwise, we're handling a volunteer canceling their own registration
       registration = await EventRegistration.findOne({
         user_id: userId,
         event_id: id,
@@ -662,8 +688,17 @@ exports.removeEventSignup = async (req, res) => {
       return res.status(404).json({ message: "Registration not found" });
     }
 
-    // Delete registration
-    await EventRegistration.findByIdAndDelete(registration._id);
+    // If this is an organizer removing a volunteer, mark as removed rather than deleting
+    if (wasRemovalByOrganizer) {
+      // Update the registration to mark it as removed by organizer with optional reason
+      await EventRegistration.findByIdAndUpdate(registration._id, {
+        status: "removed_by_organizer",
+        removal_reason: reason || "Removed by event organizer",
+      });
+    } else {
+      // For self-cancellation by volunteer, delete the registration as before
+      await EventRegistration.findByIdAndDelete(registration._id);
+    }
 
     // Get current event to check registered_count
     const event = await Event.findById(id);
@@ -674,9 +709,11 @@ exports.removeEventSignup = async (req, res) => {
       });
     }
 
-    return res
-      .status(200)
-      .json({ message: "Successfully removed signup from event" });
+    return res.status(200).json({
+      message: wasRemovalByOrganizer
+        ? "Volunteer has been removed from the event"
+        : "Successfully removed signup from event",
+    });
   } catch (error) {
     console.error("Error removing signup:", error);
     return res.status(500).json({
@@ -687,7 +724,7 @@ exports.removeEventSignup = async (req, res) => {
 };
 
 /**
- * Check if user is signed up for an event
+ * Check if user is signed up for an event or has been removed
  */
 exports.checkSignupStatus = async (req, res) => {
   try {
@@ -705,9 +742,27 @@ exports.checkSignupStatus = async (req, res) => {
       event_id: id,
     });
 
-    return res.status(200).json({
-      isSignedUp: !!registration,
-    });
+    // Build response object
+    const response = {
+      isSignedUp: false,
+      wasRemoved: false,
+      removalReason: null,
+    };
+
+    if (registration) {
+      if (
+        registration.status === "confirmed" ||
+        registration.status === "pending"
+      ) {
+        response.isSignedUp = true;
+      } else if (registration.status === "removed_by_organizer") {
+        response.wasRemoved = true;
+        response.removalReason =
+          registration.removal_reason || "Removed by event organizer";
+      }
+    }
+
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error checking signup status:", error);
     return res.status(500).json({

@@ -140,6 +140,23 @@ const Api = {
     });
   },
 
+  removeEventSignup(eventId, data = {}) {
+    const requestOptions = {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    };
+
+    // If we have registration ID or reason, add them to the request body
+    if (data.registrationId || data.reason) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    return fetch(`${SERVER_PREFIX}/events/${eventId}/signup`, requestOptions);
+  },
+
   getRegisteredEvents() {
     return fetch(`${SERVER_PREFIX}/profile/events`, {
       headers: {
