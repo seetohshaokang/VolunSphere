@@ -1,11 +1,25 @@
+// server/middleware/nricUploadMiddleware.js
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { ApiError } = require("./errorMiddleware");
 
-// Configure storage strategy - we're using memory storage since we'll
-// store the image in MongoDB, not on disk
-const storage = multer.memoryStorage();
+// Create uploads directory if it doesn't exist
+const uploadDir = path.join(__dirname, "../public/uploads/nric");
+fs.mkdirSync(uploadDir, { recursive: true });
+
+// Configure storage strategy - store on disk like profile and event images
+const storage = multer.diskStorage({
+	destination: function (req, file, cb) {
+		cb(null, uploadDir);
+	},
+	filename: function (req, file, cb) {
+		// Generate unique filename with timestamp and random number
+		const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+		const ext = path.extname(file.originalname);
+		cb(null, "nric-" + uniqueSuffix + ext);
+	},
+});
 
 // File filter function to validate uploads
 const fileFilter = (req, file, cb) => {
@@ -50,29 +64,25 @@ const nricUploadMiddleware = (req, res, next) => {
 				// A Multer error occurred when uploading
 				if (err.code === "LIMIT_FILE_SIZE") {
 					return res.status(400).json({
-						message: "File size too large. Maximum size is 5MB",
+						message: "File is too large. Maximum size is 5MB.",
 					});
 				}
 				return res.status(400).json({
 					message: `Upload error: ${err.message}`,
 				});
+			} else if (err instanceof ApiError) {
+				// Our custom ApiError
+				return res
+					.status(err.statusCode)
+					.json({ message: err.message });
 			} else {
-				// An unknown error occurred
-				return res.status(err.status || 500).json({
-					message: err.message || "An error occurred during upload",
+				// Unknown error
+				return res.status(500).json({
+					message: `Unknown error: ${err.message}`,
 				});
 			}
 		}
-
-		// Check if file exists
-		if (!req.file) {
-			return res.status(400).json({
-				message: "Please upload an image file",
-			});
-		}
-
-		// File is available in req.file
-		// Continue to the next middleware or route handler
+		// Everything went fine
 		next();
 	});
 };

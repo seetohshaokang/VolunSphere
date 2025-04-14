@@ -22,20 +22,32 @@ const Admin = require("../models/Admin");
  */
 exports.registerVolunteer = async (req, res) => {
 	try {
+		console.log("registerVolunteer called with data:", {
+			email: req.body.email,
+			// Don't log the actual password for security
+			passwordProvided: !!req.body.password,
+			confirmPasswordProvided: !!req.body.confirmPassword,
+			name: req.body.name,
+			phone: req.body.phone,
+		});
+
 		const { email, password, confirmPassword, name, phone } = req.body;
 
 		// Validate input
 		if (!email || !password || !confirmPassword) {
+			console.log("❌ Validation error: Missing required fields");
 			return res.status(400).json({ message: "All fields are required" });
 		}
 
 		if (password !== confirmPassword) {
+			console.log("❌ Validation error: Passwords do not match");
 			return res.status(400).json({ message: "Passwords do not match" });
 		}
 
 		// Check if email already exists
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
+			console.log("❌ Email already exists in database");
 			return res.status(400).json({ message: "Email already in use" });
 		}
 
@@ -53,6 +65,7 @@ exports.registerVolunteer = async (req, res) => {
 		});
 
 		const savedUser = await newUser.save();
+		console.log("✅ User saved with ID:", savedUser._id);
 
 		// Create volunteer profile
 		const volunteer = new Volunteer({
@@ -70,6 +83,7 @@ exports.registerVolunteer = async (req, res) => {
 		});
 
 		await volunteer.save();
+		console.log("✅ Volunteer profile saved successfully");
 
 		return res.status(201).json({
 			message: "Volunteer registration successful, please login",
@@ -100,14 +114,25 @@ exports.registerVolunteer = async (req, res) => {
  */
 exports.registerOrganiser = async (req, res) => {
 	try {
+		console.log(" registerOrganiser called with data:", {
+			email: req.body.email,
+			// Don't log the actual password for security
+			passwordProvided: !!req.body.password,
+			confirmPasswordProvided: !!req.body.confirmPassword,
+			name: req.body.name,
+			phone: req.body.phone,
+		});
+
 		const { email, password, confirmPassword, name, phone } = req.body;
 
 		// Validate input
 		if (!email || !password || !confirmPassword) {
+			console.log("❌ Validation error: Missing required fields");
 			return res.status(400).json({ message: "All fields are required" });
 		}
 
 		if (password !== confirmPassword) {
+			console.log("❌ Validation error: Passwords do not match");
 			return res.status(400).json({ message: "Passwords do not match" });
 		}
 
@@ -131,6 +156,7 @@ exports.registerOrganiser = async (req, res) => {
 		});
 
 		const savedUser = await newUser.save();
+		console.log("✅ User saved with ID:", savedUser._id);
 
 		// Create organiser profile
 		const organiser = new Organiser({
@@ -141,6 +167,7 @@ exports.registerOrganiser = async (req, res) => {
 		});
 
 		await organiser.save();
+		console.log("✅ Organiser profile saved successfully");
 
 		return res.status(201).json({
 			message: "Organiser registration successful, please login",

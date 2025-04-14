@@ -9,6 +9,10 @@ const Api = {
 	SERVER_PREFIX,
 	baseUrl: SERVER_PREFIX,
 
+	//===============================================
+	// COMMON USER METHODS (Auth & Profile)
+	//===============================================
+
 	// Auth-related methods
 	loginUser(credentials) {
 		return fetch(`${SERVER_PREFIX}/auth/login`, {
@@ -22,7 +26,12 @@ const Api = {
 	},
 
 	registerUser(userData) {
-		return fetch(`${SERVER_PREFIX}/auth/signup`, {
+		const endpoint =
+			userData.role === "volunteer"
+				? `${SERVER_PREFIX}/auth/register/volunteer`
+				: `${SERVER_PREFIX}/auth/register/organiser`;
+
+		return fetch(endpoint, {
 			headers: {
 				Accept: "application/json",
 				"Content-Type": "application/json",
@@ -94,49 +103,52 @@ const Api = {
 		});
 	},
 
-	// Event-related methods
-	getAllEvents() {
-		return fetch(`${SERVER_PREFIX}/events`);
-	},
+	//===============================================
+	// VOLUNTEER METHODS
+	//===============================================
 
-	getEvent(id) {
-		return fetch(`${SERVER_PREFIX}/events/${id}`);
-	},
-
-	getEventReviews(id) {
-		return fetch(`${SERVER_PREFIX}/events/${id}/reviews`);
-	},
-
-	// Event signup methods
-	signupForEvent(eventId) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/signup`, {
+	// Upload NRIC for verification
+	uploadNRIC(formData) {
+		return fetch(`${SERVER_PREFIX}/profile/nric`, {
 			method: "POST",
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+				// Don't set Content-Type when using FormData - browser will set it with boundary
+			},
+			body: formData,
+		});
+	},
+
+	// Event signup methods for volunteers
+	registerForEvent(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/registrations`, {
 			headers: {
 				Accept: "application/json",
 				"Content-Type": "application/json",
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
+			method: "POST",
 		});
 	},
 
-	removeEventSignup(eventId) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/signup`, {
+	cancelEventRegistration(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/registrations`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
 			method: "DELETE",
+		});
+	},
+
+	getRegisteredEvents() {
+		return fetch(`${SERVER_PREFIX}/profile/events`, {
 			headers: {
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
 		});
 	},
 
-	// Check if user is signed up for an event
-	checkEventSignupStatus(eventId) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/signup/status`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-		});
-	},
-
+	// Event review methods
 	createEventReview(eventId, reviewData) {
 		return fetch(`${SERVER_PREFIX}/events/${eventId}/reviews`, {
 			headers: {
@@ -161,7 +173,36 @@ const Api = {
 		});
 	},
 
-	// Updated to handle image uploads
+	// Report an event
+	reportEvent(eventId, reason) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/reports`, {
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+			method: "POST",
+			body: JSON.stringify({ reason }),
+		});
+	},
+
+	//===============================================
+	// ORGANISER METHODS
+	//===============================================
+
+	// Get events organized by current user
+	getOrganizedEvents() {
+		const token = localStorage.getItem("token");
+		console.log("Using token for auth:", token);
+
+		return fetch(`${SERVER_PREFIX}/profile/events`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	// Create an event
 	createEvent(data, imageFile) {
 		const token = localStorage.getItem("token");
 
@@ -237,7 +278,7 @@ const Api = {
 		}
 	},
 
-	// Updated to handle image uploads
+	// Update an event
 	updateEvent(id, data, imageFile) {
 		const token = localStorage.getItem("token");
 
@@ -313,6 +354,7 @@ const Api = {
 		}
 	},
 
+	// Delete an event
 	deleteEvent(id) {
 		return fetch(`${SERVER_PREFIX}/events/${id}`, {
 			headers: {
@@ -322,67 +364,8 @@ const Api = {
 		});
 	},
 
-	registerForEvent(eventId) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/registrations`, {
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "POST",
-		});
-	},
-
-	cancelEventRegistration(eventId) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/registrations`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "DELETE",
-		});
-	},
-
-	getRegisteredEvents() {
-		return fetch(`${SERVER_PREFIX}/profile/events`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-		});
-	},
-
-	getOrganizedEvents() {
-		const token = localStorage.getItem("token");
-		console.log("Using token for auth:", token);
-
-		return fetch(`${SERVER_PREFIX}/profile/events`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-		});
-	},
-
-	reportEvent(eventId, reason) {
-		return fetch(`${SERVER_PREFIX}/events/${eventId}/reports`, {
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			method: "POST",
-			body: JSON.stringify({ reason }),
-		});
-	},
-
-	getRecommendedEvents() {
-		return fetch(`${SERVER_PREFIX}/events/recommendations`, {
-			headers: {
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-		});
-	},
-
-	// Event volunteers method from the other branch
-	getEventVolunteers: function (eventId) {
+	// Get volunteers for an event
+	getEventVolunteers(eventId) {
 		console.log(
 			`Fetching volunteers from: ${SERVER_PREFIX}/events/${eventId}/volunteers`
 		);
@@ -458,7 +441,7 @@ const Api = {
 			});
 	},
 
-	// Registration check-in and check-out methods
+	// Registration management
 	checkInRegistration(registrationId) {
 		return fetch(
 			`${SERVER_PREFIX}/registrations/${registrationId}/check-in`,
@@ -485,7 +468,6 @@ const Api = {
 		);
 	},
 
-	// Toggle registration status (check in/out)
 	toggleRegistrationStatus(registrationId, currentStatus) {
 		const endpoint =
 			currentStatus === "attended"
@@ -501,7 +483,6 @@ const Api = {
 		});
 	},
 
-	// Add feedback to a registration
 	addRegistrationFeedback(registrationId, feedbackData) {
 		return fetch(
 			`${SERVER_PREFIX}/registrations/${registrationId}/feedback`,
@@ -516,7 +497,45 @@ const Api = {
 		);
 	},
 
-	// Admin related methods
+	//===============================================
+	// COMMON EVENT METHODS (for all users)
+	//===============================================
+
+	getAllEvents() {
+		return fetch(`${SERVER_PREFIX}/events`);
+	},
+
+	getEvent(id) {
+		return fetch(`${SERVER_PREFIX}/events/${id}`);
+	},
+
+	getEventReviews(id) {
+		return fetch(`${SERVER_PREFIX}/events/${id}/reviews`);
+	},
+
+	// Check if user is signed up for an event
+	checkEventSignupStatus(eventId) {
+		return fetch(`${SERVER_PREFIX}/events/${eventId}/signup/status`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	// Event recommendations
+	getRecommendedEvents() {
+		return fetch(`${SERVER_PREFIX}/events/recommendations`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
+		});
+	},
+
+	//===============================================
+	// ADMIN METHODS
+	//===============================================
+
+	// Dashboard stats
 	getAdminDashboardStats() {
 		return fetch(`${SERVER_PREFIX}/admin/dashboard`, {
 			headers: {
@@ -555,7 +574,7 @@ const Api = {
 		});
 	},
 
-	// Verification management
+	// Volunteer verification management
 	getPendingVerifications(params = {}) {
 		const queryString = new URLSearchParams(params).toString();
 		return fetch(
@@ -568,30 +587,36 @@ const Api = {
 		);
 	},
 
-	// For volunteer NRIC verification
-	updateVerificationStatus(id, verified, reason) {
-		return fetch(`${SERVER_PREFIX}/admin/volunteers/${id}/verification`, {
-			method: "PUT",
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			body: JSON.stringify({ verified, reason }),
-		});
+	// For volunteer NRIC verification - consolidated duplicate functions
+	updateVolunteerVerification(volunteerId, verified, reason) {
+		return fetch(
+			`${SERVER_PREFIX}/admin/volunteers/${volunteerId}/verification`,
+			{
+				method: "PUT",
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("token")}`,
+				},
+				body: JSON.stringify({ verified, reason }),
+			}
+		);
 	},
 
 	// For organiser account verification
-	updateOrganiserVerification(id, status, reason) {
-		return fetch(`${SERVER_PREFIX}/admin/organisers/${id}/verification`, {
-			method: "PUT",
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			body: JSON.stringify({ status, reason }),
-		});
+	updateOrganiserVerification(organiserId, status, reason) {
+		return fetch(
+			`${SERVER_PREFIX}/admin/organisers/${organiserId}/verification`,
+			{
+				method: "PUT",
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${localStorage.getItem("token")}`,
+				},
+				body: JSON.stringify({ status, reason }),
+			}
+		);
 	},
 
 	// Reports management
@@ -679,71 +704,23 @@ const Api = {
 			body: JSON.stringify({ status, reason }),
 		});
 	},
-	updateEventStatus(id, status, reason) {
-		return fetch(`${SERVER_PREFIX}/admin/events/${id}/status`, {
-			method: "PUT",
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			body: JSON.stringify({ status, reason }),
-		});
-	},
-	// For volunteer NRIC verification
-	updateVerificationStatus(id, verified, reason) {
-		return fetch(`${SERVER_PREFIX}/admin/volunteers/${id}/verification`, {
-			method: "PUT",
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${localStorage.getItem("token")}`,
-			},
-			body: JSON.stringify({ verified, reason }),
-		});
-	},
 
-	// Function to handle volunteer NRIC verification
-	updateVolunteerVerification(volunteerId, verified, reason) {
-		return fetch(
-			`${SERVER_PREFIX}/admin/volunteers/${volunteerId}/verification`,
-			{
-				method: "PUT",
-				headers: {
-					Accept: "application/json",
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${localStorage.getItem("token")}`,
-				},
-				body: JSON.stringify({ verified, reason }),
-			}
-		);
-	},
-	updateVerificationStatus(id, verified, reason) {
-		return fetch(`${SERVER_PREFIX}/admin/volunteers/${id}/verification`, {
-			method: "PUT",
+	getNRIC(volunteerId = null) {
+		let url = `${SERVER_PREFIX}/profile/nric`;
+
+		// Add volunteerId as query param if provided (for admin access)
+		if (volunteerId) {
+			url += `?/volunteerId=${volunteerId}`;
+		}
+
+		// Add cache busting parameter
+		url += volunteerId ? `&t=${Date.now()}` : `?t=${Date.now()}`;
+
+		return fetch(url, {
 			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json",
 				Authorization: `Bearer ${localStorage.getItem("token")}`,
 			},
-			body: JSON.stringify({ verified, reason }),
 		});
-	},
-
-	updateOrganiserVerification(organiserId, status, reason) {
-		return fetch(
-			`${SERVER_PREFIX}/admin/organisers/${organiserId}/verification`,
-			{
-				method: "PUT",
-				headers: {
-					Accept: "application/json",
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${localStorage.getItem("token")}`,
-				},
-				body: JSON.stringify({ status, reason }),
-			}
-		);
-		x;
 	},
 };
 

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Api from "@/helpers/Api";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -61,23 +62,40 @@ function RegistrationVolunteer() {
 			setShowModal(true);
 		} else {
 			try {
-				// In a real implementation, use your Api helper
-				// const response = await Api.registerUser({
-				//   ...formData,
-				//   role: "volunteer"
-				// });
-				// const data = await response.json();
+				const userData = {
+					email: formData.email,
+					password: formData.password,
+					confirmPassword: formData.password,
+					name: `${formData.firstName} ${formData.lastName}`,
+					phone: formData.phone,
+					dob: formData.dateOfBirth,
+					role: "volunteer",
+				};
 
-				// Simulating successful registration
-				setModalMessages([
-					"Registration Successful! You can now log in.",
-				]);
-				setShowModal(true);
+				console.log("Registering with data:", userData);
 
-				// In a real app, you might redirect after successful registration
-				setTimeout(() => {
-					navigate("/login");
-				}, 2000);
+				const response = await Api.registerUser(userData);
+
+				if (response.ok) {
+					const data = await response.json();
+					setModalMessages([
+						data.message ||
+							"Registration Successful! You can now log in.",
+					]);
+					setShowModal(true);
+
+					// Navigate to login after delay
+					setTimeout(() => {
+						navigate("/login");
+					}, 2000);
+				} else {
+					const errorData = await response.json();
+					setModalMessages([
+						errorData.message ||
+							"Registration failed. Please try again.",
+					]);
+					setShowModal(true);
+				}
 			} catch (err) {
 				console.error("Registration error:", err);
 				setModalMessages(["Registration failed. Please try again."]);
@@ -239,9 +257,9 @@ function RegistrationVolunteer() {
 						<DialogDescription>
 							{modalMessages.length > 1 ? (
 								<>
-									<p className="text-destructive font-semibold mb-2">
+									<div className="text-destructive font-semibold mb-2">
 										Please fill out the following fields:
-									</p>
+									</div>
 									<ul className="list-disc pl-5">
 										{modalMessages.map((msg, index) => (
 											<li
@@ -254,9 +272,9 @@ function RegistrationVolunteer() {
 									</ul>
 								</>
 							) : (
-								<p className="text-green-600 font-semibold">
+								<div className="text-green-600 font-semibold">
 									{modalMessages[0]}
-								</p>
+								</div>
 							)}
 						</DialogDescription>
 					</DialogHeader>

@@ -45,7 +45,7 @@ const volunteerSchema = new Schema({
 		},
 	],
 	nric_image: {
-		data: Buffer,
+		filename: String,
 		contentType: String,
 		uploaded_at: Date,
 		verified: {
