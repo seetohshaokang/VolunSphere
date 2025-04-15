@@ -176,46 +176,55 @@ function EventDetail() {
     setShowConfirmModal(true);
   };
 
-// In index.jsx - modify the confirmSignup function
-const confirmSignup = async () => {
-  try {
-    const response = await Api.registerForEvent(eventId);
+  const getAvailableSlots = (event) => {
+    if (!event || !event.max_volunteers) return 0;
+    return Math.max(0, event.max_volunteers - (event.registered_count || 0));
+  };
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      
-      // Check if the error is due to being previously removed
-      if (errorData.wasRemoved) {
-        setWasRemoved(true);
-        setRemovalReason(errorData.removalReason || "Removed by event organizer");
+  // In index.jsx - modify the confirmSignup function
+  const confirmSignup = async () => {
+    try {
+      const response = await Api.registerForEvent(eventId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+
+        // Check if the error is due to being previously removed
+        if (errorData.wasRemoved) {
+          setWasRemoved(true);
+          setRemovalReason(
+            errorData.removalReason || "Removed by event organizer"
+          );
+        }
+        // NEW CHECK: Handle NRIC verification requirement
+        else if (errorData.requiresVerification) {
+          setError(
+            "Your NRIC needs to be verified before you can sign up for events. Please visit your profile to submit your NRIC for verification."
+          );
+          setShowConfirmModal(false);
+          return;
+        }
+
+        throw new Error(errorData.message || "Failed to sign up for event");
       }
-      // NEW CHECK: Handle NRIC verification requirement
-      else if (errorData.requiresVerification) {
-        setError("Your NRIC needs to be verified before you can sign up for events. Please visit your profile to submit your NRIC for verification.");
-        setShowConfirmModal(false);
-        return;
-      }
-      
-      throw new Error(errorData.message || "Failed to sign up for event");
+
+      // Re-fetch the event to get the updated capacity count
+      await fetchEventDetails();
+
+      setIsSignedUp(true);
+      setShowConfirmModal(false);
+      setSignupSuccess(true);
+
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setSignupSuccess(false);
+      }, 3000);
+    } catch (err) {
+      console.error("Error signing up for event:", err);
+      setError(err.message || "Failed to sign up for event. Please try again.");
+      setShowConfirmModal(false);
     }
-
-    // Re-fetch the event to get the updated capacity count
-    await fetchEventDetails();
-
-    setIsSignedUp(true);
-    setShowConfirmModal(false);
-    setSignupSuccess(true);
-
-    // Hide success message after 3 seconds
-    setTimeout(() => {
-      setSignupSuccess(false);
-    }, 3000);
-  } catch (err) {
-    console.error("Error signing up for event:", err);
-    setError(err.message || "Failed to sign up for event. Please try again.");
-    setShowConfirmModal(false);
-  }
-};
+  };
   const cancelSignup = async () => {
     try {
       const response = await Api.removeEventSignup(eventId);
@@ -367,10 +376,8 @@ const confirmSignup = async () => {
           {event.max_volunteers > 0 && (
             <div className="mt-5 text-center text-gray-600">
               <p className="mb-2">
-                <strong>
-                  {event.max_volunteers - (event.registered_count || 0)}
-                </strong>{" "}
-                of <strong>{event.max_volunteers}</strong> spots left
+                <strong>{getAvailableSlots(event)}</strong> of{" "}
+                <strong>{event.max_volunteers}</strong> spots left
               </p>
               <div className="bg-gray-200 h-2 rounded-full overflow-hidden">
                 <div

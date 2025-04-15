@@ -21,6 +21,7 @@ import {
   ClockIcon,
   RepeatIcon,
   UsersIcon,
+  Trash,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -28,6 +29,14 @@ import ContentHeader from "../../../components/ContentHeader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import EventVolunteersModal from "@/components/EventVolunteersModal.jsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Map of numeric day values to weekday names
 const DAYS_OF_WEEK = {
@@ -54,6 +63,7 @@ function OrganizerEventDetail() {
   const [authError, setAuthError] = useState(false);
   const [showVolunteersModal, setShowVolunteersModal] = useState(false);
   const [rawEventData, setRawEventData] = useState(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -139,9 +149,7 @@ function OrganizerEventDetail() {
               ? eventData.causes[0]
               : "General",
           tags: eventData.causes || ["Volunteer"],
-          remainingSlots: eventData.max_volunteers
-            ? eventData.max_volunteers - (eventData.registered_count || 0)
-            : 0,
+          remainingSlots: eventData.max_volunteers - eventData.registered_count,
           totalSlots: eventData.max_volunteers || 0,
           description: eventData.description || "No description provided",
           contactPerson: eventData.contact_person || "Event Coordinator",
@@ -180,6 +188,129 @@ function OrganizerEventDetail() {
 
     fetchEventDetails();
   }, [eventId, user?.email]);
+
+  // Add this after your state declarations
+  const fetchUpdatedEvent = async () => {
+    try {
+      console.log("Fetching fresh event data after volunteer removal");
+      const response = await Api.getEvent(eventId);
+
+      if (!response.ok) {
+        throw new Error(`Error fetching event: ${response.status}`);
+      }
+
+      const eventData = await response.json();
+      console.log("Updated event data:", eventData);
+      console.log("Updated registered count:", eventData.registered_count);
+
+      // Store the raw event data for reference
+      setRawEventData(eventData);
+
+      // Format dates properly and update the event state
+      // (Reusing the same logic you have in your initial useEffect)
+      let formattedStartDate = "";
+      let formattedEndDate = "";
+      let recurrenceInfo = null;
+
+      if (eventData.start_datetime) {
+        formattedStartDate = new Date(
+          eventData.start_datetime
+        ).toLocaleDateString();
+      }
+
+      if (eventData.end_datetime) {
+        formattedEndDate = new Date(
+          eventData.end_datetime
+        ).toLocaleDateString();
+      }
+
+      // For recurring events
+      if (eventData.is_recurring) {
+        // Your existing recurring event logic
+        // ...
+      }
+
+      // Format date string
+      const dateString = formattedStartDate
+        ? formattedEndDate
+          ? `${formattedStartDate} - ${formattedEndDate}`
+          : formattedStartDate
+        : "Date not specified";
+
+      // Transform the API data to match our component's expected format
+      const formattedEvent = {
+        id: eventData._id || eventData.id,
+        title: eventData.name || "Event Name",
+        // Include all other fields as in your original code
+        // ...
+        remainingSlots: eventData.max_volunteers
+          ? eventData.max_volunteers - (eventData.registered_count || 0)
+          : 0,
+        totalSlots: eventData.max_volunteers || 0,
+        // ... rest of your event fields
+      };
+
+      setEvent(formattedEvent);
+      setEditedEvent(formattedEvent);
+    } catch (err) {
+      console.error("Error refreshing event data:", err);
+    }
+  };
+
+  const calculateFilledSpots = (totalSlots, remainingSlots) => {
+    const filledSpots = Math.max(0, totalSlots - remainingSlots);
+    console.log(
+      `Calculating filled spots: ${filledSpots} = ${totalSlots} - ${remainingSlots}`
+    );
+    return filledSpots;
+  };
+
+  // In the parent component, modify the refreshEventData function to completely re-fetch
+  // Simplest refresh function possible
+  const refreshEventData = async () => {
+    try {
+      // Force a delay to make sure the backend has completed its operations
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Fetch fresh event data with cache-busting
+      const response = await fetch(
+        `${Api.SERVER_PREFIX}/events/${eventId}?nocache=${Date.now()}`
+      );
+      const eventData = await response.json();
+
+      // Update the event state with fresh data from server
+      if (event) {
+        const updatedEvent = {
+          ...event,
+          remainingSlots: eventData.max_volunteers - eventData.registered_count,
+          totalSlots: eventData.max_volunteers,
+        };
+        setEvent(updatedEvent);
+      }
+    } catch (error) {
+      console.error("Error refreshing event data:", error);
+    }
+  };
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      const response = await Api.deleteEvent(eventId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete event");
+      }
+
+      // Redirect to events list after successful deletion
+      navigate("/organizer");
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      setError("Failed to delete event. Please try again.");
+    } finally {
+      setLoading(false);
+      setShowDeleteConfirmModal(false);
+    }
+  };
 
   // Format recurring days for display
   const formatRecurringDays = (days) => {
@@ -352,27 +483,35 @@ function OrganizerEventDetail() {
           </div>
         </div>
 
-        <div className="flex mt-4 md:mt-0 space-x-2">
-          <Button
-            variant={isEditing ? "outline" : "default"}
-            onClick={toggleEditMode}
-          >
-            {isEditing ? (
-              "Cancel"
-            ) : (
+        <div className="flex flex-col md:flex-row mt-4 md:mt-0 gap-2">
+          <div className="flex gap-2">
+            {!isEditing && (
               <>
-                <PencilIcon className="h-4 w-4 mr-2" /> Edit
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  variant="outline"
+                  className="flex items-center gap-1"
+                >
+                  <PencilIcon className="h-4 w-4" /> Edit
+                </Button>
+                <Button
+                  onClick={() => setShowDeleteConfirmModal(true)}
+                  variant="destructive"
+                  className="flex items-center gap-1"
+                >
+                  <Trash className="h-4 w-4" /> Delete
+                </Button>
               </>
             )}
-          </Button>
 
-          {isEditing ? (
-            <Button onClick={saveEventChanges}>Save Changes</Button>
-          ) : (
-            <Button onClick={() => setShowVolunteersModal(true)}>
-              View Registered Volunteers
-            </Button>
-          )}
+            {isEditing ? (
+              <Button onClick={saveEventChanges}>Save Changes</Button>
+            ) : (
+              <Button onClick={() => setShowVolunteersModal(true)}>
+                View Registered Volunteers
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -589,8 +728,11 @@ function OrganizerEventDetail() {
                       Registrations
                     </h3>
                     <p className="text-gray-700">
-                      {event.totalSlots - event.remainingSlots} of{" "}
-                      {event.totalSlots} spots filled
+                      {calculateFilledSpots(
+                        event.totalSlots,
+                        event.remainingSlots
+                      )}{" "}
+                      of {event.totalSlots} spots filled
                     </p>
                   </div>
                 </div>
@@ -707,7 +849,12 @@ function OrganizerEventDetail() {
               >
                 Cancel
               </Button>
-              <Button onClick={confirmSaveChanges}>Save Changes</Button>
+              <Button
+                onClick={confirmSaveChanges}
+                className="border-2 border-black"
+              >
+                Save Changes
+              </Button>
             </div>
           </div>
         </div>
@@ -718,7 +865,41 @@ function OrganizerEventDetail() {
         onClose={() => setShowVolunteersModal(false)}
         eventId={eventId}
         eventName={event.title}
+        onVolunteerRemoved={refreshEventData}
       />
+
+      <Dialog
+        open={showDeleteConfirmModal}
+        onOpenChange={setShowDeleteConfirmModal}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Event Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this event? This action cannot be
+              undone.
+              {event?.remainingSlots !== event?.totalSlots && (
+                <p className="mt-2 text-red-500 font-semibold">
+                  Warning: This event has{" "}
+                  {event?.totalSlots - event?.remainingSlots} volunteer(s)
+                  registered. Deleting it will cancel all registrations.
+                </p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirmModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete Event
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

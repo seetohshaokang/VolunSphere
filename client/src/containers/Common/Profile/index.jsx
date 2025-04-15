@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Eye, Loader2 } from "lucide-react";
+import { Edit, Eye, Loader2, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
@@ -23,44 +23,44 @@ import DocumentUploader from "../../../components/DocumentUploader";
 import Api from "../../../helpers/Api";
 
 function Profile() {
-	const { user, logout, refreshProfile } = useAuth();
-	const navigate = useNavigate();
-	const [isEditing, setIsEditing] = useState(false);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [success, setSuccess] = useState(null);
-	const [events, setEvents] = useState([]);
-	const [profile, setProfile] = useState({
-		firstName: "",
-		lastName: "",
-		email: "",
-		phone: "",
-		dob: "",
-		bio: "",
-		avatar: null,
-		avatarFile: null,
-		skills: [],
-		address: "",
-	});
+  const { user, logout, refreshProfile } = useAuth();
+  const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [profile, setProfile] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    dob: "",
+    bio: "",
+    avatar: null,
+    avatarFile: null,
+    skills: [],
+    address: "",
+  });
 
-	const [nricFile, setNricFile] = useState(null);
-	const [uploadingNric, setUploadingNric] = useState(false);
+  const [nricFile, setNricFile] = useState(null);
+  const [uploadingNric, setUploadingNric] = useState(false);
 
-	// Add timestamp for cache busting
-	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+  // Add timestamp for cache busting
+  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-	// Format date for input field (YYYY-MM-DD)
-	const formatDateForInput = (dateString) => {
-		if (!dateString) return "";
-		const date = new Date(dateString);
-		return date.toISOString().split("T")[0];
-	};
+  // Format date for input field (YYYY-MM-DD)
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toISOString().split("T")[0];
+  };
 
-	useEffect(() => {
-		console.log("User data:", user);
-		fetchUserProfile();
-		fetchUserEvents();
-	}, [user]);
+  useEffect(() => {
+    console.log("User data:", user);
+    fetchUserProfile();
+    fetchUserEvents();
+  }, [user]);
 
 	const fetchUserProfile = async () => {
 		if (!user) return;
@@ -141,151 +141,149 @@ function Profile() {
 		}
 	};
 
-	const fetchUserEvents = async () => {
-		if (!user) {
-			console.log("No user found, returning early.");
-			return;
-		}
+  const fetchUserEvents = async () => {
+    if (!user) {
+      console.log("No user found, returning early.");
+      return;
+    }
 
-		try {
-			let response;
-			if (user.role === "organiser") {
-				console.log("Fetching organized events...");
-				response = await Api.getOrganizedEvents();
-			} else {
-				console.log("Fetching registered events...");
-				response = await Api.getRegisteredEvents();
-			}
+    try {
+      let response;
+      if (user.role === "organiser") {
+        console.log("Fetching organized events...");
+        response = await Api.getOrganizedEvents();
+      } else {
+        console.log("Fetching registered events...");
+        response = await Api.getRegisteredEvents();
+      }
 
-			if (!response.ok) {
-				throw new Error(
-					`Failed to fetch ${user.role === "organiser" ? "organized" : "registered"
-					} events`
-				);
-			}
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch ${
+            user.role === "organiser" ? "organized" : "registered"
+          } events`
+        );
+      }
 
-			const data = await response.json();
-			console.log("Fetched event data:", data);
+      const data = await response.json();
+      console.log("Fetched event data:", data);
 
-			// Now access the events array from the response object
-			const events = data.events || [];
+      // Now access the events array from the response object
+      const events = data.events || [];
 
-			// Check if the events array has any items
-			if (events.length === 0) {
-				console.log("No events found.");
-				setEvents([]); // Set empty events if no events are found
-			} else {
-				setEvents(events);
-			}
-		} catch (err) {
-			console.error("Error fetching events:", err);
-			// Non-critical error, don't show to user
-		}
-	};
+      // Check if the events array has any items
+      if (events.length === 0) {
+        console.log("No events found.");
+        setEvents([]); // Set empty events if no events are found
+      } else {
+        setEvents(events);
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      // Non-critical error, don't show to user
+    }
+  };
 
-	const handleChange = (e) => {
-		const { name, value } = e.target;
-		setProfile({ ...profile, [name]: value });
-	};
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setProfile({ ...profile, [name]: value });
+  };
 
-	const handleFileChange = (e) => {
-		const file = e.target.files[0];
-		if (file) {
-			// Create a preview URL for display purposes
-			const imageUrl = URL.createObjectURL(file);
-			setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
-		}
-	};
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Create a preview URL for display purposes
+      const imageUrl = URL.createObjectURL(file);
+      setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
+    }
+  };
 
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		setLoading(true);
-		setError(null);
-		setSuccess(null);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
-		try {
-			// Create FormData for the API call
-			const formData = new FormData();
-			formData.append(
-				"name",
-				`${profile.firstName} ${profile.lastName}`.trim()
-			);
-			formData.append("phone", profile.phone);
-			formData.append("bio", profile.bio);
-			formData.append("dob", profile.dob);
-			formData.append("address", profile.address);
+    try {
+      // Create FormData for the API call
+      const formData = new FormData();
+      formData.append(
+        "name",
+        `${profile.firstName} ${profile.lastName}`.trim()
+      );
+      formData.append("phone", profile.phone);
+      formData.append("bio", profile.bio);
+      formData.append("dob", profile.dob);
+      formData.append("address", profile.address);
 
-			// Log what's in the FormData
-			console.log("Preparing form data:", {
-				name: `${profile.firstName} ${profile.lastName}`.trim(),
-				phone: profile.phone,
-				bio: profile.bio,
-				dob: profile.dob,
-				address: profile.address,
-				hasAvatarFile: profile.avatarFile ? "Yes" : "No",
-			});
+      // Log what's in the FormData
+      console.log("Preparing form data:", {
+        name: `${profile.firstName} ${profile.lastName}`.trim(),
+        phone: profile.phone,
+        bio: profile.bio,
+        dob: profile.dob,
+        address: profile.address,
+        hasAvatarFile: profile.avatarFile ? "Yes" : "No",
+      });
 
-			if (profile.avatarFile) {
-				console.log(
-					"Attaching profile picture file:",
-					profile.avatarFile.name
-				);
-				formData.append("profile_picture", profile.avatarFile);
-			}
+      if (profile.avatarFile) {
+        console.log("Attaching profile picture file:", profile.avatarFile.name);
+        formData.append("profile_picture", profile.avatarFile);
+      }
 
-			if (
-				user.role === "volunteer" &&
-				profile.skills &&
-				profile.skills.length > 0
-			) {
-				formData.append("skills", JSON.stringify(profile.skills));
-			}
+      if (
+        user.role === "volunteer" &&
+        profile.skills &&
+        profile.skills.length > 0
+      ) {
+        formData.append("skills", JSON.stringify(profile.skills));
+      }
 
-			// This is a nested try block that can stay or be flattened
-			const data = await Api.updateUserProfile(formData);
-			console.log("API Response:", data);
+      // This is a nested try block that can stay or be flattened
+      const data = await Api.updateUserProfile(formData);
+      console.log("API Response:", data);
 
-			if (!data || !data.profile) {
-				throw new Error("Failed to update profile");
-			}
+      if (!data || !data.profile) {
+        throw new Error("Failed to update profile");
+      }
 
-			setImageTimestamp(Date.now());
-			setSuccess("Profile updated successfully!");
-			setIsEditing(false);
+      setImageTimestamp(Date.now());
+      setSuccess("Profile updated successfully!");
+      setIsEditing(false);
 
-			// Update the profile data in the auth context
-			if (typeof refreshProfile === "function") {
-				refreshProfile();
-			}
+      // Update the profile data in the auth context
+      if (typeof refreshProfile === "function") {
+        refreshProfile();
+      }
 
-			fetchUserProfile();
-		} catch (err) {
-			console.error("Error updating profile:", err);
-			setError("Failed to update profile. Please try again.");
-		} finally {
-			setLoading(false);
-		}
-	};
+      fetchUserProfile();
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      setError("Failed to update profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-	const handleNricFileChange = (e) => {
-		const file = e.target.files[0];
-		if (file) {
-			setNricFile(file);
-		}
-	};
+  const handleNricFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNricFile(file);
+    }
+  };
 
-	const handleNricUpload = async () => {
-		if (!nricFile) return;
-		setUploadingNric(true);
-		setError(null);
-		setSuccess(null);
+  const handleNricUpload = async () => {
+    if (!nricFile) return;
+    setUploadingNric(true);
+    setError(null);
+    setSuccess(null);
 
-		try {
-			// Create Form Data for the API call
-			const formData = new FormData();
-			formData.append("nric_image", nricFile);
+    try {
+      // Create Form Data for the API call
+      const formData = new FormData();
+      formData.append("nric_image", nricFile);
 
-			const response = await Api.uploadNRIC(formData);
+      const response = await Api.uploadNRIC(formData);
 
 			if (response.ok) {
 				const data = await response.json();
@@ -308,31 +306,31 @@ function Profile() {
 		}
 	};
 
-	if (loading && !profile.email) {
-		return (
-			<div className="min-h-screen flex justify-center items-center">
-				<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
-					<div className="flex justify-center items-center h-64">
-						<Loader2 className="h-8 w-8 animate-spin text-primary" />
-						<span className="ml-2">Loading profile...</span>
-					</div>
-				</div>
-			</div>
-		);
-	}
+  if (loading && !profile.email) {
+    return (
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading profile...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-	// Function to handle avatar URL with potential cache busting
-	const getAvatarUrl = () => {
-		if (!profile.avatar) {
-			return user?.role === "organiser"
-				? "/src/assets/default-avatar-red.png"
-				: "/src/assets/default-avatar-blue.png";
-		}
+  // Function to handle avatar URL with potential cache busting
+  const getAvatarUrl = () => {
+    if (!profile.avatar) {
+      return user?.role === "organiser"
+        ? "/src/assets/default-avatar-red.png"
+        : "/src/assets/default-avatar-blue.png";
+    }
 
-		// If it's a full URL
-		if (profile.avatar.startsWith("http")) {
-			return `${profile.avatar}?t=${imageTimestamp}`;
-		}
+    // If it's a full URL
+    if (profile.avatar.startsWith("http")) {
+      return `${profile.avatar}?t=${imageTimestamp}`;
+    }
 
 		// If it's a relative path with a file extension
 		if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
@@ -347,79 +345,67 @@ function Profile() {
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
 
-		// If it's just a filename (most likely from server)
-		return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
-	};
+    // If it's just a filename (most likely from server)
+    return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
+  };
 
-	return (
-		<div className="min-h-screen">
-			{/* Main content container with width constraints matching main page */}
-			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
-				<ContentHeader
-					title="My Profile"
-					links={[
-						{ to: "/organizer", label: "Home" },
-						{ label: "Profile", isActive: true },
-					]}
-					className="mt-8 mb-8"
-				/>
+  return (
+    <div className="min-h-screen">
+      {/* Main content container with width constraints matching main page */}
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
+        <ContentHeader
+          title="My Profile"
+          links={[
+            { to: "/organizer", label: "Home" },
+            { label: "Profile", isActive: true },
+          ]}
+          className="mt-8 mb-8"
+        />
 
-				{error && (
-					<Alert variant="destructive" className="mb-6">
-						<AlertDescription>{error}</AlertDescription>
-					</Alert>
-				)}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-				{success && (
-					<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
-						<AlertDescription>{success}</AlertDescription>
-					</Alert>
-				)}
+        {success && (
+          <Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
 
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-					<Card className="md:col-span-1">
-						<CardContent className="p-6 flex flex-col items-center text-center">
-							<Avatar className="w-24 h-24 border-4 border-primary">
-								<AvatarImage
-									src={getAvatarUrl()}
-									alt="User profile"
-								/>
-								<AvatarFallback>
-									{profile.firstName?.charAt(0) || ""}
-									{profile.lastName?.charAt(0) || ""}
-								</AvatarFallback>
-							</Avatar>
-							<h2 className="text-xl font-bold mt-4">
-								{profile.firstName} {profile.lastName}
-							</h2>
-							<p className="text-sm text-muted-foreground">
-								{user?.role === "volunteer"
-									? "Volunteer"
-									: "Event Organizer"}
-							</p>
-							{user?.role === "volunteer" &&
-								profile.skills &&
-								profile.skills.length > 0 && (
-									<div className="mt-4">
-										<h3 className="text-sm font-semibold mb-2">
-											Skills
-										</h3>
-										<div className="flex flex-wrap gap-1 justify-center">
-											{profile.skills.map(
-												(skill, index) => (
-													<Badge
-														key={index}
-														variant="secondary"
-													>
-														{skill}
-													</Badge>
-												)
-											)}
-										</div>
-									</div>
-								)}
-						</CardContent>
-					</Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-1">
+            <CardContent className="p-6 flex flex-col items-center text-center">
+              <Avatar className="w-24 h-24 border-4 border-primary">
+                <AvatarImage src={getAvatarUrl()} alt="User profile" />
+                <AvatarFallback>
+                  {profile.firstName?.charAt(0) || ""}
+                  {profile.lastName?.charAt(0) || ""}
+                </AvatarFallback>
+              </Avatar>
+              <h2 className="text-xl font-bold mt-4">
+                {profile.firstName} {profile.lastName}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {user?.role === "volunteer" ? "Volunteer" : "Event Organizer"}
+              </p>
+              {user?.role === "volunteer" &&
+                profile.skills &&
+                profile.skills.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-semibold mb-2">Skills</h3>
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {profile.skills.map((skill, index) => (
+                        <Badge key={index} variant="secondary">
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </CardContent>
+          </Card>
 
 					<Card className="md:col-span-2">
 						<CardHeader className="flex flex-row items-center justify-between pb-2">

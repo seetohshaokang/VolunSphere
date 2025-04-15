@@ -503,8 +503,14 @@ const Api = {
     return fetch(`${SERVER_PREFIX}/events`);
   },
 
+  // In Api.js, modify the getEvent method
   getEvent(id) {
-    return fetch(`${SERVER_PREFIX}/events/${id}`);
+    // Only use query parameters for cache busting, avoid custom headers
+    const timestamp = new Date().getTime();
+    const randomValue = Math.random();
+    return fetch(
+      `${SERVER_PREFIX}/events/${id}?t=${timestamp}&r=${randomValue}`
+    );
   },
 
   getEventReviews(id) {
@@ -588,18 +594,18 @@ const Api = {
   // For volunteer NRIC verification - consolidated duplicate functions
   updateVolunteerVerification(volunteerId, verified, reason) {
     // Get the filename from the UI data if possible
-    const requestData = {
-      verified,
-      reason
+    const requestData = { 
+      verified, 
+      reason 
     };
-
+    
     // Include the filename if it exists in localStorage or from other state
     // This ensures the backend knows which image to verify
     const nricFilename = localStorage.getItem("currentNricFilename");
     if (nricFilename) {
       requestData.filename = nricFilename;
     }
-
+    
     return fetch(
       `${SERVER_PREFIX}/admin/volunteers/${volunteerId}/verification`,
       {
@@ -655,7 +661,7 @@ const Api = {
       admin_notes: adminNotes,
     };
 
-    if (status === 'resolved' && resolutionAction) {
+    if (status === "resolved" && resolutionAction) {
       requestBody.resolution_action = resolutionAction;
     }
 

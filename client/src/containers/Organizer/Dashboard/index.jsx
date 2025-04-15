@@ -487,7 +487,7 @@ function OrganizerDashboard() {
                   You haven't created any events yet.
                 </p>
               )}
-              <Button onClick={() => navigate("/events/create")}>
+              <Button onClick={() => navigate("/events/create")} className="border-2 border-black">
                 <Plus className="h-4 w-4 mr-2" /> Create Your First Event
               </Button>
             </div>

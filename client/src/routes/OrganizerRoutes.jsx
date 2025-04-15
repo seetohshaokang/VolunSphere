@@ -8,44 +8,30 @@ import OrganizerManageEvent from "../containers/Organizer/ManageEvent";
 import ProtectedRoute from "./ProtectedRoute";
 
 export const OrganizerRoutes = (
-	<>
-		<Route
-			path="/profile"
-			element={
-				<ProtectedRoute roleRequired="organiser">
-					<Profile />
-				</ProtectedRoute>
-			}
-		/>
+  <>
+    <Route
+      path="/profile"
+      element={
+        <ProtectedRoute roleRequired="organiser">
+          <Profile />
+        </ProtectedRoute>
+      }
+    />
 
-		<Route
-			path="/events/create"
-			element={
-				<ProtectedRoute roleRequired="organiser">
-					<OrganizerManageEvent />
-				</ProtectedRoute>
-			}
-		/>
-
-		<Route
-			path="/events/edit/:id"
-			element={
-				<ProtectedRoute roleRequired="organiser">
-					<OrganizerManageEvent />
-				</ProtectedRoute>
-			}
-		/>
-
-		<Route
-			path="/organizer"
-			element={
-				<ProtectedRoute roleRequired="organiser">
-					<MainLayout />
-				</ProtectedRoute>
-			}
-		>
-			<Route index element={<OrganizerDashboard />} />
-			<Route path="events/:eventId" element={<OrganizerEventDetail />} />
-		</Route>
-	</>
+    <Route
+      element={
+        <ProtectedRoute roleRequired="organiser">
+          <MainLayout />
+        </ProtectedRoute>
+      }
+    >
+      <Route path="/organizer" element={<OrganizerDashboard />} />
+      <Route
+        path="/organizer/events/:eventId"
+        element={<OrganizerEventDetail />}
+      />
+      <Route path="/events/create" element={<OrganizerManageEvent />} />
+      <Route path="/events/edit/:id" element={<OrganizerManageEvent />} />
+    </Route>
+  </>
 );
