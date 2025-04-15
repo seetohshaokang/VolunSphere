@@ -78,6 +78,12 @@ app.use(
 	express.static(path.join(__dirname, "public/uploads/nric"))
 );
 
+app.use(
+	"/api/uploads/organizer_docs",
+	express.static(path.join(__dirname, "public/uploads/organizer_docs"))
+);
+
+
 // Session configuration - required for passport
 app.use(
 	session({

@@ -369,17 +369,6 @@ exports.deleteProfile = async (req, res) => {
  * @param {string} req.user.id - User ID
  * @param {Object} req.file - Uploaded NRIC image
  * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with upload status
- * @throws {Error} If server error occurs during NRIC upload
- *
- * Steps:
- * 1. Check if user is a volunteer
- * 2. Check if file was uploaded
- * 3. Find volunteer profile
- * 4. Update volunteer's NRIC image
- * 5. Save volunteer profile
- * 6. Return success message
  */
 exports.uploadNRIC = async (req, res) => {
 	try {
@@ -434,6 +423,67 @@ exports.uploadNRIC = async (req, res) => {
 	}
 };
 
+/**
+ * Upload organizer's charity certification document for verification
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - User ID
+ * @param {Object} req.file - Uploaded certification document
+ * @param {Object} res - Express response object
+ */
+exports.uploadCertification = async (req, res) => {
+	try {
+		const userId = req.user.id;
+		console.log("🔍 uploadCertification called for userId:", userId);
+
+		// Check if user is an organizer
+		const user = await User.findById(userId);
+		if (!user || user.role !== "organiser") {
+			return res
+				.status(403)
+				.json({ message: "Only organizers can upload certification documents" });
+		}
+
+		// Check if file was uploaded
+		if (!req.file) {
+			return res.status(400).json({ message: "No file uploaded" });
+		}
+
+		// Find organizer profile
+		const organiser = await Organiser.findOne({ user_id: userId });
+		if (!organiser) {
+			return res
+				.status(404)
+				.json({ message: "Organizer profile not found" });
+		}
+
+		// Update organizer's certification document
+		organiser.certification_document = {
+			filename: req.file.filename,
+			contentType: req.file.mimetype,
+			uploaded_at: new Date(),
+			verified: false,
+		};
+
+		await organiser.save();
+		console.log("✅ Certification document uploaded successfully");
+
+		return res.status(200).json({
+			message:
+				"Certification document uploaded successfully. It will be verified by an administrator.",
+			certification_document: {
+				filename: req.file.filename,
+			},
+		});
+	} catch (error) {
+		console.error("❌ Error uploading certification document:", error);
+		return res.status(500).json({
+			message: "Server error",
+			error: error.message,
+		});
+	}
+};
 /**
  * Get events associated with user (registered or organized)
  *

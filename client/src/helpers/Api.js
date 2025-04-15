@@ -108,8 +108,9 @@ const Api = {
   //===============================================
 
   // Upload NRIC for verification
+  // Upload NRIC for verification (for volunteers)
   uploadNRIC(formData) {
-    return fetch(`${SERVER_PREFIX}/profile/nric`, {
+    return fetch(`${this.SERVER_PREFIX}/profile/nric`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -118,6 +119,7 @@ const Api = {
       body: formData,
     });
   },
+
 
   // Event signup methods for volunteers
   registerForEvent(eventId) {
@@ -216,6 +218,18 @@ const Api = {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
+    });
+  },
+
+  // Upload certification document (for organizers)
+  uploadCertification(formData) {
+    return fetch(`${this.SERVER_PREFIX}/profile/certification`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        // Don't set Content-Type when using FormData - browser will set it with boundary
+      },
+      body: formData,
     });
   },
 
@@ -580,18 +594,18 @@ const Api = {
   // For volunteer NRIC verification - consolidated duplicate functions
   updateVolunteerVerification(volunteerId, verified, reason) {
     // Get the filename from the UI data if possible
-    const requestData = {
-      verified,
-      reason,
+    const requestData = { 
+      verified, 
+      reason 
     };
-
+    
     // Include the filename if it exists in localStorage or from other state
     // This ensures the backend knows which image to verify
     const nricFilename = localStorage.getItem("currentNricFilename");
     if (nricFilename) {
       requestData.filename = nricFilename;
     }
-
+    
     return fetch(
       `${SERVER_PREFIX}/admin/volunteers/${volunteerId}/verification`,
       {

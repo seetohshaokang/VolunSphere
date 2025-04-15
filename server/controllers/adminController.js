@@ -284,6 +284,7 @@ exports.getUsers = async (req, res) => {
  * 7. Get admin actions targeting this user
  * 8. Return comprehensive user data
  */
+// Updated getUserById function in adminController.js
 exports.getUserById = async (req, res) => {
 	try {
 		// Step 1: Verify user has admin permissions
@@ -329,7 +330,10 @@ exports.getUserById = async (req, res) => {
 				registrations = volRegistrations;
 			}
 		} else if (user.role === "organiser") {
-			profile = await Organiser.findOne({ user_id: id });
+			// Added certification_document to the fields being selected for the organiser
+			profile = await Organiser.findOne({ user_id: id }).select(
+				"organisation_name phone profile_picture_url verification_status certification_document"
+			);
 
 			// Get organised events
 			if (profile) {
