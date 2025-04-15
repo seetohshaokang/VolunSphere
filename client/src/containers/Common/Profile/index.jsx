@@ -18,8 +18,8 @@ import { Edit, Eye, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
-import NricUploader from "../../../components/NricUploader";
 import { useAuth } from "../../../contexts/AuthContext";
+import DocumentUploader from "../../../components/DocumentUploader";
 import Api from "../../../helpers/Api";
 
 function Profile() {
@@ -64,7 +64,7 @@ function Profile() {
 
 	const fetchUserProfile = async () => {
 		if (!user) return;
-
+	
 		setLoading(true);
 		try {
 			const response = await Api.getUserProfile({
@@ -73,47 +73,66 @@ function Profile() {
 					Pragma: "no-cache",
 				},
 			});
-
+	
 			if (!response.ok) {
 				throw new Error("Failed to fetch profile data");
 			}
-
+	
 			const data = await response.json();
 			console.log("Profile data received:", data);
-			console.log("NRIC data:", data.profile.nric_image);
-
+			
+			// Log appropriate document data based on user role
+			if (data.user.role === "volunteer") {
+				console.log("NRIC data:", data.profile.nric_image);
+			} else if (data.user.role === "organiser") {
+				console.log("Certification data:", data.profile.certification_document);
+			}
+	
 			// Parse name (assuming it comes as full name)
-			let firstName = data.profile.name || "";
+			let firstName = data.profile.name || data.profile.organisation_name || "";
 			let lastName = "";
-
+	
 			if (firstName.includes(" ")) {
 				const nameParts = firstName.split(" ");
 				firstName = nameParts[0];
 				lastName = nameParts.slice(1).join(" ");
 			}
-
+	
 			// Log the avatar URL we're going to use
 			console.log("Setting avatar to:", data.profile.profile_picture_url);
-
-			setProfile({
+			
+			// Build profile object with common fields
+			const profileData = {
 				firstName,
 				lastName,
 				email: data.user.email || "Email not provided",
 				phone: data.profile.phone || "",
-				dob: data.profile.dob
-					? formatDateForInput(data.profile.dob)
-					: "",
 				bio: data.profile.bio || data.profile.description || "",
 				avatar: data.profile.profile_picture_url,
 				address: data.profile.address || "",
-				skills:
+			};
+			
+			// Add role-specific fields
+			if (data.user.role === "volunteer") {
+				profileData.dob = data.profile.dob
+					? formatDateForInput(data.profile.dob)
+					: "";
+				profileData.skills =
 					data.profile.skills ||
 					data.profile.volunteer_skills?.map(
 						(skill) => skill.skill_name
 					) ||
-					[],
-				nric_image: data.profile.nric_image || null,
-			});
+					[];
+				profileData.nric_image = data.profile.nric_image || null;
+				profileData.preferred_causes = data.profile.preferred_causes || [];
+			} else if (data.user.role === "organiser") {
+				profileData.website = data.profile.website || "";
+				profileData.organisation_name = data.profile.organisation_name || "";
+				profileData.certification_document = data.profile.certification_document || null;
+				profileData.verification_status = data.profile.verification_status || "pending";
+			}
+			
+			setProfile(profileData);
 		} catch (err) {
 			console.error("Error fetching profile:", err);
 			setError("Failed to load profile data. Please try again.");
@@ -140,8 +159,7 @@ function Profile() {
 
 			if (!response.ok) {
 				throw new Error(
-					`Failed to fetch ${
-						user.role === "organiser" ? "organized" : "registered"
+					`Failed to fetch ${user.role === "organiser" ? "organized" : "registered"
 					} events`
 				);
 			}
@@ -273,7 +291,7 @@ function Profile() {
 				const data = await response.json();
 				setSuccess(
 					data.message ||
-						"NRIC uploaded successfully. It will be verified by an adminstrator."
+					"NRIC uploaded successfully. It will be verified by an adminstrator."
 				);
 				setNricFile(null);
 				// Refresh profile data to show updated NRIC status
@@ -323,9 +341,8 @@ function Profile() {
 				profile.avatar.startsWith("/uploads/") ||
 				profile.avatar.includes("profile-")
 			) {
-				return `http://localhost:8000${
-					profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"
-				}${profile.avatar}?t=${imageTimestamp}`;
+				return `http://localhost:8000${profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"
+					}${profile.avatar}?t=${imageTimestamp}`;
 			}
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
@@ -452,8 +469,8 @@ function Profile() {
 										<span className="col-span-2">
 											{profile.dob
 												? new Date(
-														profile.dob
-												  ).toLocaleDateString()
+													profile.dob
+												).toLocaleDateString()
 												: "Not provided"}
 										</span>
 									</div>
@@ -487,8 +504,8 @@ function Profile() {
 																src={
 																	profile.avatarFile
 																		? URL.createObjectURL(
-																				profile.avatarFile
-																		  )
+																			profile.avatarFile
+																		)
 																		: getAvatarUrl()
 																}
 																alt="Profile preview"
@@ -515,8 +532,8 @@ function Profile() {
 														<span className="text-sm text-gray-600">
 															{profile.avatarFile
 																? profile
-																		.avatarFile
-																		.name
+																	.avatarFile
+																	.name
 																: "No file chosen"}
 														</span>
 														<Input
@@ -652,15 +669,13 @@ function Profile() {
 						</CardContent>
 					</Card>
 
-					{/* NRIC Verification Card - Only show for volunteers */}
-					{user?.role === "volunteer" && (
-						<NricUploader
-							profile={profile}
-							onUploadSuccess={fetchUserProfile}
-							setError={setError}
-							setSuccess={setSuccess}
-						/>
-					)}
+					<DocumentUploader
+						profile={profile}
+						onUploadSuccess={fetchUserProfile}
+						setError={setError}
+						setSuccess={setSuccess}
+						isOrganizer={user?.role === "organiser"}
+					/>
 
 					<Card className="md:col-span-3">
 						<CardHeader>
@@ -691,12 +706,12 @@ function Profile() {
 												</TableCell>
 												<TableCell>
 													{event.start_date ||
-													event.event?.start_date
+														event.event?.start_date
 														? new Date(
-																event.start_date ||
-																	event.event
-																		?.start_date
-														  ).toLocaleDateString()
+															event.start_date ||
+															event.event
+																?.start_date
+														).toLocaleDateString()
 														: "No date specified"}
 												</TableCell>
 												<TableCell>
@@ -705,7 +720,7 @@ function Profile() {
 															(event.status ||
 																event.event
 																	?.status) ===
-															"active"
+																"active"
 																? "default"
 																: "secondary"
 														}
@@ -729,19 +744,17 @@ function Profile() {
 															<Link
 																to={
 																	user?.role ===
-																	"organiser"
-																		? `/organizer/events/${
-																				event.id ||
-																				event._id
-																		  }`
-																		: `/events/${
-																				event.id ||
-																				event.event_id ||
-																				event
-																					.event
-																					?._id ||
-																				event._id
-																		  }`
+																		"organiser"
+																		? `/organizer/events/${event.id ||
+																		event._id
+																		}`
+																		: `/events/${event.id ||
+																		event.event_id ||
+																		event
+																			.event
+																			?._id ||
+																		event._id
+																		}`
 																}
 															>
 																<Eye className="h-4 w-4" />
@@ -749,22 +762,21 @@ function Profile() {
 														</Button>
 														{user?.role ===
 															"organiser" && (
-															<Button
-																variant="outline"
-																size="sm"
-																className="h-8 w-8 p-0"
-																asChild
-															>
-																<Link
-																	to={`/events/edit/${
-																		event.id ||
-																		event._id
-																	}`}
+																<Button
+																	variant="outline"
+																	size="sm"
+																	className="h-8 w-8 p-0"
+																	asChild
 																>
-																	<Edit className="h-4 w-4" />
-																</Link>
-															</Button>
-														)}
+																	<Link
+																		to={`/events/edit/${event.id ||
+																			event._id
+																			}`}
+																	>
+																		<Edit className="h-4 w-4" />
+																	</Link>
+																</Button>
+															)}
 													</div>
 												</TableCell>
 											</TableRow>

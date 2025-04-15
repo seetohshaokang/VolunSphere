@@ -2,7 +2,10 @@ const express = require("express");
 const router = express.Router();
 const profileController = require("../controllers/profileController");
 const { protectRoute } = require("../middleware/authMiddleware");
-const uploadNRIC = require("../middleware/nricUploadMiddleware.js");
+const { 
+	nricUploadMiddleware,
+	certificationUploadMiddleware
+  } = require("../middleware/documentUploadMiddleware");
 const profileImageUpload = require("../middleware/profileImageUploadMiddleware");
 const multer = require("multer");
 
@@ -52,8 +55,14 @@ router.delete("/", protectRoute, profileController.deleteProfile);
  * @desc    Upload volunteer's NRIC image for verification
  * @access  Private (Volunteer only)
  */
-router.post("/nric", protectRoute, uploadNRIC, profileController.uploadNRIC);
+router.post("/nric", protectRoute, nricUploadMiddleware, profileController.uploadNRIC);
 
+/**
+ * @route   POST /profile/certification
+ * @desc    Upload organizer's charity certification for verification
+ * @access  Private (Organizer only)
+ */
+router.post("/certification", protectRoute, certificationUploadMiddleware, profileController.uploadCertification);
 /**
  * @route   GET /profile/events
  * @desc    Get events associated with user (registered or organized)

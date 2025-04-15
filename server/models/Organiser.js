@@ -32,10 +32,28 @@ const organiserSchema = new Schema({
     type: String,
     trim: true,
   },
+  
   verification_status: {
     type: String,
     enum: ["pending", "verified", "rejected"],
     default: "pending",
+  },
+
+  certification_document: {
+    filename: String,
+    contentType: String,
+    uploaded_at: Date,
+    verified: {
+      type: Boolean,
+      default: false
+    },
+    verified_at: Date,
+    verified_by: {
+      type: Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null
+    },
+    rejection_reason: String
   },
 });
 

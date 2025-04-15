@@ -317,8 +317,7 @@ function OrganizerEventDetail() {
       <ContentHeader
         title={event.title}
         links={[
-          { to: "/", label: "Dashboard" },
-          { to: "/organizer", label: "My Events" },
+          { to: "/organizer", label: "Home" },
           { label: event.title, isActive: true },
         ]}
       />

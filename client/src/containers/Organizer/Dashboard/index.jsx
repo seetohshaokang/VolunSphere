@@ -43,10 +43,13 @@ function OrganizerDashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortOption, setSortOption] = useState("newest");
   const [dateFilter, setDateFilter] = useState("all");
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
     fetchOrganizedEvents();
+    checkVerificationStatus();
   }, []);
+  
 
   // Apply filters and sorting whenever the filter criteria change
   useEffect(() => {
@@ -263,6 +266,37 @@ function OrganizerDashboard() {
     );
   }
 
+  const checkVerificationStatus = async () => {
+    try {
+      const response = await Api.getUserProfile();
+      if (response.ok) {
+        const data = await response.json();
+        // Check if organizer profile is verified
+        if (data.profile && data.profile.verification_status === "verified") {
+          setIsVerified(true);
+        } else {
+          setIsVerified(false);
+        }
+      }
+    } catch (err) {
+      console.error("Error checking verification status:", err);
+      setIsVerified(false);
+    }
+  };
+
+  const handleCreateEventClick = () => {
+    if (isVerified) {
+      navigate("/events/create");
+    } else {
+      // Redirect to profile page with a notification
+      navigate("/profile", { 
+        state: { 
+          notification: "You need to be verified before creating events. Please complete your profile verification." 
+        } 
+      });
+    }
+  };
+  
   // Calculate total volunteers with defensive check
   const totalVolunteers = Array.isArray(events)
     ? events.reduce((acc, event) => acc + (event.registered_count || 0), 0)
@@ -287,7 +321,7 @@ function OrganizerDashboard() {
         <h2 className="text-2xl font-bold">
           Welcome back, {user?.name || "Organizer"}
         </h2>
-        <Button onClick={() => navigate("/events/create")}>
+        <Button onClick={handleCreateEventClick}>
           <Plus className="h-4 w-4 mr-2" /> Create New Event
         </Button>
       </div>

@@ -717,6 +717,7 @@ exports.removeEventSignup = async (req, res) => {
         registered_count: event.registered_count - 1,
       });
     }
+    console.log(event.registered_count)
 
     return res.status(200).json({
       message: wasRemovalByOrganizer
