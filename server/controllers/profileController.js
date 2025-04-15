@@ -372,53 +372,66 @@ exports.deleteProfile = async (req, res) => {
  */
 exports.uploadNRIC = async (req, res) => {
 	try {
+		// Verify user is a volunteer
 		const userId = req.user.id;
-		console.log("🔍 uploadNRIC called for userId:", userId);
-
-		// Check if user is a volunteer
 		const user = await User.findById(userId);
+
 		if (!user || user.role !== "volunteer") {
-			return res
-				.status(403)
-				.json({ message: "Only volunteers can upload NRIC" });
+			return res.status(403).json({
+				message: "Access denied. Only volunteers can upload NRIC images."
+			});
+		}
+
+		// Volunteer profile lookup
+		const volunteer = await Volunteer.findOne({ user_id: userId });
+		if (!volunteer) {
+			return res.status(404).json({
+				message: "Volunteer profile not found."
+			});
 		}
 
 		// Check if file was uploaded
 		if (!req.file) {
-			return res.status(400).json({ message: "No file uploaded" });
+			return res.status(400).json({
+				message: "No file uploaded. Please select an image."
+			});
 		}
 
-		// Find volunteer profile
-		const volunteer = await Volunteer.findOne({ user_id: userId });
-		if (!volunteer) {
-			return res
-				.status(404)
-				.json({ message: "Volunteer profile not found" });
-		}
+		// Get file details
+		const { filename, mimetype } = req.file;
 
-		// Update volunteer's NRIC image
+		// Check if previous NRIC image exists
+		const wasRejected = volunteer.nric_image && volunteer.nric_image.status === "rejected";
+
+		// Update volunteer document with NRIC image details
 		volunteer.nric_image = {
-			filename: req.file.filename,
-			contentType: req.file.mimetype,
+			filename,
+			contentType: mimetype,
 			uploaded_at: new Date(),
+			status: "pending",
 			verified: false,
+			requires_reupload: false,
+			rejection_reason: null
 		};
 
 		await volunteer.save();
-		console.log("✅ NRIC uploaded successfully");
 
 		return res.status(200).json({
-			message:
-				"NRIC uploaded successfully. It will be verified by an administrator.",
+			message: wasRejected
+				? "New NRIC image uploaded successfully. It will be reviewed by an administrator."
+				: "NRIC image uploaded successfully. It will be verified by an administrator.",
 			nric_image: {
-				filename: req.file.filename,
-			},
+				filename,
+				uploaded_at: volunteer.nric_image.uploaded_at,
+				verified: false,
+				status: "pending"
+			}
 		});
 	} catch (error) {
-		console.error("❌ Error uploading NRIC:", error);
+		console.error("Error uploading NRIC:", error);
 		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
+			message: "Server error while uploading NRIC",
+			error: error.message
 		});
 	}
 };
@@ -434,53 +447,69 @@ exports.uploadNRIC = async (req, res) => {
  */
 exports.uploadCertification = async (req, res) => {
 	try {
+		// Verify user is an organizer
 		const userId = req.user.id;
-		console.log("🔍 uploadCertification called for userId:", userId);
-
-		// Check if user is an organizer
 		const user = await User.findById(userId);
+
 		if (!user || user.role !== "organiser") {
-			return res
-				.status(403)
-				.json({ message: "Only organizers can upload certification documents" });
+			return res.status(403).json({
+				message: "Access denied. Only organisers can upload certification documents."
+			});
+		}
+
+		// Organiser profile lookup
+		const organiser = await Organiser.findOne({ user_id: userId });
+		if (!organiser) {
+			return res.status(404).json({
+				message: "Organiser profile not found."
+			});
 		}
 
 		// Check if file was uploaded
 		if (!req.file) {
-			return res.status(400).json({ message: "No file uploaded" });
+			return res.status(400).json({
+				message: "No file uploaded. Please select a document."
+			});
 		}
 
-		// Find organizer profile
-		const organiser = await Organiser.findOne({ user_id: userId });
-		if (!organiser) {
-			return res
-				.status(404)
-				.json({ message: "Organizer profile not found" });
-		}
+		// Get file details
+		const { filename, mimetype } = req.file;
 
-		// Update organizer's certification document
+		// Check if previous certification document exists
+		const wasRejected = organiser.certification_document && organiser.certification_document.status === "rejected";
+
+		// Update organiser document with certification details
 		organiser.certification_document = {
-			filename: req.file.filename,
-			contentType: req.file.mimetype,
+			filename,
+			contentType: mimetype,
 			uploaded_at: new Date(),
+			status: "pending",
 			verified: false,
+			requires_reupload: false,
+			rejection_reason: null
 		};
 
+		// Also update the overall verification status
+		organiser.verification_status = "pending";
+
 		await organiser.save();
-		console.log("✅ Certification document uploaded successfully");
 
 		return res.status(200).json({
-			message:
-				"Certification document uploaded successfully. It will be verified by an administrator.",
+			message: wasRejected
+				? "New certification document uploaded successfully. It will be reviewed by an administrator."
+				: "Certification document uploaded successfully. It will be verified by an administrator.",
 			certification_document: {
-				filename: req.file.filename,
-			},
+				filename,
+				uploaded_at: organiser.certification_document.uploaded_at,
+				verified: false,
+				status: "pending"
+			}
 		});
 	} catch (error) {
-		console.error("❌ Error uploading certification document:", error);
+		console.error("Error uploading certification:", error);
 		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
+			message: "Server error while uploading certification document",
+			error: error.message
 		});
 	}
 };

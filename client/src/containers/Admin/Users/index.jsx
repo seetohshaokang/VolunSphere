@@ -298,7 +298,6 @@ const AdminUsers = () => {
                           alert(`This would ${user.status === 'active' ? 'suspend' : 'activate'} the user account.`);
                         }}
                       >
-                        {user.status === 'active' ? 'Suspend' : 'Activate'}
                       </button>
                     </td>
                   </tr>
