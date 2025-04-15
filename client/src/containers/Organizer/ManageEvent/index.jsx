@@ -19,11 +19,29 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Upload } from "lucide-react";
+import {
+  AlertCircle,
+  Upload,
+  Trash,
+  User,
+  CalendarIcon,
+  FileText,
+  XCircle,
+  RepeatIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
 import Api from "../../../helpers/Api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
 const DAYS_OF_WEEK = [
   { value: 0, label: "Sunday" },
@@ -70,6 +88,7 @@ function OrganizerManageEvent() {
   const [loading, setLoading] = useState(isEditMode);
   const [error, setError] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (isEditMode) {
@@ -324,6 +343,27 @@ function OrganizerManageEvent() {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      setSubmitLoading(true);
+      const response = await Api.deleteEvent(id);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete event");
+      }
+
+      // Redirect to events list
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      setError("Failed to delete event. Please try again.");
+    } finally {
+      setSubmitLoading(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
@@ -346,351 +386,519 @@ function OrganizerManageEvent() {
         ]}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {isEditMode ? "Edit Event Details" : "Create New Event"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Left column - Event details */}
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {isEditMode ? "Edit Event Details" : "Create New Event"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Event Title</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="Enter event title"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                name="description"
-                rows="3"
-                placeholder="Event description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* Image Upload Section */}
-            <div className="space-y-2">
-              <Label>Event Image</Label>
-              <div className="mt-1 flex flex-col gap-2">
-                {/* Image Preview */}
-                {imagePreview && (
-                  <div className="relative mb-2">
-                    <img
-                      src={imagePreview}
-                      alt="Event preview"
-                      className="w-full max-h-64 object-cover rounded-md border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      onClick={removeImage}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                )}
-
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={handleImageChange}
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                />
-
-                {/* Upload button */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={triggerFileInput}
-                  className="flex items-center gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  {imagePreview ? "Change Image" : "Upload Image"}
-                </Button>
-
-                <p className="text-sm text-gray-500">
-                  Recommended size: 1200x800px. Max size: 5MB. Supported
-                  formats: JPEG, PNG, GIF, WEBP.
-                </p>
-              </div>
-            </div>
-
-            {/* Event Type Selection */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="is_recurring"
-                  checked={formData.is_recurring}
-                  onCheckedChange={handleRecurringToggle}
-                />
-                <Label htmlFor="is_recurring" className="cursor-pointer">
-                  This is a recurring event
-                </Label>
-              </div>
-              <p className="text-sm text-gray-500">
-                {formData.is_recurring
-                  ? "This event repeats on a regular schedule"
-                  : "This is a one-time event"}
-              </p>
-            </div>
-
-            {/* Conditional fields based on event type */}
-            {formData.is_recurring ? (
-              // Recurring Event Fields
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="recurrence_pattern">Recurrence Pattern</Label>
-                  <Select
-                    value={formData.recurrence_pattern}
-                    onValueChange={(value) =>
-                      handleSelectChange("recurrence_pattern", value)
-                    }
-                  >
-                    <SelectTrigger id="recurrence_pattern">
-                      <SelectValue placeholder="Select pattern" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Only show days selection for weekly or custom patterns */}
-                {(formData.recurrence_pattern === "weekly" ||
-                  formData.recurrence_pattern === "custom") && (
-                  <div className="space-y-2">
-                    <Label>Recurring Days</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
-                      {DAYS_OF_WEEK.map((day) => (
-                        <div
-                          key={day.value}
-                          className="flex items-center gap-2"
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Hero section with event title and actions */}
+                <div className="relative mb-8">
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-500 rounded-lg opacity-90"></div>
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8">
+                    <div className="text-white mb-4 md:mb-0">
+                      <h1 className="text-3xl font-bold mb-2">
+                        {formData.name}
+                      </h1>
+                      <div className="flex items-center mb-2">
+                        <User className="h-5 w-5 mr-2" />
+                        <span className="opacity-90">Organizer</span>
+                      </div>
+                      <div className="flex gap-3 mt-3">
+                        <Badge
+                          className={
+                            formData.status === "active"
+                              ? "bg-green-500 hover:bg-green-600 text-white"
+                              : formData.status === "draft"
+                              ? "bg-amber-500 hover:bg-amber-600 text-white"
+                              : formData.status === "cancelled"
+                              ? "bg-red-500 hover:bg-red-600 text-white"
+                              : "bg-gray-500 hover:bg-gray-600 text-white"
+                          }
                         >
-                          <Checkbox
-                            id={`day-${day.value}`}
-                            checked={formData.recurrence_days.includes(
-                              day.value
-                            )}
-                            onCheckedChange={(checked) =>
-                              handleDayToggle(day.value, checked)
-                            }
-                          />
-                          <Label
-                            htmlFor={`day-${day.value}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {day.label}
-                          </Label>
-                        </div>
-                      ))}
+                          {formData.status.toUpperCase()}
+                        </Badge>
+
+                        {formData.is_recurring && (
+                          <Badge className="bg-purple-500 hover:bg-purple-600 text-white">
+                            <RepeatIcon className="h-3 w-3 mr-1" /> RECURRING
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button variant="outline" asChild>
+                        <Link to="/organizer">Cancel</Link>
+                      </Button>
+                      <Button type="submit" disabled={submitLoading}>
+                        {submitLoading ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
+                            {isEditMode ? "Updating..." : "Creating..."}
+                          </div>
+                        ) : (
+                          <>{isEditMode ? "Update Event" : "Create Event"}</>
+                        )}
+                      </Button>
+                      {isEditMode && (
+                        <Button
+                          variant="destructive"
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(true)}
+                          disabled={submitLoading}
+                          className="flex items-center gap-1 ml-2"
+                        >
+                          {submitLoading ? (
+                            <AlertCircle className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash className="h-4 w-4" />
+                          )}
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="recurrence_start_date">Start Date</Label>
-                    <Input
-                      id="recurrence_start_date"
-                      name="recurrence_start_date"
-                      type="date"
-                      value={formData.recurrence_start_date}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="recurrence_end_date">End Date</Label>
-                    <Input
-                      id="recurrence_end_date"
-                      name="recurrence_end_date"
-                      type="date"
-                      value={formData.recurrence_end_date}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="recurrence_time_start">Start Time</Label>
-                    <Input
-                      id="recurrence_time_start"
-                      name="recurrence_time_start"
-                      type="time"
-                      value={formData.recurrence_time_start}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="recurrence_time_end">End Time</Label>
-                    <Input
-                      id="recurrence_time_end"
-                      name="recurrence_time_end"
-                      type="time"
-                      value={formData.recurrence_time_end}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              // Single Event Fields
-              <>
                 <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
+                  <Label htmlFor="name">Event Title</Label>
                   <Input
-                    id="date"
-                    name="date"
-                    type="date"
-                    value={formData.date}
+                    id="name"
+                    name="name"
+                    placeholder="Enter event title"
+                    value={formData.name}
                     onChange={handleChange}
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="start_time">Start Time</Label>
-                    <Input
-                      id="start_time"
-                      name="start_time"
-                      type="time"
-                      value={formData.start_time}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end_time">End Time</Label>
-                    <Input
-                      id="end_time"
-                      name="end_time"
-                      type="time"
-                      value={formData.end_time}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                    <FileText className="mr-2 h-5 w-5 text-indigo-600" />{" "}
+                    Description
+                  </h3>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    rows="3"
+                    placeholder="Event description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
-              </>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                name="location"
-                placeholder="Event location"
-                value={formData.location}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cause">Category</Label>
-              <Select
-                value={formData.cause}
-                onValueChange={(value) => handleSelectChange("cause", value)}
-                required
-              >
-                <SelectTrigger id="cause">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Environment">Environment</SelectItem>
-                  <SelectItem value="Social Services">
-                    Social Services
-                  </SelectItem>
-                  <SelectItem value="Education">Education</SelectItem>
-                  <SelectItem value="Healthcare">Healthcare</SelectItem>
-                  <SelectItem value="Animal Welfare">Animal Welfare</SelectItem>
-                  <SelectItem value="Community Development">
-                    Community Development
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="max_volunteers">Volunteer Slots</Label>
-              <Input
-                id="max_volunteers"
-                name="max_volunteers"
-                type="number"
-                min="1"
-                value={formData.max_volunteers}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {isEditMode && (
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => handleSelectChange("status", value)}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <CardFooter className="flex justify-end gap-2 px-0 pt-4">
-              <Button variant="outline" asChild>
-                <Link to="/organizer">Cancel</Link>
-              </Button>
-              <Button type="submit" disabled={submitLoading}>
-                {submitLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
-                    {isEditMode ? "Updating..." : "Creating..."}
+                {/* Event Type Selection */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="is_recurring"
+                      checked={formData.is_recurring}
+                      onCheckedChange={handleRecurringToggle}
+                    />
+                    <Label htmlFor="is_recurring" className="cursor-pointer">
+                      This is a recurring event
+                    </Label>
                   </div>
+                  <p className="text-sm text-gray-500">
+                    {formData.is_recurring
+                      ? "This event repeats on a regular schedule"
+                      : "This is a one-time event"}
+                  </p>
+                </div>
+
+                {/* Conditional fields based on event type */}
+                {formData.is_recurring ? (
+                  // Recurring Event Fields
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="recurrence_pattern">
+                        Recurrence Pattern
+                      </Label>
+                      <Select
+                        value={formData.recurrence_pattern}
+                        onValueChange={(value) =>
+                          handleSelectChange("recurrence_pattern", value)
+                        }
+                      >
+                        <SelectTrigger id="recurrence_pattern">
+                          <SelectValue placeholder="Select pattern" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Only show days selection for weekly or custom patterns */}
+                    {(formData.recurrence_pattern === "weekly" ||
+                      formData.recurrence_pattern === "custom") && (
+                      <div className="space-y-2">
+                        <Label>Recurring Days</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                          {DAYS_OF_WEEK.map((day) => (
+                            <div
+                              key={day.value}
+                              className="flex items-center gap-2"
+                            >
+                              <Checkbox
+                                id={`day-${day.value}`}
+                                checked={formData.recurrence_days.includes(
+                                  day.value
+                                )}
+                                onCheckedChange={(checked) =>
+                                  handleDayToggle(day.value, checked)
+                                }
+                              />
+                              <Label
+                                htmlFor={`day-${day.value}`}
+                                className="text-sm font-normal cursor-pointer"
+                              >
+                                {day.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="recurrence_start_date">
+                          Start Date
+                        </Label>
+                        <Input
+                          id="recurrence_start_date"
+                          name="recurrence_start_date"
+                          type="date"
+                          value={formData.recurrence_start_date}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="recurrence_end_date">End Date</Label>
+                        <Input
+                          id="recurrence_end_date"
+                          name="recurrence_end_date"
+                          type="date"
+                          value={formData.recurrence_end_date}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="recurrence_time_start">
+                          Start Time
+                        </Label>
+                        <Input
+                          id="recurrence_time_start"
+                          name="recurrence_time_start"
+                          type="time"
+                          value={formData.recurrence_time_start}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="recurrence_time_end">End Time</Label>
+                        <Input
+                          id="recurrence_time_end"
+                          name="recurrence_time_end"
+                          type="time"
+                          value={formData.recurrence_time_end}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
                 ) : (
-                  <>{isEditMode ? "Update Event" : "Create Event"}</>
+                  // Single Event Fields
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date</Label>
+                      <Input
+                        id="date"
+                        name="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="start_time">Start Time</Label>
+                        <Input
+                          id="start_time"
+                          name="start_time"
+                          type="time"
+                          value={formData.start_time}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="end_time">End Time</Label>
+                        <Input
+                          id="end_time"
+                          name="end_time"
+                          type="time"
+                          value={formData.end_time}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
-              </Button>
-            </CardFooter>
-          </form>
-        </CardContent>
-      </Card>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    name="location"
+                    placeholder="Event location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cause">Category</Label>
+                  <Select
+                    value={formData.cause}
+                    onValueChange={(value) =>
+                      handleSelectChange("cause", value)
+                    }
+                    required
+                  >
+                    <SelectTrigger id="cause">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Environment">Environment</SelectItem>
+                      <SelectItem value="Social Services">
+                        Social Services
+                      </SelectItem>
+                      <SelectItem value="Education">
+                        <div className="flex items-center">
+                          <div className="w-2 h-2 rounded-full bg-amber-500 mr-2"></div>
+                          Education
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="Healthcare">Healthcare</SelectItem>
+                      <SelectItem value="Animal Welfare">
+                        Animal Welfare
+                      </SelectItem>
+                      <SelectItem value="Community Development">
+                        Community Development
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_volunteers">Volunteer Slots</Label>
+                  <Input
+                    id="max_volunteers"
+                    name="max_volunteers"
+                    type="number"
+                    min="1"
+                    value={formData.max_volunteers}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                {isEditMode && (
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) =>
+                        handleSelectChange("status", value)
+                      }
+                    >
+                      <SelectTrigger id="status">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right column - Event image and preview */}
+        <div className="lg:col-span-1">
+          <Card className="shadow-md border-0 overflow-hidden mb-6">
+            <CardHeader className="bg-indigo-500 text-white pb-2 pt-4">
+              <CardTitle className="text-lg font-medium">Event Image</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              {/* Image Preview */}
+              {imagePreview ? (
+                <div className="relative mb-4">
+                  <img
+                    src={imagePreview}
+                    alt={formData.name || "Event preview"}
+                    className="w-full aspect-video object-cover rounded-md shadow-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2 opacity-90 hover:opacity-100"
+                    onClick={removeImage}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="flex flex-col items-center justify-center border-2 border-dashed border-indigo-200 rounded-md p-8 mb-4 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer aspect-video"
+                  onClick={triggerFileInput}
+                >
+                  <Upload className="h-10 w-10 text-indigo-400 mb-2" />
+                  <p className="text-indigo-600 font-medium">
+                    Click to upload an image
+                  </p>
+                  <p className="text-indigo-400 text-sm mt-1 text-center">
+                    High-quality images attract more volunteers
+                  </p>
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleImageChange}
+                accept="image/jpeg,image/png,image/gif,image/webp"
+              />
+
+              {/* Only show this button if there's already an image */}
+              {imagePreview && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={triggerFileInput}
+                  className="w-full flex items-center justify-center gap-2 mt-2 bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100"
+                >
+                  <Upload className="h-4 w-4" />
+                  Change Image
+                </Button>
+              )}
+
+              <p className="text-sm text-gray-500 mt-3">
+                Recommended size: 1200x800px. Max size: 5MB. Supported formats:
+                JPEG, PNG, GIF, WEBP.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Event registration stats card */}
+          <Card className="shadow-md border-0 overflow-hidden">
+            <CardHeader className="bg-amber-500 text-white pb-2 pt-4">
+              <CardTitle className="text-lg font-medium">
+                Event Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                  <span className="text-gray-700">Event Type</span>
+                  <Badge
+                    className={
+                      formData.is_recurring
+                        ? "bg-purple-100 text-purple-800 hover:bg-purple-200"
+                        : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                    }
+                  >
+                    {formData.is_recurring ? "RECURRING" : "ONE-TIME"}
+                  </Badge>
+                </div>
+
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                  <span className="text-gray-700">Volunteer Slots</span>
+                  <span className="font-medium text-amber-700">
+                    {formData.max_volunteers}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <XCircle className="h-5 w-5" /> Confirm Event Deletion
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this event? This action cannot be
+              undone.
+              {event?.remainingSlots !== event?.totalSlots && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-600 font-semibold flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Warning: This event has{" "}
+                    <span className="mx-1 text-red-700">
+                      {event?.totalSlots - event?.remainingSlots}
+                    </span>
+                    volunteer(s) registered. Deleting it will cancel all
+                    registrations.
+                  </p>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

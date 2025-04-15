@@ -21,6 +21,7 @@ import {
   ClockIcon,
   RepeatIcon,
   UsersIcon,
+  Trash,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -28,6 +29,14 @@ import ContentHeader from "../../../components/ContentHeader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import EventVolunteersModal from "@/components/EventVolunteersModal.jsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Map of numeric day values to weekday names
 const DAYS_OF_WEEK = {
@@ -54,6 +63,7 @@ function OrganizerEventDetail() {
   const [authError, setAuthError] = useState(false);
   const [showVolunteersModal, setShowVolunteersModal] = useState(false);
   const [rawEventData, setRawEventData] = useState(null);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -281,6 +291,26 @@ function OrganizerEventDetail() {
       console.error("Error refreshing event data:", error);
     }
   };
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+      const response = await Api.deleteEvent(eventId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete event");
+      }
+
+      // Redirect to events list after successful deletion
+      navigate("/organizer");
+    } catch (err) {
+      console.error("Error deleting event:", err);
+      setError("Failed to delete event. Please try again.");
+    } finally {
+      setLoading(false);
+      setShowDeleteConfirmModal(false);
+    }
+  };
 
   // Format recurring days for display
   const formatRecurringDays = (days) => {
@@ -454,27 +484,35 @@ function OrganizerEventDetail() {
           </div>
         </div>
 
-        <div className="flex mt-4 md:mt-0 space-x-2">
-          <Button
-            variant={isEditing ? "outline" : "default"}
-            onClick={toggleEditMode}
-          >
-            {isEditing ? (
-              "Cancel"
-            ) : (
+        <div className="flex flex-col md:flex-row mt-4 md:mt-0 gap-2">
+          <div className="flex gap-2">
+            {!isEditing && (
               <>
-                <PencilIcon className="h-4 w-4 mr-2" /> Edit
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  variant="outline"
+                  className="flex items-center gap-1"
+                >
+                  <PencilIcon className="h-4 w-4" /> Edit
+                </Button>
+                <Button
+                  onClick={() => setShowDeleteConfirmModal(true)}
+                  variant="destructive"
+                  className="flex items-center gap-1"
+                >
+                  <Trash className="h-4 w-4" /> Delete
+                </Button>
               </>
             )}
-          </Button>
 
-          {isEditing ? (
-            <Button onClick={saveEventChanges}>Save Changes</Button>
-          ) : (
-            <Button onClick={() => setShowVolunteersModal(true)}>
-              View Registered Volunteers
-            </Button>
-          )}
+            {isEditing ? (
+              <Button onClick={saveEventChanges}>Save Changes</Button>
+            ) : (
+              <Button onClick={() => setShowVolunteersModal(true)}>
+                View Registered Volunteers
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -825,6 +863,39 @@ function OrganizerEventDetail() {
         eventName={event.title}
         onVolunteerRemoved={refreshEventData}
       />
+
+      <Dialog
+        open={showDeleteConfirmModal}
+        onOpenChange={setShowDeleteConfirmModal}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Event Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this event? This action cannot be
+              undone.
+              {event?.remainingSlots !== event?.totalSlots && (
+                <p className="mt-2 text-red-500 font-semibold">
+                  Warning: This event has{" "}
+                  {event?.totalSlots - event?.remainingSlots} volunteer(s)
+                  registered. Deleting it will cancel all registrations.
+                </p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirmModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete Event
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
