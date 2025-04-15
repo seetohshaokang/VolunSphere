@@ -677,7 +677,7 @@ function OrganizerManageEvent() {
               <Button variant="outline" asChild>
                 <Link to="/organizer">Cancel</Link>
               </Button>
-              <Button type="submit" disabled={submitLoading}>
+              <Button type="submit" disabled={submitLoading} className="border-2 border-black">
                 {submitLoading ? (
                   <div className="flex items-center">
                     <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
