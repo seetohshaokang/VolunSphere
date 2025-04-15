@@ -157,10 +157,10 @@ exports.createRegistration = async (req, res) => {
 
     // Create new registration
     const registration = new EventRegistration({
-      volunteer_id: volunteer._id,
+      user_id: userId,
       event_id,
       status: "registered",
-      registration_date: new Date(),
+      signup_date: new Date(),
     });
 
     // Save registration (without transactions)
