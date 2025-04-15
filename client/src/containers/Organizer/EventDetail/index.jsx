@@ -850,7 +850,12 @@ function OrganizerEventDetail() {
               >
                 Cancel
               </Button>
-              <Button onClick={confirmSaveChanges}>Save Changes</Button>
+              <Button
+                onClick={confirmSaveChanges}
+                className="border-2 border-black"
+              >
+                Save Changes
+              </Button>
             </div>
           </div>
         </div>
