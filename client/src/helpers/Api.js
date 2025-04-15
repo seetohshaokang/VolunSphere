@@ -635,6 +635,16 @@ const Api = {
   },
 
   updateReportStatus(id, status, adminNotes, resolutionAction) {
+    // Create a request body object without the resolution_action field
+    const requestBody = {
+      status,
+      admin_notes: adminNotes,
+    };
+    
+    if (status === 'resolved' && resolutionAction) {
+      requestBody.resolution_action = resolutionAction;
+    }
+  
     return fetch(`${SERVER_PREFIX}/admin/reports/${id}`, {
       method: "PUT",
       headers: {
@@ -642,11 +652,7 @@ const Api = {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
-      body: JSON.stringify({
-        status,
-        admin_notes: adminNotes,
-        resolution_action: resolutionAction,
-      }),
+      body: JSON.stringify(requestBody),
     });
   },
 

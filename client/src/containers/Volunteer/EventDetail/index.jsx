@@ -178,7 +178,7 @@ function EventDetail() {
 
   const confirmSignup = async () => {
     try {
-      const response = await Api.signupForEvent(eventId);
+      const response = await Api.registerForEvent(eventId);
 
       if (!response.ok) {
         const errorData = await response.json();

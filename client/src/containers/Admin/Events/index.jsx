@@ -265,19 +265,6 @@ const AdminEvents = () => {
                                             >
                                                 View
                                             </Link>
-                                            {event.status === 'active' && (
-                                                <button
-                                                    className="text-red-600 hover:text-red-900"
-                                                    onClick={() => {
-                                                        if (window.confirm('Are you sure you want to cancel this event?')) {
-                                                            // Call API to cancel event - you'll need to implement this
-                                                            alert('Event cancellation would be processed here');
-                                                        }
-                                                    }}
-                                                >
-                                                    Cancel
-                                                </button>
-                                            )}
                                         </td>
                                     </tr>
                                 ))

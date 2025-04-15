@@ -144,9 +144,9 @@ const AdminReports = () => {
               className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             >
               <option value="">All Types</option>
-              <option value="volunteer">Volunteer</option>
-              <option value="organiser">Organiser</option>
-              <option value="event">Event</option>
+              <option value="Volunteer">Volunteer</option>
+              <option value="Organiser">Organiser</option>
+              <option value="Event">Event</option>
             </select>
           </div>
         </div>

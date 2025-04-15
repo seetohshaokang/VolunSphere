@@ -108,6 +108,7 @@ const AdminDashboard = () => {
           <h2 className="text-xl font-semibold mb-4">Reports & Verifications</h2>
           <div className="space-y-2">
             <p>Pending Reports: <span className="font-bold">{stats.reports.pending}</span></p>
+            <p>Under Review Reports: <span className="font-bold">{stats.reports.under_review}</span></p>
             <p>Resolved Reports: <span className="font-bold">{stats.reports.resolved}</span></p>
           </div>
           <div className="mt-4 space-y-2">

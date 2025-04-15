@@ -48,31 +48,69 @@ const AdminReportDetail = () => {
       setShowStatusModal(false);
       return;
     }
-
+  
     try {
       setUpdateLoading(true);
+      console.log("Starting status update with:", {
+        newStatus,
+        adminNotes,
+        resolutionAction,
+        reportType: report.reported_type
+      });
       
-      // If resolving or dismissing, require resolution action
+      // If resolving or dismissing, require admin notes
       if ((newStatus === 'resolved' || newStatus === 'dismissed') && !adminNotes) {
         alert('Please provide admin notes for resolving or dismissing a report');
         return;
       }
-
+  
       // If resolving, validate resolution action
       if (newStatus === 'resolved' && resolutionAction === 'none' && 
           report.reported_type !== 'Event') {
         alert('Please select a resolution action when resolving a report');
         return;
       }
-
-      const response = await Api.updateReportStatus(
-        id, 
-        newStatus, 
-        adminNotes, 
-        newStatus === 'resolved' ? resolutionAction : undefined
-      );
+  
+      // Prepare data for API call
+      const requestBody = {
+        status: newStatus,
+        admin_notes: adminNotes || "" // Ensure we send an empty string, not undefined
+      };
       
-      const data = await response.json();
+      // Only add resolution_action when status is resolved
+      if (newStatus === 'resolved') {
+        requestBody.resolution_action = resolutionAction;
+      }
+  
+      console.log("Sending request body:", requestBody);
+  
+      // Make direct fetch request to ensure correct data format
+      const response = await fetch(`${Api.SERVER_PREFIX}/admin/reports/${id}`, {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      
+      // Log the raw response status
+      console.log("Response status:", response.status);
+      
+      // Try to get the response text first to see raw response
+      const responseText = await response.text();
+      console.log("Raw response text:", responseText);
+      
+      // Parse JSON if possible
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("Parsed response data:", data);
+      } catch (parseError) {
+        console.error("Error parsing response JSON:", parseError);
+        throw new Error(`Server response not valid JSON: ${responseText.substring(0, 100)}...`);
+      }
       
       if (!response.ok) {
         throw new Error(data.message || 'Failed to update report status');
