@@ -81,6 +81,9 @@ exports.getDashboardStats = async (req, res) => {
 		const resolvedReports = await Report.countDocuments({
 			status: { $in: ["resolved", "dismissed"] },
 		});
+		const underReviewReports = await Report.countDocuments({
+			status: "under_review",
+		})
 
 		// Step 7: Get count of pending verification requests
 		const pendingVerifications = await Volunteer.countDocuments({
@@ -126,6 +129,7 @@ exports.getDashboardStats = async (req, res) => {
 			reports: {
 				pending: pendingReports,
 				resolved: resolvedReports,
+				under_review : underReviewReports,
 			},
 			verifications: {
 				pending: pendingVerifications,
@@ -752,7 +756,7 @@ exports.getReports = async (req, res) => {
 
 		if (
 			reported_type &&
-			["volunteer", "organiser", "event"].includes(reported_type)
+			["Volunteer", "Organiser", "Event"].includes(reported_type)
 		) {
 			query.reported_type = reported_type;
 		}
@@ -934,110 +938,106 @@ exports.updateReportStatus = async (req, res) => {
 				.json({ message: "Invalid resolution action" });
 		}
 
-		// Step 6: Start a MongoDB transaction to ensure data consistency
-		const session = await mongoose.startSession();
-		session.startTransaction();
+		// Step 6: Update report fields (without transaction)
+		report.status = status;
 
-		try {
-			// Step 7: Update report fields
-			report.status = status;
+		if (admin_notes) {
+			report.admin_notes = admin_notes;
+		}
 
-			if (admin_notes) {
-				report.admin_notes = admin_notes;
-			}
+		if (status === "resolved" || status === "dismissed") {
+			report.resolved_by = admin._id;
+			report.resolution_date = new Date();
+			report.resolution_action = resolution_action || "none";
+		}
 
-			if (status === "resolved" || status === "dismissed") {
-				report.resolved_by = admin._id;
-				report.resolution_date = new Date();
-				report.resolution_action = resolution_action || "none";
-			}
+		await report.save();
 
-			await report.save({ session });
+		// Step 7: Take action based on resolution (if status is "resolved" and action specified)
+		if (
+			status === "resolved" &&
+			resolution_action &&
+			resolution_action !== "none"
+		) {
+			const targetType = report.reported_type.toLowerCase();
+			// Step 7.1: Create admin action record for audit trail
+			const action = new AdminAction({
+				admin_id: admin._id,
+				action: resolution_action,
+				target_type: targetType,
+				target_id: report.reported_id,
+				reason:
+					admin_notes ||
+					`Action taken based on report #${report._id}`,
+				date: new Date(),
+				related_report_id: report._id,
+			});
 
-			// Step 8: Take action based on resolution (if status is "resolved" and action specified)
+			await action.save();
+
+			// Step 7.2: Execute specific action based on type (without transaction)
 			if (
-				status === "resolved" &&
-				resolution_action &&
-				resolution_action !== "none"
+				resolution_action === "suspension" ||
+				resolution_action === "ban"
 			) {
-				// Step 8.1: Create admin action record for audit trail
-				const action = new AdminAction({
-					admin_id: admin._id,
-					action: resolution_action,
-					target_type: report.reported_type,
-					target_id: report.reported_id,
-					reason:
-						admin_notes ||
-						`Action taken based on report #${report._id}`,
-					date: new Date(),
-					related_report_id: report._id,
-				});
+				// Get the user associated with the reported entity
+				let userToUpdate;
 
-				await action.save({ session });
-
-				// Step 8.2: Execute specific action based on type
-				if (
-					resolution_action === "suspension" ||
-					resolution_action === "ban"
-				) {
-					// Step 8.2.1: Get the user associated with the reported entity
-					let userToUpdate;
-
-					if (report.reported_type === "volunteer") {
-						const volunteer = await Volunteer.findById(
-							report.reported_id
-						).session(session);
+				if (report.reported_type === "Volunteer") {
+					const volunteer = await Volunteer.findById(
+						report.reported_id
+					);
+					if (volunteer) {
 						userToUpdate = await User.findById(
 							volunteer.user_id
-						).session(session);
-					} else if (report.reported_type === "organiser") {
-						const organiser = await Organiser.findById(
-							report.reported_id
-						).session(session);
+						);
+					}
+				} else if (report.reported_type === "Organiser") {
+					const organiser = await Organiser.findById(
+						report.reported_id
+					);
+					if (organiser) {
 						userToUpdate = await User.findById(
 							organiser.user_id
-						).session(session);
+						);
 					}
-
-					// Step 8.2.2: Update user status based on action
-					if (userToUpdate) {
-						userToUpdate.status =
-							resolution_action === "ban"
-								? "inactive"
-								: "suspended";
-						await userToUpdate.save({ session });
-					}
-				} else if (
-					resolution_action === "event_removed" &&
-					report.reported_type === "event"
-				) {
-					// Step 8.2.3: Cancel the reported event
-					await Event.findByIdAndUpdate(
-						report.reported_id,
-						{ $set: { status: "cancelled" } },
-						{ session }
-					);
 				}
+
+				// Update user status based on action
+				if (userToUpdate) {
+					userToUpdate.status =
+						resolution_action === "ban"
+							? "inactive"
+							: "suspended";
+					await userToUpdate.save();
+				}
+			} else if (
+				resolution_action === "event_removed" &&
+				report.reported_type === "Event"
+			) {
+				// Cancel the reported event
+				await Event.findByIdAndUpdate(
+					report.reported_id,
+					{ $set: { status: "cancelled" } }
+				);
 			}
-
-			// Step 9: Increment admin's reports_handled count for performance tracking
-			admin.reports_handled += 1;
-			await admin.save({ session });
-
-			// Step 10: Commit the transaction
-			await session.commitTransaction();
-			session.endSession();
-
-			return res.status(200).json({
-				message: `Report status updated to ${status}`,
-				report,
-			});
-		} catch (error) {
-			// Roll back transaction on error
-			await session.abortTransaction();
-			session.endSession();
-			throw error;
 		}
+
+		// Step 8: Increment admin's reports_handled count
+		admin.reports_handled += 1;
+		await admin.save();
+
+		// Get the updated report with populated fields to return
+		const updatedReport = await Report.findById(id)
+			.populate("reporter_id", "email")
+			.populate("reported_id")
+			.populate("event_id")
+			.populate("resolved_by");
+
+		return res.status(200).json({
+			message: `Report status updated to ${status}`,
+			report: updatedReport,
+		});
 	} catch (error) {
 		console.error("Error updating report status:", error);
 		return res.status(500).json({

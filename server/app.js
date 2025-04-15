@@ -47,7 +47,7 @@ const allowedOrigins = [
 	"https://volunsphere.onrender.com",
 ];
 
-// Enable CORS with origin validation
+// Replace your current cors middleware with this
 app.use(
 	cors({
 		origin: function (origin, callback) {
@@ -61,11 +61,15 @@ app.use(
 			return callback(null, true);
 		},
 		credentials: true, // Allow cookies to be sent with requests
+		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+		allowedHeaders: ["Content-Type", "Authorization", "Accept"],
 		exposedHeaders: [
 			"Content-Type",
 			"Content-Length",
 			"Content-Disposition",
 		],
+		preflightContinue: false,
+		optionsSuccessStatus: 204,
 	})
 );
 
