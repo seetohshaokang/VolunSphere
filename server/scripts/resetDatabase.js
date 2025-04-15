@@ -9,6 +9,7 @@ const EventRegistration = require("../models/EventRegistration");
 const Report = require("../models/Report");
 const Admin = require("../models/Admin");
 const AdminAction = require("../models/AdminAction");
+const Review = require("../models/Review");
 
 // MongoDB connection URI
 const MONGODB_URI =
@@ -30,6 +31,7 @@ async function resetDatabase() {
 		const collectionsToClear = [
 			{ model: AdminAction, name: "AdminAction" },
 			{ model: Report, name: "Report" },
+			{ model: Review, name: "Review" },
 			{ model: EventRegistration, name: "EventRegistration" },
 			{ model: Event, name: "Event" },
 			{ model: Admin, name: "Admin" },
@@ -47,6 +49,8 @@ async function resetDatabase() {
 		}
 
 		console.log("✅ Database reset complete.");
+		console.log("\nTo reseed the database with test data, run:");
+		console.log("node server/scripts/seedTestData.js");
 
 		// Close MongoDB connection
 		await mongoose.connection.close();
