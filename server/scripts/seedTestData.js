@@ -53,24 +53,29 @@ const sampleReviews = [
 const reportReasons = [
 	{
 		reason: "Inappropriate behavior",
-		details: "The volunteer was making offensive comments to other participants.",
+		details:
+			"The volunteer was making offensive comments to other participants.",
 	},
 	{
 		reason: "Misleading event description",
-		details: "The event description did not match the actual activities at all. We were told we would be working on environmental cleanup but ended up doing data entry work instead.",
+		details:
+			"The event description did not match the actual activities at all. We were told we would be working on environmental cleanup but ended up doing data entry work instead.",
 	},
 	{
 		reason: "Safety concerns",
-		details: "There were insufficient safety measures at the event. Volunteers were asked to handle hazardous materials without proper protection.",
+		details:
+			"There were insufficient safety measures at the event. Volunteers were asked to handle hazardous materials without proper protection.",
 	},
 	{
 		reason: "No-show organizer",
-		details: "The event organizer didn't show up, and nobody was there to guide volunteers.",
+		details:
+			"The event organizer didn't show up, and nobody was there to guide volunteers.",
 	},
 	{
 		reason: "Fake event",
-		details: "I believe this event may be fraudulent as the location doesn't exist.",
-	}
+		details:
+			"I believe this event may be fraudulent as the location doesn't exist.",
+	},
 ];
 
 async function seedTestData() {
@@ -84,6 +89,18 @@ async function seedTestData() {
 		});
 
 		console.log("✅ Connected to MongoDB");
+
+		// Clear existing test data
+		console.log("🧹 Clearing existing test data...");
+		await User.deleteMany({});
+		await Volunteer.deleteMany({});
+		await Organiser.deleteMany({});
+		await Event.deleteMany({});
+		await EventRegistration.deleteMany({});
+		await Admin.deleteMany({});
+		await Report.deleteMany({});
+		await Review.deleteMany({});
+		console.log("✅ Existing test data cleared");
 
 		// Hash password
 		const salt = await bcrypt.genSalt(10);
@@ -114,11 +131,11 @@ async function seedTestData() {
 			skills: ["Education", "Healthcare", "Environment"],
 			preferred_causes: ["education", "healthcare", "environment"],
 			nric_image: {
-				data: Buffer.from('This is fake image data', 'utf-8'), 
-				contentType: 'vite.svg', 
-				uploaded_at: new Date(),  
-				verified: false           
-			}
+				data: Buffer.from("This is fake image data", "utf-8"),
+				contentType: "vite.svg",
+				uploaded_at: new Date(),
+				verified: false,
+			},
 		});
 
 		await volunteer.save();
@@ -134,7 +151,6 @@ async function seedTestData() {
 			status: "active",
 			created_at: new Date(),
 			last_login: new Date(),
-
 		});
 
 		const savedOrganiserUser = await organiserUser.save();
@@ -292,7 +308,7 @@ async function seedTestData() {
 				reason: reportReasons[1].reason,
 				details: reportReasons[1].details,
 				created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-				status: "pending"
+				status: "pending",
 			},
 
 			// Under review report about an organizer (from volunteer)
@@ -305,7 +321,7 @@ async function seedTestData() {
 				reason: reportReasons[3].reason,
 				details: reportReasons[3].details,
 				created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
-				status: "under_review"
+				status: "under_review",
 			},
 
 			// Resolved report about an event (from organizer)
@@ -318,10 +334,13 @@ async function seedTestData() {
 				details: reportReasons[4].details,
 				created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
 				status: "resolved",
-				admin_notes: "Investigated the event and confirmed it was legitimate. Location details were confusing but have been clarified with the organizer.",
+				admin_notes:
+					"Investigated the event and confirmed it was legitimate. Location details were confusing but have been clarified with the organizer.",
 				resolved_by: admin._id,
-				resolution_date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
-				resolution_action: "none"
+				resolution_date: new Date(
+					Date.now() - 12 * 24 * 60 * 60 * 1000
+				), // 12 days ago
+				resolution_action: "none",
 			},
 
 			// Dismissed report about a volunteer (from organizer)
@@ -332,13 +351,17 @@ async function seedTestData() {
 				reported_id: volunteer._id,
 				event_id: createdEvents[0]._id,
 				reason: reportReasons[0].reason,
-				details: "The volunteer was not following instructions and was disruptive.",
+				details:
+					"The volunteer was not following instructions and was disruptive.",
 				created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
 				status: "dismissed",
-				admin_notes: "After speaking with multiple participants, we found no evidence of the reported behavior.",
+				admin_notes:
+					"After speaking with multiple participants, we found no evidence of the reported behavior.",
 				resolved_by: admin._id,
-				resolution_date: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000), // 18 days ago
-				resolution_action: "none"
+				resolution_date: new Date(
+					Date.now() - 18 * 24 * 60 * 60 * 1000
+				), // 18 days ago
+				resolution_action: "none",
 			},
 
 			// Another pending report about the same event (from another user - we'll use the organizer as reporter for simplicity)
@@ -351,8 +374,8 @@ async function seedTestData() {
 				reason: reportReasons[2].reason,
 				details: reportReasons[2].details,
 				created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-				status: "pending"
-			}
+				status: "pending",
+			},
 		];
 
 		// Insert reports
@@ -362,10 +385,8 @@ async function seedTestData() {
 		// Seed reviews
 		console.log("📝 Creating event reviews...");
 
-		// Clear existing reviews
-		await Review.deleteMany({});
-
 		const reviews = [];
+		const timestamp = Date.now(); // Add timestamp to make emails unique
 
 		// Create 2-3 reviews for each event
 		for (const event of createdEvents) {
@@ -378,8 +399,14 @@ async function seedTestData() {
 				entity_type: "Event",
 				entity_id: event._id,
 				rating: Math.floor(Math.random() * 3) + 3, // 3-5 rating for test volunteer
-				comment: sampleReviews[Math.floor(Math.random() * sampleReviews.length)].comment,
-				created_at: new Date(Date.now() - Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000), // Random date in the last 10 days
+				comment:
+					sampleReviews[
+						Math.floor(Math.random() * sampleReviews.length)
+					].comment,
+				created_at: new Date(
+					Date.now() -
+						Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000
+				), // Random date in the last 10 days
 				updated_at: new Date(),
 			};
 			reviews.push(userReview);
@@ -387,9 +414,13 @@ async function seedTestData() {
 			// Additional reviews (1-2 more)
 			// We'll create some temporary users for these reviews
 			for (let i = 0; i < numReviews - 1; i++) {
-				// Create a temporary user for the review
+				// Create a temporary user for the review with a unique email
+				const uniqueEmail = `reviewer${i}_${timestamp}_${Math.floor(
+					Math.random() * 10000
+				)}@example.com`;
+
 				const tempUser = new User({
-					email: `reviewer${i}@example.com`,
+					email: uniqueEmail,
 					password: hashedPassword,
 					role: "volunteer",
 					status: "active",
@@ -414,8 +445,14 @@ async function seedTestData() {
 					entity_type: "Event",
 					entity_id: event._id,
 					rating: Math.floor(Math.random() * 5) + 1, // 1-5 rating
-					comment: sampleReviews[Math.floor(Math.random() * sampleReviews.length)].comment,
-					created_at: new Date(Date.now() - Math.floor(Math.random() * 20) * 24 * 60 * 60 * 1000), // Random date in the last 20 days
+					comment:
+						sampleReviews[
+							Math.floor(Math.random() * sampleReviews.length)
+						].comment,
+					created_at: new Date(
+						Date.now() -
+							Math.floor(Math.random() * 20) * 24 * 60 * 60 * 1000
+					), // Random date in the last 20 days
 					updated_at: new Date(),
 				};
 				reviews.push(review);
