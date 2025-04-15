@@ -181,17 +181,30 @@ function EventDetail() {
     return Math.max(0, event.max_volunteers - (event.registered_count || 0));
   };
 
+  // In index.jsx - modify the confirmSignup function
   const confirmSignup = async () => {
     try {
       const response = await Api.registerForEvent(eventId);
 
       if (!response.ok) {
         const errorData = await response.json();
+
         // Check if the error is due to being previously removed
         if (errorData.wasRemoved) {
           setWasRemoved(true);
-          setRemovalReason(errorData.removalReason || "");
+          setRemovalReason(
+            errorData.removalReason || "Removed by event organizer"
+          );
         }
+        // NEW CHECK: Handle NRIC verification requirement
+        else if (errorData.requiresVerification) {
+          setError(
+            "Your NRIC needs to be verified before you can sign up for events. Please visit your profile to submit your NRIC for verification."
+          );
+          setShowConfirmModal(false);
+          return;
+        }
+
         throw new Error(errorData.message || "Failed to sign up for event");
       }
 
@@ -212,7 +225,6 @@ function EventDetail() {
       setShowConfirmModal(false);
     }
   };
-
   const cancelSignup = async () => {
     try {
       const response = await Api.removeEventSignup(eventId);

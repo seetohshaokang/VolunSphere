@@ -779,6 +779,7 @@ exports.deleteEvent = async (req, res) => {
 /**
  * Sign up for an event
  */
+// In eventController.js - signupForEvent function
 exports.signupForEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -840,6 +841,14 @@ exports.signupForEvent = async (req, res) => {
     const volunteer = await Volunteer.findOne({ user_id: userId });
     if (!volunteer) {
       return res.status(404).json({ message: "Volunteer profile not found" });
+    }
+
+    // NEW CHECK: Verify the volunteer's NRIC is verified
+    if (!volunteer.nric_image.verified) {
+      return res.status(403).json({ 
+        message: "You need to verify your NRIC before signing up for events",
+        requiresVerification: true 
+      });
     }
 
     // Create new registration or update existing one if it was previously cancelled
