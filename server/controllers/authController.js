@@ -227,8 +227,12 @@ exports.loginUser = async (req, res) => {
 		}
 
 		// Step 3: Check if user account is active
-		if (user.status !== "active") {
-			return res.status(401).json({ message: "Account is not active" });
+		if (user.status === "suspended") {
+			return res.status(401).json({ message: "Account has been suspended. Please contact our staff for assistance" });
+		}
+
+		if (user.status === "inactive") {
+			return res.status(401).json({ message: "Account has been deactivated. Please contact our staff for assistance" });
 		}
 
 		// Step 4: Verify password

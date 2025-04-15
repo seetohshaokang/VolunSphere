@@ -404,7 +404,6 @@ exports.updateUserStatus = async (req, res) => {
 		// Step 1: Verify user has admin permissions
 		const adminUserId = req.user.id;
 		const admin = await Admin.findOne({ user_id: adminUserId });
-
 		if (!admin) {
 			return res.status(403).json({
 				message: "Access denied. Admin permissions required.",
@@ -422,14 +421,12 @@ exports.updateUserStatus = async (req, res) => {
 		// Step 3: Validate status
 		if (!status || !["active", "inactive", "suspended"].includes(status)) {
 			return res.status(400).json({
-				message:
-					"Invalid status. Must be active, inactive, or suspended.",
+				message: "Invalid status. Must be active, inactive, or suspended.",
 			});
 		}
 
 		// Step 4: Get user and verify existence
 		const user = await User.findById(id);
-
 		if (!user) {
 			return res.status(404).json({ message: "User not found" });
 		}
@@ -446,64 +443,53 @@ exports.updateUserStatus = async (req, res) => {
 			return res.status(404).json({ message: "User profile not found" });
 		}
 
-		// Step 6: Start a MongoDB transaction to ensure data consistency
-		const session = await mongoose.startSession();
-		session.startTransaction();
-
 		try {
-			// Step 7: Update user status
+			// Step 6: Update user status
 			user.status = status;
-			await user.save({ session });
+			await user.save();
 
-			// Step 8: Create admin action record for audit trail
+			// Step 7: Create admin action record for audit trail
 			const action = new AdminAction({
 				admin_id: admin._id,
 				action:
 					status === "suspended"
 						? "suspension"
 						: status === "active"
-							? "activation"
-							: "deactivation",
+						? "activation"
+						: "deactivation",
 				target_type: user.role,
 				target_id: profile._id,
 				reason: reason || `User ${status} by admin`,
 				date: new Date(),
 			});
+			await action.save();
 
-			await action.save({ session });
-
-			// Step 9: Handle side effects based on status change
-			// Step 9.1: For suspended volunteers, cancel their active registrations
+			// Step 8: Handle side effects based on status change
 			if (status === "suspended" && user.role === "volunteer") {
 				await EventRegistration.updateMany(
 					{ volunteer_id: profile._id, status: "registered" },
-					{ $set: { status: "cancelled" } },
-					{ session }
+					{ $set: { status: "cancelled" } }
 				);
 			}
 
-			// Step 9.2: For suspended organisers, cancel their active events
 			if (status === "suspended" && user.role === "organiser") {
 				await Event.updateMany(
 					{ organiser_id: profile._id, status: "active" },
-					{ $set: { status: "cancelled" } },
-					{ session }
+					{ $set: { status: "cancelled" } }
 				);
 			}
 
-			// Step 10: Commit the transaction
-			await session.commitTransaction();
-			session.endSession();
-
+			// Step 9: Return success
 			return res.status(200).json({
 				message: `User status updated to ${status}`,
 				user: { ...user.toObject(), status },
 			});
 		} catch (error) {
-			// Roll back transaction on error
-			await session.abortTransaction();
-			session.endSession();
-			throw error;
+			console.error("Error during status update:", error);
+			return res.status(500).json({
+				message: "Failed to update status",
+				error: error.message,
+			});
 		}
 	} catch (error) {
 		console.error("Error updating user status:", error);

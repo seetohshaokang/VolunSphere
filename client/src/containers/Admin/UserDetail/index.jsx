@@ -259,7 +259,7 @@ const AdminUserDetail = () => {
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowStatusModal(true)}
-          className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded"
+           className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
         >
           Change User Status
         </button>
@@ -651,7 +651,7 @@ const AdminUserDetail = () => {
                   </button>
                   <button
                     onClick={handleStatusUpdate}
-                    className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
                     disabled={statusUpdateLoading || !newStatus || newStatus === userData.user.status}
                   >
                     {statusUpdateLoading ? 'Updating...' : 'Update Status'}
