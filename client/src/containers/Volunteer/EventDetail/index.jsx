@@ -176,38 +176,46 @@ function EventDetail() {
     setShowConfirmModal(true);
   };
 
-  const confirmSignup = async () => {
-    try {
-      const response = await Api.registerForEvent(eventId);
+// In index.jsx - modify the confirmSignup function
+const confirmSignup = async () => {
+  try {
+    const response = await Api.registerForEvent(eventId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        // Check if the error is due to being previously removed
-        if (errorData.wasRemoved) {
-          setWasRemoved(true);
-          setRemovalReason(errorData.removalReason || "");
-        }
-        throw new Error(errorData.message || "Failed to sign up for event");
+    if (!response.ok) {
+      const errorData = await response.json();
+      
+      // Check if the error is due to being previously removed
+      if (errorData.wasRemoved) {
+        setWasRemoved(true);
+        setRemovalReason(errorData.removalReason || "Removed by event organizer");
       }
-
-      // Re-fetch the event to get the updated capacity count
-      await fetchEventDetails();
-
-      setIsSignedUp(true);
-      setShowConfirmModal(false);
-      setSignupSuccess(true);
-
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setSignupSuccess(false);
-      }, 3000);
-    } catch (err) {
-      console.error("Error signing up for event:", err);
-      setError(err.message || "Failed to sign up for event. Please try again.");
-      setShowConfirmModal(false);
+      // NEW CHECK: Handle NRIC verification requirement
+      else if (errorData.requiresVerification) {
+        setError("Your NRIC needs to be verified before you can sign up for events. Please visit your profile to submit your NRIC for verification.");
+        setShowConfirmModal(false);
+        return;
+      }
+      
+      throw new Error(errorData.message || "Failed to sign up for event");
     }
-  };
 
+    // Re-fetch the event to get the updated capacity count
+    await fetchEventDetails();
+
+    setIsSignedUp(true);
+    setShowConfirmModal(false);
+    setSignupSuccess(true);
+
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+      setSignupSuccess(false);
+    }, 3000);
+  } catch (err) {
+    console.error("Error signing up for event:", err);
+    setError(err.message || "Failed to sign up for event. Please try again.");
+    setShowConfirmModal(false);
+  }
+};
   const cancelSignup = async () => {
     try {
       const response = await Api.removeEventSignup(eventId);
