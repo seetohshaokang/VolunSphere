@@ -458,6 +458,7 @@ function OrganizerEventDetail() {
           <Button
             variant={isEditing ? "outline" : "default"}
             onClick={toggleEditMode}
+            className={isEditing ? "" : "border-2 border-black"}
           >
             {isEditing ? (
               "Cancel"
@@ -471,7 +472,7 @@ function OrganizerEventDetail() {
           {isEditing ? (
             <Button onClick={saveEventChanges} className="border-2 border-black">Save Changes</Button>
           ) : (
-            <Button onClick={() => setShowVolunteersModal(true)}>
+            <Button onClick={() => setShowVolunteersModal(true)} className="border-2 border-black">
               View Registered Volunteers
             </Button>
           )}
