@@ -2,36 +2,34 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, Share } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
-import ReviewSection from "../../../components/ReviewSection";
 import { getEventImageUrl } from "../../../helpers/eventHelper";
 
 function EventDetail() {
-  const { eventId } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [event, setEvent] = useState(null);
-  const [loading, setLoading] = useState(true);
+	const { eventId } = useParams();
+	const navigate = useNavigate();
+	const { user } = useAuth();
+	const [event, setEvent] = useState(null);
+	const [loading, setLoading] = useState(true);
   const [isSignedUp, setIsSignedUp] = useState(false);
   const [wasRemoved, setWasRemoved] = useState(false);
   const [removalReason, setRemovalReason] = useState("");
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [signupSuccess, setSignupSuccess] = useState(false);
-  const [error, setError] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
+	const [showConfirmModal, setShowConfirmModal] = useState(false);
+	const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+  const [isLoading, setIsLoading] = useState(false);
 
   // Update timestamp after fetching event details
   useEffect(() => {
@@ -59,14 +57,25 @@ function EventDetail() {
     }
   }, [user, event]);
 
-  // Fetch event details
-  const fetchEventDetails = async () => {
-    setLoading(true);
-    setError(null);
+  // Update the useEffect dependencies to properly trigger signup status check
+	useEffect(() => {
+    // Only check signup status if user is logged in and event is loaded
+    if (user && event) {
+      console.log("Checking signup status for user:", user.id, "event:", eventId);
+      checkSignupStatus();
+    }
+  }, [user, event, eventId]); // Include eventId in the dependency array
 
-    try {
-      // Using the Api helper to fetch event
-      const response = await Api.getEvent(eventId);
+  // Fetch event details with better error handling and signup status check
+		const fetchEventDetails = async () => {
+			setLoading(true);
+			setError(null);
+
+			try {
+      console.log("Fetching event details for event:", eventId);
+      
+				// Using the Api helper to fetch event
+				const response = await Api.getEvent(eventId);
 
       if (!response.ok) {
         // Handle non-200 responses
@@ -78,70 +87,55 @@ function EventDetail() {
         }
       }
 
-      const eventData = await response.json();
-      setEvent(eventData);
+				const eventData = await response.json();
+      console.log("Event data fetched successfully:", eventData.name);
+				setEvent(eventData);
 
-      // We don't check signup status here anymore since it's handled in a separate useEffect
-    } catch (err) {
-      console.error("Error fetching event details:", err);
-      setError(
+      // After event is loaded and if user is logged in, check signup status
+				if (user) {
+        await checkSignupStatus();
+				}
+			} catch (err) {
+				console.error("Error fetching event details:", err);
+				setError(
         err.message || "Failed to load event details. Please try again later."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+				);
+			} finally {
+				setLoading(false);
+			}
+		};
 
-  useEffect(() => {
-    fetchEventDetails();
-  }, [eventId, user]);
-
-  // Fetch event reviews
-  useEffect(() => {
-    const fetchReviews = async () => {
-      setReviewsLoading(true);
-
-      try {
-        const response = await Api.getEventReviews(eventId);
-        const reviewsData = await response.json();
-        setReviews(reviewsData);
-      } catch (err) {
-        console.error("Error fetching event reviews:", err);
-        // Not showing error for reviews as it's not critical
-        setReviews([]);
-      } finally {
-        setReviewsLoading(false);
-      }
-    };
-
-    if (eventId) {
-      fetchReviews();
-    }
-  }, [eventId]);
-
-  // Check if user is already signed up or has been removed
+  // Enhance checkSignupStatus to better handle the response
   const checkSignupStatus = async () => {
-    // Do nothing if user is not logged in
-    if (!user) {
+    // Do nothing if user is not logged in or no event
+    if (!user || !event) {
       setIsSignedUp(false);
       setWasRemoved(false);
       return;
     }
 
     try {
+      console.log("Fetching signup status for event:", eventId);
       const response = await Api.checkEventSignupStatus(eventId);
+      console.log("Signup status response:", response.status);
 
       if (response.ok) {
-        const data = await response.json();
-        setIsSignedUp(data.isSignedUp);
-        setWasRemoved(data.wasRemoved);
+			const data = await response.json();
+        console.log("Signup status data:", data);
+        
+        // Update state based on response
+        setIsSignedUp(!!data.isSignedUp);
+        setWasRemoved(!!data.wasRemoved);
         setRemovalReason(data.removalReason || "");
+        
+        console.log("Updated isSignedUp state to:", !!data.isSignedUp);
       } else {
+        console.error("Error response from signup status check:", response.status);
         // If there's an error, assume not signed up
         setIsSignedUp(false);
         setWasRemoved(false);
       }
-    } catch (err) {
+		} catch (err) {
       console.error("Error checking signup status:", err);
       // Non-critical error, assume not signed up
       setIsSignedUp(false);
@@ -150,153 +144,296 @@ function EventDetail() {
   };
 
   const handleSignupClick = () => {
-    if (!user) {
-      // Redirect to login if not logged in
-      navigate("/login", { state: { from: `/events/${eventId}` } });
-      return;
-    }
+		if (!user) {
+			// Redirect to login if not logged in
+			navigate("/login", { state: { from: `/events/${eventId}` } });
+			return;
+		}
 
     // Don't allow signup if previously removed
     if (wasRemoved) {
       return;
     }
 
-    // Check if event is at capacity before showing confirmation modal
-    if (
-      event.max_volunteers > 0 &&
-      (event.registered_count || 0) >= event.max_volunteers
-    ) {
-      setError(
-        "This event has reached maximum capacity. No more slots available."
-      );
-      return;
-    }
+		// Check if event is at capacity before showing confirmation modal
+		if (
+			event.max_volunteers > 0 &&
+			(event.registered_count || 0) >= event.max_volunteers
+		) {
+			setError(
+				"This event has reached maximum capacity. No more slots available."
+			);
+			return;
+		}
 
-    // Show confirmation modal
-    setShowConfirmModal(true);
-  };
+		// Show confirmation modal
+		setShowConfirmModal(true);
+	};
 
   const getAvailableSlots = (event) => {
     if (!event || !event.max_volunteers) return 0;
     return Math.max(0, event.max_volunteers - (event.registered_count || 0));
   };
 
-  // In index.jsx - modify the confirmSignup function
+  // Update the confirmSignup function to handle errors with Alert component
   const confirmSignup = async () => {
+    setIsLoading(true);
+    
     try {
+      console.log("Attempting to sign up for event:", eventId);
       const response = await Api.registerForEvent(eventId);
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      const data = await response.json();
+      console.log("Signup response:", data);
 
-        // Check if the error is due to being previously removed
-        if (errorData.wasRemoved) {
-          setWasRemoved(true);
-          setRemovalReason(
-            errorData.removalReason || "Removed by event organizer"
-          );
-        }
-        // NEW CHECK: Handle NRIC verification requirement
-        else if (errorData.requiresVerification) {
-          setError(
-            "Your NRIC needs to be verified before you can sign up for events. Please visit your profile to submit your NRIC for verification."
-          );
-          setShowConfirmModal(false);
-          return;
-        }
+      if (response.ok) {
+        setSuccessMessage("You have successfully signed up for this event.");
+        
+        // Update state to reflect signup
+        setIsSignedUp(true);
+        
+        // Refresh event details to get updated volunteer count
+        fetchEventDetails();
 
-        throw new Error(errorData.message || "Failed to sign up for event");
-      }
-
-      // Re-fetch the event to get the updated capacity count
-      await fetchEventDetails();
-
-      setIsSignedUp(true);
-      setShowConfirmModal(false);
-      setSignupSuccess(true);
-
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setSignupSuccess(false);
-      }, 3000);
-    } catch (err) {
-      console.error("Error signing up for event:", err);
-      setError(err.message || "Failed to sign up for event. Please try again.");
-      setShowConfirmModal(false);
-    }
-  };
-  const cancelSignup = async () => {
-    try {
-      const response = await Api.removeEventSignup(eventId);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to cancel signup");
-      }
-
-      // Re-fetch the event to get the updated capacity count
-      await fetchEventDetails();
-
-      setIsSignedUp(false);
-      setShowConfirmModal(false);
-    } catch (err) {
-      console.error("Error cancelling signup:", err);
-      setError(err.message || "Failed to cancel signup. Please try again.");
-    }
-  };
-
-  // Helper function to format date strings
-  const formatDateRange = () => {
-    if (event.start_date && event.end_date) {
-      const startDate = new Date(event.start_date);
-      const endDate = new Date(event.end_date);
-
-      const options = {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-      };
-
-      if (startDate.toDateString() === endDate.toDateString()) {
-        return startDate.toLocaleDateString(undefined, options);
+			// Hide success message after 3 seconds
+			setTimeout(() => {
+          setSuccessMessage(null);
+			}, 3000);
       } else {
-        return `${startDate.toLocaleDateString(
-          undefined,
-          options
-        )} - ${endDate.toLocaleDateString(undefined, options)}`;
+        // Handle specific error cases
+        if (data.message && data.message.includes("already signed up")) {
+          setSuccessMessage("You are already signed up for this event.");
+          // Update the state to reflect the user is already signed up
+          setIsSignedUp(true);
+        } else if (data.message && data.message.includes("recurring event")) {
+          setError(data.message || "Cannot sign up for recurring event");
+        } else {
+          setError(data.message || "Failed to sign up for the event. Please try again.");
+        }
       }
-    }
+    } catch (error) {
+      console.error("Error signing up for event:", error);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+			setShowConfirmModal(false);
+      // Re-check signup status to ensure UI is consistent
+      checkSignupStatus();
+		}
+	};
 
-    return "Date information unavailable";
+	// Add this function to determine if an event is completed
+	const isEventCompleted = () => {
+		if (!event) return false;
+		
+		// Find the first valid date from all possible date fields
+		const dateField = event.end_datetime || event.end_date || event.start_datetime || event.start_date;
+		
+		if (!dateField) return false;
+		
+		const eventDate = new Date(dateField);
+		if (isNaN(eventDate.getTime())) {
+			return false;
+		}
+		
+		const now = new Date();    
+		return eventDate < now;
+	};
+
+	// Helper function to format date strings - improved to handle more date formats
+	const formatDateRange = () => {
+		// For events with standard start and end dates
+		if (event.start_date && event.end_date) {
+			const startDate = new Date(event.start_date);
+			const endDate = new Date(event.end_date);
+
+			const options = {
+				weekday: "short",
+				year: "numeric",
+				month: "short",
+				day: "2-digit",
+			};
+
+			if (startDate.toDateString() === endDate.toDateString()) {
+				return startDate.toLocaleDateString(undefined, options);
+			} else {
+				return `${startDate.toLocaleDateString(
+					undefined,
+					options
+				)} - ${endDate.toLocaleDateString(undefined, options)}`;
+			}
+		}
+		
+		// For events with datetime fields (includes time)
+		if (event.start_datetime) {
+			const startDateTime = new Date(event.start_datetime);
+			
+			const dateOptions = {
+				weekday: "short",
+				year: "numeric",
+				month: "short",
+				day: "2-digit",
+			};
+			
+			const timeOptions = {
+				hour: '2-digit',
+				minute: '2-digit'
+			};
+			
+			const dateStr = startDateTime.toLocaleDateString(undefined, dateOptions);
+			const timeStr = startDateTime.toLocaleTimeString(undefined, timeOptions);
+			
+			if (event.end_datetime) {
+				const endDateTime = new Date(event.end_datetime);
+				
+				if (startDateTime.toDateString() === endDateTime.toDateString()) {
+					// Same day, show date once with time range
+					const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
+					return `${dateStr}, ${timeStr} - ${endTimeStr}`;
+				} else {
+					// Different days, show complete range
+					const endDateStr = endDateTime.toLocaleDateString(undefined, dateOptions);
+					const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
+					return `${dateStr}, ${timeStr} - ${endDateStr}, ${endTimeStr}`;
+				}
+			}
+			
+			return `${dateStr}, ${timeStr}`;
+		}
+		
+		// For recurring events
+		if (event.is_recurring) {
+			if (event.recurrence_start_date && event.recurrence_end_date) {
+				const startDate = new Date(event.recurrence_start_date);
+				const endDate = new Date(event.recurrence_end_date);
+				
+				const options = {
+					weekday: "short",
+					year: "numeric",
+					month: "short",
+					day: "2-digit",
+				};
+				
+				return `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
+			}
+			
+			if (event.recurrence_start_date) {
+				const startDate = new Date(event.recurrence_start_date);
+				const options = {
+					weekday: "short",
+					year: "numeric",
+					month: "short",
+					day: "2-digit",
+				};
+				return startDate.toLocaleDateString(undefined, options);
+			}
+		}
+
+		return "Date information unavailable";
+	};
+
+  // Add the cancelRegistration function back with the completed event check
+  const cancelRegistration = async () => {
+    // Don't allow cancellation for completed events
+    if (isEventCompleted()) {
+      setShowConfirmModal(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log("Attempting to cancel registration for event:", eventId);
+      
+      // Make sure we're using the cancelEventRegistration function
+      const response = await Api.cancelEventRegistration(eventId);
+      
+      // Add debugging for API response
+      console.log("Cancel registration response status:", response.status);
+      
+      // For non-JSON responses
+      if (!response.ok && response.status !== 404) {
+        let errorMessage;
+        try {
+          // Try to parse as JSON
+          const errorData = await response.json();
+          errorMessage = errorData.message || "Failed to cancel registration";
+          console.error("Error response data:", errorData);
+        } catch (e) {
+          // If not JSON, use status text
+          errorMessage = response.statusText || "Failed to cancel registration";
+          console.error("Non-JSON error response:", response.statusText);
+        }
+        
+        setError(errorMessage);
+        setIsLoading(false);
+        setShowConfirmModal(false);
+        return;
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+        console.log("Cancellation response data:", data);
+      } catch (e) {
+        console.log("No JSON in response or empty response");
+        data = {};
+      }
+
+      if (response.ok) {
+        setSuccessMessage("You have successfully cancelled your registration for this event.");
+        
+        // Update state to reflect cancellation
+        setIsSignedUp(false);
+        
+        // Refresh event details to get updated volunteer count
+        await fetchEventDetails();
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
+      } else {
+        setError(data.message || "Failed to cancel registration. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error cancelling registration:", error);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setShowConfirmModal(false);
+      // Re-check signup status to ensure UI is consistent
+      await checkSignupStatus();
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p className="ml-3 text-lg">Loading event details...</p>
-      </div>
-    );
-  }
+	if (loading) {
+		return (
+			<div className="flex justify-center py-12">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+				<p className="ml-3 text-lg">Loading event details...</p>
+			</div>
+		);
+	}
 
-  if (error) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
+	if (error) {
+		return (
+			<Alert variant="destructive" className="my-6">
+				<AlertDescription>{error}</AlertDescription>
+			</Alert>
+		);
+	}
 
-  if (!event) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertDescription>
-          Event not found or has been removed.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+	if (!event) {
+		return (
+			<Alert variant="destructive" className="my-6">
+				<AlertDescription>
+					Event not found or has been removed.
+				</AlertDescription>
+			</Alert>
+		);
+	}
 
   // Check if event is at capacity
   const isEventFull =
@@ -305,6 +442,14 @@ function EventDetail() {
 
   // Render sidebar with registration options
   const renderRegisterSidebar = () => {
+    // Debug log for UI state
+    console.log("Rendering sidebar with state:", { 
+      isSignedUp, 
+      wasRemoved, 
+      eventStatus: event?.status, 
+      isEventFull 
+    });
+
     return (
       <div className="lg:sticky lg:top-24 lg:self-start">
         <div className="bg-white rounded-lg shadow-lg p-6">
@@ -348,24 +493,39 @@ function EventDetail() {
                 You cannot sign up for this event again.
               </p>
             </div>
-          ) : user && isSignedUp ? (
-            <button
-              onClick={() => setShowConfirmModal(true)}
-              className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md text-base font-medium transition-colors"
-            >
-              Cancel Signup
-            </button>
+          ) : isSignedUp ? (
+            <>
+              <div className="mb-4 bg-green-50 p-4 rounded-md">
+                <p className="text-green-700 font-medium">
+                  You are signed up for this event
+                </p>
+              </div>
+              {isEventCompleted() ? (
+                <div className="mb-4 bg-gray-50 p-4 rounded-md">
+                  <p className="text-gray-700">
+                    This event has been completed. You cannot cancel your registration.
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowConfirmModal(true)}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md text-base font-medium transition-colors"
+                >
+                  Cancel Signup
+                </button>
+              )}
+            </>
           ) : (
             <button
               onClick={handleSignupClick}
-              disabled={event.status !== "active" || isEventFull || wasRemoved}
+              disabled={!event.status || event.status !== "active" || isEventFull || wasRemoved}
               className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${
-                event.status !== "active" || isEventFull || wasRemoved
+                !event.status || event.status !== "active" || isEventFull || wasRemoved
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700 text-white"
               }`}
             >
-              {event.status !== "active"
+              {!event.status || event.status !== "active"
                 ? "Event Not Active"
                 : isEventFull
                 ? "No Spots Available"
@@ -397,7 +557,7 @@ function EventDetail() {
     );
   };
 
-  return (
+	return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 mt-6">
       {/* Breadcrumb navigation */}
       <nav className="mb-5">
@@ -431,18 +591,13 @@ function EventDetail() {
             {event.organiser_name || "Organization"}
           </span>
         </div>
-        <div className="absolute top-0 right-0">
-          <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            <Share className="h-4 w-4 mr-1" /> Share
-          </button>
-        </div>
       </div>
 
       {/* Registration success message */}
-      {signupSuccess && (
+      {successMessage && (
         <Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
           <AlertDescription>
-            You have successfully signed up for this event!
+            {successMessage}
           </AlertDescription>
         </Alert>
       )}
@@ -457,43 +612,91 @@ function EventDetail() {
                 event.image_url
                   ? getEventImageUrl(event.image_url, imageTimestamp)
                   : `https://source.unsplash.com/random/800x400/?${
-                      event.cause || "volunteer"
-                    }`
+                  event.cause || "volunteer"
+                }`
               }
               alt={event.name}
               className="w-full h-full object-cover"
             />
           </div>
 
-          {/* Rest of the event details content */}
-          {/* ... (rest of your component remains unchanged) ... */}
+          {/* Event Description */}
+          <div className="prose max-w-none mb-8">
+            <h2 className="text-xl font-semibold mb-4">Description</h2>
+            <div className="whitespace-pre-line">{event.description}</div>
+          </div>
+
+          {/* Event Details */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Event Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {event.contact_person && (
+              <div>
+                  <h3 className="font-medium text-gray-700">Contact Person</h3>
+                  <p>{event.contact_person}</p>
+                </div>
+              )}
+              {event.contact_email && (
+                <div>
+                  <h3 className="font-medium text-gray-700">Contact Email</h3>
+                  <p>{event.contact_email}</p>
+                </div>
+              )}
+              {event.causes && event.causes.length > 0 && (
+                <div className="md:col-span-2">
+                  <h3 className="font-medium text-gray-700">Causes</h3>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {event.causes.map((cause, index) => (
+                      <span
+                        key={index}
+                        className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md"
+                      >
+                        {cause}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Requirements Section - if available */}
+          {event.requirements && (
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold mb-4">Requirements</h2>
+              <ul className="list-disc pl-5 space-y-1">
+                {event.requirements
+                  .split(",")
+                  .map((req, index) => (
+                    <li key={index} className="text-gray-700">{req.trim()}</li>
+                  ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Sidebar with registration */}
         {renderRegisterSidebar()}
       </div>
 
-      {/* Reviews Section */}
-      <div className="mb-10">
-        <ReviewSection
-          entityId={event.id}
-          entityType="event"
-          entityName={event.name}
-          reviews={reviews}
-          isLoading={reviewsLoading}
-          maxShownReviews={2}
-        />
-      </div>
-
       {/* Confirmation Dialog */}
-      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+      <Dialog 
+        open={showConfirmModal} 
+        onOpenChange={(open) => {
+          // When dialog is closed, check signup status again
+          if (!open) {
+            setShowConfirmModal(false);
+            checkSignupStatus(); // Re-check signup status when dialog closes
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md bg-white">
           <DialogHeader>
             <DialogTitle>
-              {user && isSignedUp ? "Cancel Signup" : "Confirm Signup"}
+              {isSignedUp ? "Cancel Signup" : "Confirm Signup"}
             </DialogTitle>
             <DialogDescription>
-              {user && isSignedUp ? (
+              {isSignedUp ? (
                 <p>
                   Are you sure you want to cancel your signup for this event?
                   This action cannot be undone.
@@ -517,10 +720,8 @@ function EventDetail() {
                     )}
                   </ul>
                   {event.is_recurring && (
-                    <p className="font-medium">
-                      <strong>Note:</strong> This is a recurring event. By
-                      signing up, you are committing to attend all sessions
-                      within the specified date range.
+                    <p className="font-medium text-yellow-600 mt-2 mb-2">
+                      <strong>Important:</strong> This is a recurring event. You can only sign up for one instance of a recurring event. If you sign up for this event, you won't be able to sign up for other instances.
                     </p>
                   )}
                 </>
@@ -535,11 +736,11 @@ function EventDetail() {
               Cancel
             </Button>
             <Button
-              variant={user && isSignedUp ? "destructive" : "default"}
-              onClick={user && isSignedUp ? cancelSignup : confirmSignup}
-              className={user && isSignedUp ? "" : "border-2 border-black"}
+              variant={isSignedUp ? "destructive" : "default"}
+              onClick={isSignedUp ? cancelRegistration : confirmSignup}
+              className={isSignedUp ? "" : "border-2 border-black"}
             >
-              {user && isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
+              {isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
             </Button>
           </DialogFooter>
         </DialogContent>

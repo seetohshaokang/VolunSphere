@@ -4,6 +4,7 @@ import { Route } from "react-router-dom";
 import Profile from "../containers/Common/Profile";
 import OrganizerProfile from "../containers/Volunteer/OrganizerProfile";
 import ReviewPage from "../containers/Volunteer/Review";
+import VolunteerEventDetail from "../containers/Volunteer/EventDetail";
 import ProtectedRoute from "./ProtectedRoute";
 
 export const VolunteerRoutes = (
@@ -38,6 +39,14 @@ export const VolunteerRoutes = (
 				element={
 					<ProtectedRoute roleRequired="volunteer">
 						<ReviewPage />
+					</ProtectedRoute>
+				}
+			/>
+			<Route
+				path="/volunteer/events/:eventId"
+				element={
+					<ProtectedRoute roleRequired="volunteer">
+						<VolunteerEventDetail />
 					</ProtectedRoute>
 				}
 			/>

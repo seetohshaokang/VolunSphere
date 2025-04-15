@@ -285,16 +285,7 @@ function OrganizerDashboard() {
   };
 
   const handleCreateEventClick = () => {
-    if (isVerified) {
-      navigate("/events/create");
-    } else {
-      // Redirect to profile page with a notification
-      navigate("/profile", { 
-        state: { 
-          notification: "You need to be verified before creating events. Please complete your profile verification." 
-        } 
-      });
-    }
+    navigate("/events/create");
   };
   
   // Calculate total volunteers with defensive check

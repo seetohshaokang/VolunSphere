@@ -484,6 +484,7 @@ exports.uploadCertification = async (req, res) => {
 		});
 	}
 };
+
 /**
  * Get events associated with user (registered or organized)
  *
@@ -523,16 +524,32 @@ exports.getProfileEvents = async (req, res) => {
 					.json({ message: "Volunteer profile not found" });
 			}
 
-			// Get registered events
-			const registrations = await EventRegistration.find({
-				volunteer_id: volunteer._id,
-			}).populate("event_id");
+			console.log("🔍 Volunteer found:", volunteer._id);
 
-			events = registrations.map((reg) => ({
-				...reg.event_id._doc,
-				registration_status: reg.status,
-				registration_date: reg.registration_date,
-			}));
+			// Get registered events using user_id (volunteer_id is not in the schema)
+			const registrations = await EventRegistration.find({
+				user_id: userId
+			}).populate("event_id");
+			
+			console.log("🔍 Registrations found:", registrations.length);
+			
+			// Filter out any registrations with null event_id
+			const validRegistrations = registrations.filter(reg => reg.event_id);
+			console.log("🔍 Valid registrations with event data:", validRegistrations.length);
+
+			events = validRegistrations.map((reg) => {
+				// Ensure we have event_id data before accessing _doc
+				if (!reg.event_id || !reg.event_id._doc) {
+					console.log("❌ Missing event data for registration:", reg._id);
+					return null;
+				}
+				
+				return {
+					...reg.event_id._doc,
+					registration_status: reg.status,
+					registration_date: reg.signup_date || reg.registration_date,
+				};
+			}).filter(Boolean); // Remove null entries
 		} else if (user.role === "organiser") {
 			// Get organiser profile
 			const organiser = await Organiser.findOne({ user_id: userId });
