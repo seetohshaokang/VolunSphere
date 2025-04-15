@@ -45,6 +45,6 @@ router.post("/reset-password", authController.requestPasswordReset);
  * @desc    Reset password using the provided reset token
  * @access  Public
  */
-router.put("/reset-password", authController.resetPassword);
+router.post("/reset-password/:token", authController.resetPassword);
 
 module.exports = router;

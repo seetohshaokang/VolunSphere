@@ -4,6 +4,8 @@ const User = require("../models/User");
 const Volunteer = require("../models/Volunteer");
 const Organiser = require("../models/Organiser");
 const Admin = require("../models/Admin");
+const crypto = require("crypto");
+const { sendResetEmail } = require("../utils/emailUtils");
 
 /**
  * Register a new volunteer
@@ -228,11 +230,17 @@ exports.loginUser = async (req, res) => {
 
 		// Step 3: Check if user account is active
 		if (user.status === "suspended") {
-			return res.status(401).json({ message: "Account has been suspended. Please contact our staff for assistance" });
+			return res.status(401).json({
+				message:
+					"Account has been suspended. Please contact our staff for assistance",
+			});
 		}
 
 		if (user.status === "inactive") {
-			return res.status(401).json({ message: "Account has been deactivated. Please contact our staff for assistance" });
+			return res.status(401).json({
+				message:
+					"Account has been deactivated. Please contact our staff for assistance",
+			});
 		}
 
 		// Step 4: Verify password
@@ -340,41 +348,29 @@ exports.logoutUser = async (req, res) => {
 exports.requestPasswordReset = async (req, res) => {
 	try {
 		const { email } = req.body;
-
-		// Step 1: Validate required input
-		if (!email) {
-			return res.status(400).json({ message: "Email is required" });
-		}
-
-		// Step 2: Find user by email
 		const user = await User.findOne({ email });
+
 		if (!user) {
-			// Security best practice: Don't reveal that the email doesn't exist
-			return res.status(200).json({
-				message:
-					"If your email exists in our system, you will receive a password reset link",
-			});
+			return res
+				.status(404)
+				.json({ error: true, message: "User not found" });
 		}
 
-		// Step 3: Generate reset token with expiration
-		const resetToken = jwt.sign(
-			{ id: user._id },
-			process.env.JWT_RESET_SECRET,
-			{ expiresIn: "1h" }
-		);
+		// Generate random token
+		const token = crypto.randomBytes(32).toString("hex");
 
-		// Step 4: In production, send reset link via email
-		// For now, return token directly for testing
-		return res.status(200).json({
-			message: "Password reset link sent to your email",
-			resetToken, // Note: Remove this in production
-		});
+		// Store token and expiration in user document
+		user.resetPasswordToken = token;
+		user.resetPasswordExpires = Date.now() + 3600000;
+		await user.save();
+
+		// Send password reset email
+		await sendResetEmail(email, token);
+
+		res.json({ success: true, message: "Reset email send" });
 	} catch (error) {
-		console.error("Error requesting password reset:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
+		console.error("Password reset request error:", error);
+		res.status(500).json({ error: true, message: "Server error" });
 	}
 };
 
@@ -401,49 +397,34 @@ exports.requestPasswordReset = async (req, res) => {
  */
 exports.resetPassword = async (req, res) => {
 	try {
-		const { token, newPassword, confirmPassword } = req.body;
+		const { token } = req.params;
+		const { newPassword } = req.body;
 
-		// Step 1: Validate required input fields
-		if (!token || !newPassword || !confirmPassword) {
-			return res.status(400).json({ message: "All fields are required" });
-		}
+		// Find user with valid token
+		const user = await User.findOne({
+			resetPasswordToken: token,
+			resetPasswordExpires: { $gt: Date.now() },
+		});
 
-		// Step 2: Validate password confirmation
-		if (newPassword !== confirmPassword) {
-			return res.status(400).json({ message: "Passwords do not match" });
-		}
-
-		// Step 3: Verify token validity and expiration
-		let decoded;
-		try {
-			decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
-		} catch (err) {
+		if (!user) {
 			return res
 				.status(400)
-				.json({ message: "Invalid or expired token" });
+				.json({ error: true, message: "Invalid or expired token" });
 		}
 
-		// Step 4: Find user from token
-		const user = await User.findById(decoded.id);
-		if (!user) {
-			return res.status(404).json({ message: "User not found" });
-		}
-
-		// Step 5: Hash new password
+		// Hash new password
 		const salt = await bcrypt.genSalt(10);
 		const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-		// Step 6: Update user's password
+		// update new password and clear reset token fields
 		user.password = hashedPassword;
+		user.resetPasswordToken = undefined;
+		user.resetPasswordExpires = undefined;
 		await user.save();
 
-		// Step 7: Return success response
-		return res.status(200).json({ message: "Password reset successful" });
+		res.json({ success: true, message: "Password has been reset" });
 	} catch (error) {
-		console.error("Error resetting password:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
+		console.error("Password reset error:", error);
+		res.status(500).json({ error: true, message: "Server error" });
 	}
 };
