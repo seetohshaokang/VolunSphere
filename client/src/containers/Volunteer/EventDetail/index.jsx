@@ -176,6 +176,11 @@ function EventDetail() {
     setShowConfirmModal(true);
   };
 
+  const getAvailableSlots = (event) => {
+    if (!event || !event.max_volunteers) return 0;
+    return Math.max(0, event.max_volunteers - (event.registered_count || 0));
+  };
+
   const confirmSignup = async () => {
     try {
       const response = await Api.registerForEvent(eventId);
@@ -359,10 +364,8 @@ function EventDetail() {
           {event.max_volunteers > 0 && (
             <div className="mt-5 text-center text-gray-600">
               <p className="mb-2">
-                <strong>
-                  {event.max_volunteers - (event.registered_count || 0)}
-                </strong>{" "}
-                of <strong>{event.max_volunteers}</strong> spots left
+                <strong>{getAvailableSlots(event)}</strong> of{" "}
+                <strong>{event.max_volunteers}</strong> spots left
               </p>
               <div className="bg-gray-200 h-2 rounded-full overflow-hidden">
                 <div

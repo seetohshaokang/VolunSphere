@@ -167,6 +167,8 @@ exports.createEvent = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    console.log("Creating event. Request body:", req.body);
+
     // Verify user is an organiser
     const user = await User.findById(userId);
     if (!user || user.role !== "organiser") {
@@ -205,6 +207,38 @@ exports.createEvent = async (req, res) => {
       recurrence_time,
     } = req.body;
 
+    console.log("Processing event data. is_recurring:", is_recurring);
+    console.log("Event type is:", typeof is_recurring, is_recurring);
+
+    // Determine if event is recurring - handle various formats
+    const isEventRecurring =
+      is_recurring === true ||
+      is_recurring === "true" ||
+      is_recurring === 1 ||
+      is_recurring === "1";
+
+    console.log("Determined is_recurring value:", isEventRecurring);
+
+    if (isEventRecurring) {
+      console.log("Processing as recurring event");
+      console.log(
+        "Recurring dates:",
+        recurrence_start_date,
+        recurrence_end_date
+      );
+      console.log("Recurrence days:", recurrence_days);
+      console.log("Recurrence time:", recurrence_time);
+    } else {
+      console.log("Processing as single event");
+      console.log(
+        "Single event dates:",
+        start_date,
+        end_date,
+        start_time,
+        end_time
+      );
+    }
+
     // Validate required fields
     if (!name || !description || !location) {
       return res.status(400).json({
@@ -215,47 +249,249 @@ exports.createEvent = async (req, res) => {
     // Get image_url from middleware (if uploaded)
     const image_url = req.body.image_url || null;
 
-    // Create event object
+    // Process causes - handle string or array
+    let processedCauses;
+    try {
+      processedCauses =
+        typeof causes === "string" ? JSON.parse(causes) : causes || [];
+    } catch (err) {
+      console.error("Error parsing causes:", err);
+      // If parsing fails, try to handle it as a string
+      processedCauses = causes ? [causes] : [];
+    }
+
+    // Create event object with common fields
     const newEvent = new Event({
       organiser_id: organiser._id,
       name,
       description,
       location,
-      causes: causes || [],
-      max_volunteers: max_volunteers || 0,
+      causes: processedCauses,
+      max_volunteers: max_volunteers ? parseInt(max_volunteers, 10) : 0,
       registered_count: 0,
       contact_person: contact_person || organiser.name,
       contact_email: contact_email || user.email,
       status,
-      is_recurring: is_recurring || false,
-      image_url, // Add the image URL
+      is_recurring: isEventRecurring,
+      image_url,
       created_at: new Date(),
     });
 
     // Set specific fields based on event type
-    if (is_recurring) {
-      // Recurring event
-      newEvent.recurrence_pattern = recurrence_pattern;
-      newEvent.recurrence_days = recurrence_days || [];
-      newEvent.recurrence_start_date = new Date(recurrence_start_date);
-      newEvent.recurrence_end_date = new Date(recurrence_end_date);
-      newEvent.recurrence_time = recurrence_time || {
-        start: "09:00",
-        end: "17:00",
-      };
+    if (isEventRecurring) {
+      // Recurring event logic
+
+      // 1. Process recurrence pattern
+      newEvent.recurrence_pattern = recurrence_pattern || "weekly";
+
+      // 2. Process recurrence days - handle string or array
+      try {
+        if (recurrence_days) {
+          if (typeof recurrence_days === "string") {
+            // Try to parse as JSON
+            try {
+              newEvent.recurrence_days = JSON.parse(recurrence_days);
+            } catch (e) {
+              // If not valid JSON, try to parse as comma-separated values
+              newEvent.recurrence_days = recurrence_days
+                .split(",")
+                .map((day) => parseInt(day.trim()));
+            }
+          } else if (Array.isArray(recurrence_days)) {
+            newEvent.recurrence_days = recurrence_days;
+          } else {
+            // Default to an empty array
+            newEvent.recurrence_days = [];
+          }
+        } else {
+          // Default to an empty array if no days provided
+          newEvent.recurrence_days = [];
+        }
+      } catch (err) {
+        console.error("Error processing recurrence days:", err);
+        newEvent.recurrence_days = [];
+      }
+
+      // 3. Process recurrence dates - validate before setting
+      if (recurrence_start_date) {
+        try {
+          const parsedDate = new Date(recurrence_start_date);
+          if (!isNaN(parsedDate.getTime())) {
+            newEvent.recurrence_start_date = parsedDate;
+            console.log(
+              "Valid recurrence start date:",
+              newEvent.recurrence_start_date
+            );
+          } else {
+            console.error(
+              "Invalid recurrence start date:",
+              recurrence_start_date
+            );
+            return res.status(400).json({
+              message: "Invalid recurrence start date format",
+            });
+          }
+        } catch (err) {
+          console.error("Error parsing recurrence start date:", err);
+          return res.status(400).json({
+            message: "Invalid recurrence start date: " + recurrence_start_date,
+          });
+        }
+      } else {
+        // Start date is required
+        return res.status(400).json({
+          message: "Recurrence start date is required for recurring events",
+        });
+      }
+
+      if (recurrence_end_date) {
+        try {
+          const parsedDate = new Date(recurrence_end_date);
+          if (!isNaN(parsedDate.getTime())) {
+            newEvent.recurrence_end_date = parsedDate;
+            console.log(
+              "Valid recurrence end date:",
+              newEvent.recurrence_end_date
+            );
+          } else {
+            console.error("Invalid recurrence end date:", recurrence_end_date);
+            return res.status(400).json({
+              message: "Invalid recurrence end date format",
+            });
+          }
+        } catch (err) {
+          console.error("Error parsing recurrence end date:", err);
+          return res.status(400).json({
+            message: "Invalid recurrence end date: " + recurrence_end_date,
+          });
+        }
+      } else {
+        // End date is required
+        return res.status(400).json({
+          message: "Recurrence end date is required for recurring events",
+        });
+      }
+
+      // 4. Process recurrence time
+      try {
+        if (typeof recurrence_time === "string") {
+          try {
+            newEvent.recurrence_time = JSON.parse(recurrence_time);
+          } catch (e) {
+            // If parsing fails, default to standard times
+            newEvent.recurrence_time = { start: "09:00", end: "17:00" };
+          }
+        } else if (recurrence_time && typeof recurrence_time === "object") {
+          newEvent.recurrence_time = recurrence_time;
+        } else {
+          // Default times
+          newEvent.recurrence_time = { start: "09:00", end: "17:00" };
+        }
+      } catch (err) {
+        console.error("Error parsing recurrence time:", err);
+        newEvent.recurrence_time = { start: "09:00", end: "17:00" };
+      }
+
+      console.log("Processed recurring event data:", {
+        pattern: newEvent.recurrence_pattern,
+        days: newEvent.recurrence_days,
+        start_date: newEvent.recurrence_start_date,
+        end_date: newEvent.recurrence_end_date,
+        time: newEvent.recurrence_time,
+      });
+
+      // Make sure we don't include non-recurring fields that would trigger validation
+      newEvent.start_datetime = undefined;
+      newEvent.end_datetime = undefined;
     } else {
-      // Single event
-      newEvent.start_datetime = new Date(
-        start_date + (start_time ? "T" + start_time : "T00:00:00")
-      );
-      newEvent.end_datetime = new Date(
-        end_date + (end_time ? "T" + end_time : "T23:59:59")
-      );
-      newEvent.start_day_of_week = newEvent.start_datetime.getDay();
+      // Non-recurring event logic
+
+      // Process start date and time
+      if (!start_date) {
+        return res.status(400).json({
+          message: "Start date is required for non-recurring events",
+        });
+      }
+
+      if (!end_date) {
+        return res.status(400).json({
+          message: "End date is required for non-recurring events",
+        });
+      }
+
+      try {
+        const startDateStr =
+          start_date + (start_time ? `T${start_time}:00` : "T00:00:00");
+        console.log("Creating start_datetime from:", startDateStr);
+        const startDateTime = new Date(startDateStr);
+
+        if (isNaN(startDateTime.getTime())) {
+          console.error("Invalid start_datetime:", startDateTime);
+          return res.status(400).json({
+            message: `Invalid start date/time: ${start_date} ${start_time}`,
+          });
+        }
+
+        newEvent.start_datetime = startDateTime;
+        newEvent.start_day_of_week = startDateTime.getDay();
+        console.log("Valid start_datetime:", newEvent.start_datetime);
+      } catch (err) {
+        console.error("Error creating start date:", err);
+        return res.status(400).json({
+          message: `Invalid start date/time: ${start_date} ${start_time}`,
+        });
+      }
+
+      // Process end date and time
+      try {
+        const endDateStr =
+          end_date + (end_time ? `T${end_time}:00` : "T23:59:59");
+        console.log("Creating end_datetime from:", endDateStr);
+        const endDateTime = new Date(endDateStr);
+
+        if (isNaN(endDateTime.getTime())) {
+          console.error("Invalid end_datetime:", endDateTime);
+          return res.status(400).json({
+            message: `Invalid end date/time: ${end_date} ${end_time}`,
+          });
+        }
+
+        newEvent.end_datetime = endDateTime;
+        console.log("Valid end_datetime:", newEvent.end_datetime);
+      } catch (err) {
+        console.error("Error creating end date:", err);
+        return res.status(400).json({
+          message: `Invalid end date/time: ${end_date} ${end_time}`,
+        });
+      }
+
+      // Make sure we don't include recurring fields that would trigger validation
+      newEvent.recurrence_pattern = undefined;
+      newEvent.recurrence_days = undefined;
+      newEvent.recurrence_start_date = undefined;
+      newEvent.recurrence_end_date = undefined;
+      newEvent.recurrence_time = undefined;
+
+      console.log("Processed single event data:", {
+        start_datetime: newEvent.start_datetime,
+        end_datetime: newEvent.end_datetime,
+        start_day_of_week: newEvent.start_day_of_week,
+      });
     }
+
+    console.log("Final event data:", {
+      name: newEvent.name,
+      location: newEvent.location,
+      isRecurring: newEvent.is_recurring,
+      start_datetime: newEvent.start_datetime,
+      end_datetime: newEvent.end_datetime,
+      recurrence_start_date: newEvent.recurrence_start_date,
+      recurrence_end_date: newEvent.recurrence_end_date,
+    });
 
     // Save event
     const savedEvent = await newEvent.save();
+    console.log("Event saved successfully:", savedEvent._id);
 
     return res.status(201).json({
       message: "Event created successfully",
@@ -263,9 +499,25 @@ exports.createEvent = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating event:", error);
+
+    // Improved error handling for validation errors
+    if (error.name === "ValidationError") {
+      const validationErrors = {};
+
+      for (const field in error.errors) {
+        validationErrors[field] = error.errors[field].message;
+      }
+
+      return res.status(400).json({
+        message: "Validation error",
+        errors: validationErrors,
+      });
+    }
+
     return res.status(500).json({
       message: "Server error",
       error: error.message,
+      stack: error.stack,
     });
   }
 };
@@ -690,23 +942,38 @@ exports.removeEventSignup = async (req, res) => {
 
     // If this is an organizer removing a volunteer, mark as removed rather than deleting
     if (wasRemovalByOrganizer) {
+      // Only decrease count if the registration status was active (not already removed)
+      const currentStatus = registration.status;
+
       // Update the registration to mark it as removed by organizer with optional reason
       await EventRegistration.findByIdAndUpdate(registration._id, {
         status: "removed_by_organizer",
         removal_reason: reason || "Removed by event organizer",
       });
+
+      // Only decrement registered_count if the registration was not already cancelled/removed
+      if (currentStatus === "confirmed" || currentStatus === "pending") {
+        // Get current event to check registered_count
+        const event = await Event.findById(id);
+        if (event && event.registered_count > 0) {
+          // Update registered_count in a separate operation
+          await Event.findByIdAndUpdate(id, {
+            registered_count: event.registered_count - 1,
+          });
+        }
+      }
     } else {
       // For self-cancellation by volunteer, delete the registration as before
       await EventRegistration.findByIdAndDelete(registration._id);
-    }
 
-    // Get current event to check registered_count
-    const event = await Event.findById(id);
-    if (event && event.registered_count > 0) {
-      // Update registered_count in a separate operation
-      await Event.findByIdAndUpdate(id, {
-        registered_count: event.registered_count - 1,
-      });
+      // Get current event to check registered_count
+      const event = await Event.findById(id);
+      if (event && event.registered_count > 0) {
+        // Update registered_count in a separate operation
+        await Event.findByIdAndUpdate(id, {
+          registered_count: event.registered_count - 1,
+        });
+      }
     }
 
     return res.status(200).json({
