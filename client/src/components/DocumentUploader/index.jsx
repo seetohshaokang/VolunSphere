@@ -1,16 +1,16 @@
 // src/components/DocumentUploader/index.jsx
-import DocumentViewer from "@/components/DocumentViewer"; 
+import DocumentViewer from "@/components/DocumentViewer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CheckCircle, Clock, Loader2 } from "lucide-react";
+import { CheckCircle, Clock, Loader2, XCircle } from "lucide-react";
 import { useState } from "react";
 
-const DocumentUploader = ({ 
-  profile, 
-  onUploadSuccess, 
-  setError, 
+const DocumentUploader = ({
+  profile,
+  onUploadSuccess,
+  setError,
   isOrganizer = false, // Simple flag to determine document type
 }) => {
   const [documentFile, setDocumentFile] = useState(null);
@@ -20,17 +20,22 @@ const DocumentUploader = ({
   // Set properties based on user type
   const documentType = isOrganizer ? "certification" : "nric";
   const title = isOrganizer ? "Charity Certification" : "NRIC Verification";
-  const description = isOrganizer 
+  const description = isOrganizer
     ? "Upload your charity certification document. This helps us verify your organization's charitable status."
     : "Upload your NRIC for identity verification. This helps us ensure the safety and security of our community.";
   const endpoint = isOrganizer ? "/profile/certification" : "/profile/nric";
   const fileKey = isOrganizer ? "certification_document" : "nric_image";
-  
+
   // Get document data from the correct property in profile
-  const documentData = isOrganizer 
+  const documentData = isOrganizer
     ? profile?.certification_document || null
     : profile?.nric_image || null;
-  
+
+  // Check if document is rejected
+  const isRejected = isOrganizer
+    ? (profile?.verification_status === "rejected" || (documentData && documentData.requires_reupload))
+    : (documentData && documentData.requires_reupload);
+
   console.log(`DocumentUploader for ${documentType}:`, documentData);
 
   const handleFileChange = (e) => {
@@ -69,7 +74,7 @@ const DocumentUploader = ({
         // Set the local success message instead of using the parent's setSuccess
         setLocalSuccess(
           data.message ||
-            `Document uploaded successfully. It will be verified by an administrator.`
+          `Document uploaded successfully. It will be verified by an administrator.`
         );
         setDocumentFile(null);
 
@@ -111,9 +116,76 @@ const DocumentUploader = ({
                   </h3>
                   <DocumentViewer
                     filename={documentData.filename}
-                    documentType={isOrganizer ? "certification" : "nric"}
+                    documentType={documentType}
                   />
                 </div>
+              )}
+            </>
+          ) : isRejected ? (
+            <>
+              <Alert className="bg-red-50 border-red-200">
+                <XCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-700">
+                  Your {isOrganizer ? "certification document" : "NRIC"} has been rejected.
+                  Please upload a new document.
+                  {documentData?.rejection_reason && (
+                    <div className="mt-2 text-sm font-medium">
+                      Reason: {documentData.rejection_reason}
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+
+              <div className="text-sm text-muted-foreground mt-2">
+                {description}
+              </div>
+
+              {localSuccess && (
+                <Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
+                  <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+                  <AlertDescription>{localSuccess}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="document_upload"
+                    className="border border-input bg-background rounded-md px-3 py-2 text-sm cursor-pointer inline-block min-w-24 text-center hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    Upload New Document
+                  </label>
+                  <span className="text-sm text-gray-600">
+                    {documentFile
+                      ? documentFile.name
+                      : "No file chosen"}
+                  </span>
+                  <Input
+                    id="document_upload"
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Accepted formats: JPEG, PNG, PDF. Max size: 5MB.
+                </p>
+              </div>
+              {documentFile && (
+                <Button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    "Submit for Verification"
+                  )}
+                </Button>
               )}
             </>
           ) : documentData?.uploaded_at ? (
@@ -142,7 +214,7 @@ const DocumentUploader = ({
               <div className="text-sm text-muted-foreground">
                 {description}
               </div>
-              
+
               {/* Success message right above the file upload container */}
               {localSuccess && (
                 <Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
@@ -150,7 +222,7 @@ const DocumentUploader = ({
                   <AlertDescription>{localSuccess}</AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="relative">
                 <div className="flex items-center gap-2">
                   <label

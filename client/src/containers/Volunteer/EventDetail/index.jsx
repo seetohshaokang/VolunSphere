@@ -2,14 +2,14 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -17,16 +17,17 @@ import Api from "../../../helpers/Api";
 import { getEventImageUrl } from "../../../helpers/eventHelper";
 
 function EventDetail() {
-	const { eventId } = useParams();
-	const navigate = useNavigate();
-	const { user } = useAuth();
-	const [event, setEvent] = useState(null);
-	const [loading, setLoading] = useState(true);
+  const { eventId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [isSignedUp, setIsSignedUp] = useState(false);
   const [wasRemoved, setWasRemoved] = useState(false);
   const [removalReason, setRemovalReason] = useState("");
-	const [showConfirmModal, setShowConfirmModal] = useState(false);
-	const [error, setError] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   const [isLoading, setIsLoading] = useState(false);
@@ -58,7 +59,7 @@ function EventDetail() {
   }, [user, event]);
 
   // Update the useEffect dependencies to properly trigger signup status check
-	useEffect(() => {
+  useEffect(() => {
     // Only check signup status if user is logged in and event is loaded
     if (user && event) {
       console.log("Checking signup status for user:", user.id, "event:", eventId);
@@ -67,15 +68,15 @@ function EventDetail() {
   }, [user, event, eventId]); // Include eventId in the dependency array
 
   // Fetch event details with better error handling and signup status check
-		const fetchEventDetails = async () => {
-			setLoading(true);
-			setError(null);
+  const fetchEventDetails = async () => {
+    setLoading(true);
+    setError(null);
 
-			try {
+    try {
       console.log("Fetching event details for event:", eventId);
-      
-				// Using the Api helper to fetch event
-				const response = await Api.getEvent(eventId);
+
+      // Using the Api helper to fetch event
+      const response = await Api.getEvent(eventId);
 
       if (!response.ok) {
         // Handle non-200 responses
@@ -87,23 +88,23 @@ function EventDetail() {
         }
       }
 
-				const eventData = await response.json();
+      const eventData = await response.json();
       console.log("Event data fetched successfully:", eventData.name);
-				setEvent(eventData);
+      setEvent(eventData);
 
       // After event is loaded and if user is logged in, check signup status
-				if (user) {
+      if (user) {
         await checkSignupStatus();
-				}
-			} catch (err) {
-				console.error("Error fetching event details:", err);
-				setError(
+      }
+    } catch (err) {
+      console.error("Error fetching event details:", err);
+      setError(
         err.message || "Failed to load event details. Please try again later."
-				);
-			} finally {
-				setLoading(false);
-			}
-		};
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Enhance checkSignupStatus to better handle the response
   const checkSignupStatus = async () => {
@@ -120,14 +121,14 @@ function EventDetail() {
       console.log("Signup status response:", response.status);
 
       if (response.ok) {
-			const data = await response.json();
+        const data = await response.json();
         console.log("Signup status data:", data);
-        
+
         // Update state based on response
         setIsSignedUp(!!data.isSignedUp);
         setWasRemoved(!!data.wasRemoved);
         setRemovalReason(data.removalReason || "");
-        
+
         console.log("Updated isSignedUp state to:", !!data.isSignedUp);
       } else {
         console.error("Error response from signup status check:", response.status);
@@ -135,7 +136,7 @@ function EventDetail() {
         setIsSignedUp(false);
         setWasRemoved(false);
       }
-		} catch (err) {
+    } catch (err) {
       console.error("Error checking signup status:", err);
       // Non-critical error, assume not signed up
       setIsSignedUp(false);
@@ -143,42 +144,77 @@ function EventDetail() {
     }
   };
 
-  const handleSignupClick = () => {
-		if (!user) {
-			// Redirect to login if not logged in
-			navigate("/login", { state: { from: `/events/${eventId}` } });
-			return;
-		}
+  // Add this function to check if the volunteer is verified
+  const checkVerificationStatus = async () => {
+    try {
+      const response = await Api.getUserProfile();
+      if (response.ok) {
+        const data = await response.json();
+        // For volunteers, we need to check the nric_image.verified property
+        if (data.profile && data.profile.nric_image && data.profile.nric_image.verified) {
+          return true; // Volunteer is verified
+        } else {
+          return false; // Volunteer is not verified
+        }
+      }
+      return false; // Default to not verified if API call fails
+    } catch (err) {
+      console.error("Error checking verification status:", err);
+      return false; // Default to not verified on error
+    }
+  };
+
+  // Update handleSignupClick to check verification status first
+  const handleSignupClick = async () => {
+    if (!user) {
+      // Redirect to login if not logged in
+      navigate("/login", { state: { from: `/events/${eventId}` } });
+      return;
+    }
 
     // Don't allow signup if previously removed
     if (wasRemoved) {
       return;
     }
 
-		// Check if event is at capacity before showing confirmation modal
-		if (
-			event.max_volunteers > 0 &&
-			(event.registered_count || 0) >= event.max_volunteers
-		) {
-			setError(
-				"This event has reached maximum capacity. No more slots available."
-			);
-			return;
-		}
+    // Check if event is at capacity before showing confirmation modal
+    if (
+      event.max_volunteers > 0 &&
+      (event.registered_count || 0) >= event.max_volunteers
+    ) {
+      setError(
+        "This event has reached maximum capacity. No more slots available."
+      );
+      return;
+    }
 
-		// Show confirmation modal
-		setShowConfirmModal(true);
-	};
+    // Check verification status before proceeding
+    const isVerified = await checkVerificationStatus();
+    if (!isVerified) {
+      // Show verification modal instead of confirmation modal
+      setShowVerificationModal(true);
+      return;
+    }
+
+    // If volunteer is verified, show confirmation modal
+    setShowConfirmModal(true);
+  };
 
   const getAvailableSlots = (event) => {
     if (!event || !event.max_volunteers) return 0;
     return Math.max(0, event.max_volunteers - (event.registered_count || 0));
   };
 
-  // Update the confirmSignup function to handle errors with Alert component
+  // Add handler for the verification modal's "Go to Profile" button
+  const handleGoToProfile = () => {
+    setShowVerificationModal(false);
+    navigate("/profile");
+  };
+
+  // Update the confirmSignup function to handle verification error
   const confirmSignup = async () => {
     setIsLoading(true);
-    
+
     try {
       console.log("Attempting to sign up for event:", eventId);
       const response = await Api.registerForEvent(eventId);
@@ -188,17 +224,17 @@ function EventDetail() {
 
       if (response.ok) {
         setSuccessMessage("You have successfully signed up for this event.");
-        
+
         // Update state to reflect signup
         setIsSignedUp(true);
-        
+
         // Refresh event details to get updated volunteer count
         fetchEventDetails();
 
-			// Hide success message after 3 seconds
-			setTimeout(() => {
+        // Hide success message after 3 seconds
+        setTimeout(() => {
           setSuccessMessage(null);
-			}, 3000);
+        }, 3000);
       } else {
         // Handle specific error cases
         if (data.message && data.message.includes("already signed up")) {
@@ -207,6 +243,9 @@ function EventDetail() {
           setIsSignedUp(true);
         } else if (data.message && data.message.includes("recurring event")) {
           setError(data.message || "Cannot sign up for recurring event");
+        } else if (data.requiresVerification) {
+          // Show the verification modal instead of a simple error message
+          setShowVerificationModal(true);
         } else {
           setError(data.message || "Failed to sign up for the event. Please try again.");
         }
@@ -216,121 +255,121 @@ function EventDetail() {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
-			setShowConfirmModal(false);
+      setShowConfirmModal(false);
       // Re-check signup status to ensure UI is consistent
       checkSignupStatus();
-		}
-	};
+    }
+  };
 
-	// Add this function to determine if an event is completed
-	const isEventCompleted = () => {
-		if (!event) return false;
-		
-		// Find the first valid date from all possible date fields
-		const dateField = event.end_datetime || event.end_date || event.start_datetime || event.start_date;
-		
-		if (!dateField) return false;
-		
-		const eventDate = new Date(dateField);
-		if (isNaN(eventDate.getTime())) {
-			return false;
-		}
-		
-		const now = new Date();    
-		return eventDate < now;
-	};
+  // Add this function to determine if an event is completed
+  const isEventCompleted = () => {
+    if (!event) return false;
 
-	// Helper function to format date strings - improved to handle more date formats
-	const formatDateRange = () => {
-		// For events with standard start and end dates
-		if (event.start_date && event.end_date) {
-			const startDate = new Date(event.start_date);
-			const endDate = new Date(event.end_date);
+    // Find the first valid date from all possible date fields
+    const dateField = event.end_datetime || event.end_date || event.start_datetime || event.start_date;
 
-			const options = {
-				weekday: "short",
-				year: "numeric",
-				month: "short",
-				day: "2-digit",
-			};
+    if (!dateField) return false;
 
-			if (startDate.toDateString() === endDate.toDateString()) {
-				return startDate.toLocaleDateString(undefined, options);
-			} else {
-				return `${startDate.toLocaleDateString(
-					undefined,
-					options
-				)} - ${endDate.toLocaleDateString(undefined, options)}`;
-			}
-		}
-		
-		// For events with datetime fields (includes time)
-		if (event.start_datetime) {
-			const startDateTime = new Date(event.start_datetime);
-			
-			const dateOptions = {
-				weekday: "short",
-				year: "numeric",
-				month: "short",
-				day: "2-digit",
-			};
-			
-			const timeOptions = {
-				hour: '2-digit',
-				minute: '2-digit'
-			};
-			
-			const dateStr = startDateTime.toLocaleDateString(undefined, dateOptions);
-			const timeStr = startDateTime.toLocaleTimeString(undefined, timeOptions);
-			
-			if (event.end_datetime) {
-				const endDateTime = new Date(event.end_datetime);
-				
-				if (startDateTime.toDateString() === endDateTime.toDateString()) {
-					// Same day, show date once with time range
-					const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
-					return `${dateStr}, ${timeStr} - ${endTimeStr}`;
-				} else {
-					// Different days, show complete range
-					const endDateStr = endDateTime.toLocaleDateString(undefined, dateOptions);
-					const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
-					return `${dateStr}, ${timeStr} - ${endDateStr}, ${endTimeStr}`;
-				}
-			}
-			
-			return `${dateStr}, ${timeStr}`;
-		}
-		
-		// For recurring events
-		if (event.is_recurring) {
-			if (event.recurrence_start_date && event.recurrence_end_date) {
-				const startDate = new Date(event.recurrence_start_date);
-				const endDate = new Date(event.recurrence_end_date);
-				
-				const options = {
-					weekday: "short",
-					year: "numeric",
-					month: "short",
-					day: "2-digit",
-				};
-				
-				return `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
-			}
-			
-			if (event.recurrence_start_date) {
-				const startDate = new Date(event.recurrence_start_date);
-				const options = {
-					weekday: "short",
-					year: "numeric",
-					month: "short",
-					day: "2-digit",
-				};
-				return startDate.toLocaleDateString(undefined, options);
-			}
-		}
+    const eventDate = new Date(dateField);
+    if (isNaN(eventDate.getTime())) {
+      return false;
+    }
 
-		return "Date information unavailable";
-	};
+    const now = new Date();
+    return eventDate < now;
+  };
+
+  // Helper function to format date strings - improved to handle more date formats
+  const formatDateRange = () => {
+    // For events with standard start and end dates
+    if (event.start_date && event.end_date) {
+      const startDate = new Date(event.start_date);
+      const endDate = new Date(event.end_date);
+
+      const options = {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      };
+
+      if (startDate.toDateString() === endDate.toDateString()) {
+        return startDate.toLocaleDateString(undefined, options);
+      } else {
+        return `${startDate.toLocaleDateString(
+          undefined,
+          options
+        )} - ${endDate.toLocaleDateString(undefined, options)}`;
+      }
+    }
+
+    // For events with datetime fields (includes time)
+    if (event.start_datetime) {
+      const startDateTime = new Date(event.start_datetime);
+
+      const dateOptions = {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      };
+
+      const timeOptions = {
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+
+      const dateStr = startDateTime.toLocaleDateString(undefined, dateOptions);
+      const timeStr = startDateTime.toLocaleTimeString(undefined, timeOptions);
+
+      if (event.end_datetime) {
+        const endDateTime = new Date(event.end_datetime);
+
+        if (startDateTime.toDateString() === endDateTime.toDateString()) {
+          // Same day, show date once with time range
+          const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
+          return `${dateStr}, ${timeStr} - ${endTimeStr}`;
+        } else {
+          // Different days, show complete range
+          const endDateStr = endDateTime.toLocaleDateString(undefined, dateOptions);
+          const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
+          return `${dateStr}, ${timeStr} - ${endDateStr}, ${endTimeStr}`;
+        }
+      }
+
+      return `${dateStr}, ${timeStr}`;
+    }
+
+    // For recurring events
+    if (event.is_recurring) {
+      if (event.recurrence_start_date && event.recurrence_end_date) {
+        const startDate = new Date(event.recurrence_start_date);
+        const endDate = new Date(event.recurrence_end_date);
+
+        const options = {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+        };
+
+        return `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
+      }
+
+      if (event.recurrence_start_date) {
+        const startDate = new Date(event.recurrence_start_date);
+        const options = {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+        };
+        return startDate.toLocaleDateString(undefined, options);
+      }
+    }
+
+    return "Date information unavailable";
+  };
 
   // Add the cancelRegistration function back with the completed event check
   const cancelRegistration = async () => {
@@ -339,19 +378,19 @@ function EventDetail() {
       setShowConfirmModal(false);
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log("Attempting to cancel registration for event:", eventId);
-      
+
       // Make sure we're using the cancelEventRegistration function
       const response = await Api.cancelEventRegistration(eventId);
-      
+
       // Add debugging for API response
       console.log("Cancel registration response status:", response.status);
-      
+
       // For non-JSON responses
       if (!response.ok && response.status !== 404) {
         let errorMessage;
@@ -365,13 +404,13 @@ function EventDetail() {
           errorMessage = response.statusText || "Failed to cancel registration";
           console.error("Non-JSON error response:", response.statusText);
         }
-        
+
         setError(errorMessage);
         setIsLoading(false);
         setShowConfirmModal(false);
         return;
       }
-      
+
       let data;
       try {
         data = await response.json();
@@ -383,10 +422,10 @@ function EventDetail() {
 
       if (response.ok) {
         setSuccessMessage("You have successfully cancelled your registration for this event.");
-        
+
         // Update state to reflect cancellation
         setIsSignedUp(false);
-        
+
         // Refresh event details to get updated volunteer count
         await fetchEventDetails();
 
@@ -408,32 +447,32 @@ function EventDetail() {
     }
   };
 
-	if (loading) {
-		return (
-			<div className="flex justify-center py-12">
-				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-				<p className="ml-3 text-lg">Loading event details...</p>
-			</div>
-		);
-	}
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <p className="ml-3 text-lg">Loading event details...</p>
+      </div>
+    );
+  }
 
-	if (error) {
-		return (
-			<Alert variant="destructive" className="my-6">
-				<AlertDescription>{error}</AlertDescription>
-			</Alert>
-		);
-	}
+  if (error) {
+    return (
+      <Alert variant="destructive" className="my-6">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
-	if (!event) {
-		return (
-			<Alert variant="destructive" className="my-6">
-				<AlertDescription>
-					Event not found or has been removed.
-				</AlertDescription>
-			</Alert>
-		);
-	}
+  if (!event) {
+    return (
+      <Alert variant="destructive" className="my-6">
+        <AlertDescription>
+          Event not found or has been removed.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   // Check if event is at capacity
   const isEventFull =
@@ -443,11 +482,11 @@ function EventDetail() {
   // Render sidebar with registration options
   const renderRegisterSidebar = () => {
     // Debug log for UI state
-    console.log("Rendering sidebar with state:", { 
-      isSignedUp, 
-      wasRemoved, 
-      eventStatus: event?.status, 
-      isEventFull 
+    console.log("Rendering sidebar with state:", {
+      isSignedUp,
+      wasRemoved,
+      eventStatus: event?.status,
+      isEventFull
     });
 
     return (
@@ -519,17 +558,16 @@ function EventDetail() {
             <button
               onClick={handleSignupClick}
               disabled={!event.status || event.status !== "active" || isEventFull || wasRemoved}
-              className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${
-                !event.status || event.status !== "active" || isEventFull || wasRemoved
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-blue-600 hover:bg-blue-700 text-white"
-              }`}
+              className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${!event.status || event.status !== "active" || isEventFull || wasRemoved
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+                }`}
             >
               {!event.status || event.status !== "active"
                 ? "Event Not Active"
                 : isEventFull
-                ? "No Spots Available"
-                : "I want to volunteer"}
+                  ? "No Spots Available"
+                  : "I want to volunteer"}
             </button>
           )}
 
@@ -543,10 +581,9 @@ function EventDetail() {
                 <div
                   className="bg-blue-600 h-full rounded-full"
                   style={{
-                    width: `${
-                      ((event.registered_count || 0) / event.max_volunteers) *
+                    width: `${((event.registered_count || 0) / event.max_volunteers) *
                       100
-                    }%`,
+                      }%`,
                   }}
                 ></div>
               </div>
@@ -557,7 +594,7 @@ function EventDetail() {
     );
   };
 
-	return (
+  return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 mt-6">
       {/* Breadcrumb navigation */}
       <nav className="mb-5">
@@ -611,9 +648,8 @@ function EventDetail() {
               src={
                 event.image_url
                   ? getEventImageUrl(event.image_url, imageTimestamp)
-                  : `https://source.unsplash.com/random/800x400/?${
-                  event.cause || "volunteer"
-                }`
+                  : `https://source.unsplash.com/random/800x400/?${event.cause || "volunteer"
+                  }`
               }
               alt={event.name}
               className="w-full h-full object-cover"
@@ -631,7 +667,7 @@ function EventDetail() {
             <h2 className="text-xl font-semibold mb-4">Event Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {event.contact_person && (
-              <div>
+                <div>
                   <h3 className="font-medium text-gray-700">Contact Person</h3>
                   <p>{event.contact_person}</p>
                 </div>
@@ -680,8 +716,8 @@ function EventDetail() {
       </div>
 
       {/* Confirmation Dialog */}
-      <Dialog 
-        open={showConfirmModal} 
+      <Dialog
+        open={showConfirmModal}
         onOpenChange={(open) => {
           // When dialog is closed, check signup status again
           if (!open) {
@@ -741,6 +777,46 @@ function EventDetail() {
               className={isSignedUp ? "" : "border-2 border-black"}
             >
               {isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Verification Required Modal */}
+      <Dialog
+        open={showVerificationModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowVerificationModal(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <div className="flex items-center mb-2">
+              <ShieldAlert className="h-6 w-6 text-yellow-500 mr-2" />
+              <DialogTitle>Verification Required</DialogTitle>
+            </div>
+            <DialogDescription>
+              <p className="mb-4">
+                You are currently not verified. Before registering for events, please upload the relevant certification documents to complete the verification process.
+              </p>
+              <p className="text-sm text-gray-600">
+                Verification helps establish trust with volunteers and ensures all organizers meet our community standards.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              variant="destructive"
+              onClick={() => setShowVerificationModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGoToProfile}
+            >
+              Go to Profile
             </Button>
           </DialogFooter>
         </DialogContent>

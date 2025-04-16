@@ -4,6 +4,20 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import ContentHeader from "../../../components/ContentHeader";
 import Api from "../../../helpers/Api";
 import DocumentViewer from "../../../components/DocumentViewer"; // Import DocumentViewer instead of just NricViewer
+import {
+  Alert,
+  AlertDescription
+} from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertTriangle, ShieldAlert } from "lucide-react"; // Add ShieldAlert import
 
 const AdminUserDetail = () => {
   const { id } = useParams();
@@ -18,6 +32,15 @@ const AdminUserDetail = () => {
   const [statusReason, setStatusReason] = useState('');
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
   const [showReasonWarning, setShowReasonWarning] = useState(false);
+
+  // State for document rejection modal (works for both NRIC and certification)
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionLoading, setRejectionLoading] = useState(false);
+  const [showRejectionReasonWarning, setShowRejectionReasonWarning] = useState(false);
+  const [isRejectionForVolunteer, setIsRejectionForVolunteer] = useState(false);
+
+  const [showVerificationModal, setShowVerificationModal] = useState(false); // Add this state
 
   useEffect(() => {
     fetchUserData();
@@ -114,25 +137,26 @@ const AdminUserDetail = () => {
     }
   };
 
-  // Function to handle NRIC verification
-  const handleVerifyNRIC = async (isApproved) => {
+  // Function to open the rejection modal
+  const handleOpenRejectionModal = (isVolunteer = false) => {
+    setRejectionReason('');
+    setShowRejectionReasonWarning(false);
+    setIsRejectionForVolunteer(isVolunteer);
+    setShowRejectionModal(true);
+  };
+
+  // Function to handle NRIC verification approval
+  const handleApproveNRIC = async () => {
     try {
       // Store the filename in localStorage for the API to use
       if (userData?.profile?.nric_image?.filename) {
         localStorage.setItem("currentNricFilename", userData.profile.nric_image.filename);
       }
 
-      // Log what we're about to send to the API for debugging
-      console.log("Verifying NRIC:", {
-        volunteerId: userData.profile._id,
-        filename: userData?.profile?.nric_image?.filename,
-        isApproved
-      });
-
       const response = await Api.updateVolunteerVerification(
         userData.profile._id,
-        isApproved,
-        `NRIC ${isApproved ? 'verified' : 'rejected'} by admin`
+        true,
+        "NRIC verified by admin"
       );
 
       // Try to parse the response if possible
@@ -156,10 +180,10 @@ const AdminUserDetail = () => {
         if (!updatedProfile.nric_image) {
           updatedProfile.nric_image = {
             filename: userData?.profile?.nric_image?.filename || null,
-            verified: isApproved
+            verified: true
           };
         } else {
-          updatedProfile.nric_image.verified = isApproved;
+          updatedProfile.nric_image.verified = true;
         }
 
         return {
@@ -172,8 +196,7 @@ const AdminUserDetail = () => {
       localStorage.removeItem("currentNricFilename");
 
       // Notify user of success
-      alert(`NRIC verification ${isApproved ? 'approved' : 'rejected'} successfully`);
-
+      alert('NRIC verification approved successfully');
     } catch (err) {
       console.error('Error updating NRIC verification:', err);
       alert(`Error: ${err.message}`);
@@ -182,20 +205,101 @@ const AdminUserDetail = () => {
     }
   };
 
-  // Function to handle organization verification
-  const handleVerifyOrganization = async (isApproved) => {
+  // Function to submit the rejection with reason
+  const handleRejectWithReason = async () => {
+    if (!rejectionReason.trim()) {
+      setShowRejectionReasonWarning(true);
+      return;
+    }
+
+    setShowRejectionReasonWarning(false);
+    setRejectionLoading(true);
+
+    try {
+      if (isRejectionForVolunteer) {
+        // For volunteer NRIC rejection
+        if (userData?.profile?.nric_image?.filename) {
+          localStorage.setItem("currentNricFilename", userData.profile.nric_image.filename);
+        }
+
+        const response = await Api.updateVolunteerVerification(
+          userData.profile._id,
+          false,
+          rejectionReason
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to update verification status');
+        }
+
+        // Update local state - adding requires_reupload flag and rejection reason for consistency
+        setUserData(prev => {
+          return {
+            ...prev,
+            profile: {
+              ...prev.profile,
+              nric_image: {
+                ...prev.profile.nric_image,
+                verified: false,
+                requires_reupload: true,
+                rejection_reason: rejectionReason
+              }
+            }
+          };
+        });
+
+        // Clean up after operation
+        localStorage.removeItem("currentNricFilename");
+      } else {
+        // For organiser certification rejection
+        const response = await Api.updateOrganiserVerification(
+          userData.profile._id,
+          'rejected',
+          rejectionReason
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to update verification status');
+        }
+
+        // Update local state
+        setUserData(prev => ({
+          ...prev,
+          profile: {
+            ...prev.profile,
+            verification_status: 'rejected'
+          }
+        }));
+      }
+
+      // Close modal and show success notification
+      setShowRejectionModal(false);
+      alert(`${isRejectionForVolunteer ? 'NRIC' : 'Organization'} verification rejected successfully`);
+    } catch (err) {
+      console.error('Error updating verification status:', err);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setRejectionLoading(false);
+    }
+  };
+
+  // Function to handle organization verification approval
+  const handleApproveOrganization = async () => {
     try {
       // Check if organizer has a certification document before allowing approval
-      if (isApproved && (!profile?.certification_document || !profile?.certification_document?.filename)) {
+      if (!userData.profile?.certification_document || !userData.profile?.certification_document?.filename) {
         alert('Cannot approve an organization without an uploaded certification document');
         return;
       }
 
-      // This would need to be implemented in your API
       const response = await Api.updateOrganiserVerification(
         userData.profile._id,
-        isApproved ? 'verified' : 'rejected',
-        `Organization ${isApproved ? 'verified' : 'rejected'} by admin`
+        'verified',
+        'Organization verified by admin'
       );
 
       const data = await response.json();
@@ -209,15 +313,71 @@ const AdminUserDetail = () => {
         ...prev,
         profile: {
           ...prev.profile,
-          verification_status: isApproved ? 'verified' : 'rejected'
+          verification_status: 'verified'
         }
       }));
 
-      alert(`Organization verification ${isApproved ? 'approved' : 'rejected'} successfully`);
+      alert('Organization verification approved successfully');
     } catch (err) {
       console.error('Error updating organization verification:', err);
       alert(`Error: ${err.message}`);
     }
+  };
+
+  // Modify the confirmSignup function to handle verification error
+  const confirmSignup = async () => {
+    setIsLoading(true);
+
+    try {
+      console.log("Attempting to sign up for event:", eventId);
+      const response = await Api.registerForEvent(eventId);
+
+      const data = await response.json();
+      console.log("Signup response:", data);
+
+      if (response.ok) {
+        setSuccessMessage("You have successfully signed up for this event.");
+
+        // Update state to reflect signup
+        setIsSignedUp(true);
+
+        // Refresh event details to get updated volunteer count
+        fetchEventDetails();
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
+      } else {
+        // Handle specific error cases
+        if (data.message && data.message.includes("already signed up")) {
+          setSuccessMessage("You are already signed up for this event.");
+          // Update the state to reflect the user is already signed up
+          setIsSignedUp(true);
+        } else if (data.message && data.message.includes("recurring event")) {
+          setError(data.message || "Cannot sign up for recurring event");
+        } else if (data.requiresVerification) {
+          // Show the verification modal instead of a simple error message
+          setShowVerificationModal(true);
+        } else {
+          setError(data.message || "Failed to sign up for the event. Please try again.");
+        }
+      }
+    } catch (error) {
+      console.error("Error signing up for event:", error);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setShowConfirmModal(false);
+      // Re-check signup status to ensure UI is consistent
+      checkSignupStatus();
+    }
+  };
+
+  // Add a handler for the verification modal's "Go to Profile" button
+  const handleGoToProfile = () => {
+    setShowVerificationModal(false);
+    navigate("/profile");
   };
 
   if (loading) {
@@ -255,6 +415,18 @@ const AdminUserDetail = () => {
   if (!userData) return null;
 
   const { user, profile, events = [], registrations = [], reports = [], actions = [] } = userData;
+
+  const getVolunteerVerificationStatus = () => {
+    if (profile?.nric_image?.verified) {
+      return <span className="text-green-600">Verified</span>;
+    } else if (profile?.nric_image?.requires_reupload) {
+      return <span className="text-red-600">Rejected</span>;
+    } else if (profile?.nric_image?.filename) {
+      return <span className="text-yellow-600">Pending Verification</span>;
+    } else {
+      return <span className="text-yellow-600">Pending Upload</span>;
+    }
+  };
 
   return (
     <>
@@ -318,29 +490,29 @@ const AdminUserDetail = () => {
               </div>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-gray-600">NRIC Verified:</p>
+                  <p className="text-gray-600">Verification Status:</p>
                   <p className="font-medium">
-                    {profile?.nric_image?.verified
-                      ? <span className="text-green-600">Yes</span>
-                      : <span className="text-red-600">No</span>}
+                    {getVolunteerVerificationStatus()}
                   </p>
                 </div>
-                {!profile?.nric_image?.verified && (
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleVerifyNRIC(true)}
-                      className="bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleVerifyNRIC(false)}
-                      className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
+                {!profile?.nric_image?.verified &&
+                  !profile?.nric_image?.requires_reupload &&
+                  profile?.nric_image?.filename && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleApproveNRIC}
+                        className="bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleOpenRejectionModal(true)}
+                        className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
               </div>
 
               {/* NRIC Image Viewer Section */}
@@ -378,7 +550,7 @@ const AdminUserDetail = () => {
                         {cause}
                       </span>
                     ))
-                    : <span className="text-gray-500">No causes listed</span>}
+                    : <span className="text-gray-500">No preferred causes listed</span>}
                 </div>
               </div>
             </div>
@@ -404,290 +576,367 @@ const AdminUserDetail = () => {
                           ? <span className="text-yellow-600">Pending Verification</span>
                           : <span className="text-yellow-600">Pending User Upload</span>}
                   </p>
-              </div>
-              {profile?.verification_status === 'pending' && profile?.certification_document?.filename && (
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleVerifyOrganization(true)}
-                    className={`bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded ${!profile?.certification_document?.filename ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    disabled={!profile?.certification_document?.filename}
-                    title={!profile?.certification_document?.filename ?
-                      'Cannot approve without certification document' :
-                      'Approve organization'}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleVerifyOrganization(false)}
-                    className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded"
-                  >
-                    Reject
-                  </button>
                 </div>
-              )}
-            </div>
+                {profile?.verification_status === 'pending' &&
+                  profile?.certification_document?.filename && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleApproveOrganization}
+                        className="bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleOpenRejectionModal(false)}
+                        className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2 rounded"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+              </div>
 
               {/* Certification Document Viewer Section */}
-          <div className="mt-4">
-            <p className="text-gray-600 mb-2">Certification Document:</p>
-            {profile?.certification_document?.filename ? (
-              <DocumentViewer
-                filename={profile.certification_document.filename}
-                documentType="certification"
-                className="w-full border rounded-md"
-              />
-            ) : (
-              <p className="text-gray-500">No certification document uploaded</p>
-            )}
-          </div>
+              <div className="mt-4">
+                <p className="text-gray-600 mb-2">Certification Document:</p>
+                {profile?.certification_document?.filename ? (
+                  <DocumentViewer
+                    filename={profile.certification_document.filename}
+                    documentType="certification"
+                    className="w-full border rounded-md"
+                  />
+                ) : (
+                  <p className="text-gray-500">No certification document uploaded</p>
+                )}
+              </div>
 
-          <div>
-            <p className="text-gray-600">Website:</p>
-            <p className="font-medium">{profile?.website || 'Not provided'}</p>
-          </div>
-        </div>
-        ) : (
-        <p className="text-gray-500">Admin account - no profile details available</p>
+              <div>
+                <p className="text-gray-600">Website:</p>
+                <p className="font-medium">{profile?.website || 'Not provided'}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500">Admin account - no profile details available</p>
           )}
+        </div>
       </div>
-    </div >
 
-      {/* Activity Details Tabs */ }
-      < div className = "bg-white rounded-lg border p-6 mb-8" >
+      {/* Activity Details Tabs */}
+      < div className="bg-white rounded-lg border p-6 mb-8" >
         <h2 className="text-xl font-semibold mb-4">Activity</h2>
 
-  {/* Events (for organisers) */ }
-  {
-    user.role === 'organiser' && (
-      <div className="mb-6">
-        <h3 className="text-lg font-medium mb-3">Organized Events</h3>
-        {events.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrations</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {events.map((event) => (
-                  <tr key={event._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{event.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{formatDate(event.start_datetime || event.recurrence_start_date)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${event.status === 'active' ? 'bg-green-100 text-green-800' :
-                        event.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                          event.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                        }`}>
-                        {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{event.registered_count} / {event.max_volunteers || 'Unlimited'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link to={`/admin/events/${event._id}`} className="text-primary hover:text-primary/80">View</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-500">No events organized by this user.</p>
-        )}
-      </div>
-    )
-  }
-
-  {/* Registrations (for volunteers) */ }
-  {
-    user.role === 'volunteer' && (
-      <div className="mb-6">
-        <h3 className="text-lg font-medium mb-3">Event Registrations</h3>
-        {registrations.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {registrations.map((reg) => (
-                  <tr key={reg._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{reg.event_id?.name || 'Unknown Event'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{formatDate(reg.registration_date)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs rounded-full ${reg.status === 'registered' ? 'bg-blue-100 text-blue-800' :
-                        reg.status === 'attended' ? 'bg-green-100 text-green-800' :
-                          reg.status === 'no_show' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                        }`}>
-                        {reg.status.charAt(0).toUpperCase() + reg.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Link to={`/admin/events/${reg.event_id?._id}`} className="text-primary hover:text-primary/80">View Event</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-gray-500">No event registrations for this user.</p>
-        )}
-      </div>
-    )
-  }
-
-  {/* Reports */ }
-  <div className="mb-6">
-    <h3 className="text-lg font-medium mb-3">Submitted Reports</h3>
-    {reports.length > 0 ? (
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {reports.map((report) => (
-              <tr key={report._id}>
-                <td className="px-6 py-4 whitespace-nowrap">{formatDate(report.created_at)}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{report.reported_type}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{report.reason.substring(0, 30)}...</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs rounded-full ${report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    report.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
-                      report.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                    }`}>
-                    {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('_', ' ')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Link to={`/admin/reports/${report._id}`} className="text-primary hover:text-primary/80">View</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    ) : (
-      <p className="text-gray-500">No reports submitted by this user.</p>
-    )}
-  </div>
-
-  {/* Admin Actions */ }
-  <div>
-    <h3 className="text-lg font-medium mb-3">Admin Actions</h3>
-    {actions.length > 0 ? (
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {actions.map((action) => (
-              <tr key={action._id}>
-                <td className="px-6 py-4 whitespace-nowrap">{formatDate(action.date)}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{action.action}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{action.admin_id?.name || 'Unknown Admin'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{action.reason}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    ) : (
-      <p className="text-gray-500">No admin actions taken for this user.</p>
-    )}
-  </div>
-      </div >
-
-  {/* Status Update Modal */ }
-{
-  showStatusModal && (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
-      <div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div className="mt-3">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 text-center">Update User Status</h3>
-          <div className="mt-4 px-2">
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Current Status: {getStatusBadge(userData.user.status)}
-              </label>
-              <select
-                className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                value={newStatus}
-                onChange={e => setNewStatus(e.target.value)}
-              >
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
-                Reason for Status Change
-              </label>
-              <textarea
-                className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                value={statusReason}
-                onChange={(e) => {
-                  setStatusReason(e.target.value);
-                  if (e.target.value.trim()) setShowReasonWarning(false);
-                }
-                }
-                rows="3"
-                placeholder="Provide a reason for this status change"
-              ></textarea>
-
-              {showReasonWarning && (
-                <p className="text-sm text-red-500 mt-1">This field is required.</p>
+        {/* Events (for organisers) */}
+        {
+          user.role === 'organiser' && (
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-3">Organized Events</h3>
+              {events.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registrations</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {events.map((event) => (
+                        <tr key={event._id}>
+                          <td className="px-6 py-4 whitespace-nowrap">{event.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formatDate(event.start_datetime || event.recurrence_start_date)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs rounded-full ${event.status === 'active' ? 'bg-green-100 text-green-800' :
+                              event.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                                event.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }`}>
+                              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">{event.registered_count} / {event.max_volunteers || 'Unlimited'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Link to={`/admin/events/${event._id}`} className="text-primary hover:text-primary/80">View</Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500">No events organized by this user.</p>
               )}
             </div>
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setShowStatusModal(false)}
-                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                disabled={statusUpdateLoading}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleStatusUpdate}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
-                disabled={statusUpdateLoading || !newStatus || newStatus === userData.user.status}
-              >
-                {statusUpdateLoading ? 'Updating...' : 'Update Status'}
-              </button>
+          )
+        }
+
+        {/* Registrations (for volunteers) */}
+        {
+          user.role === 'volunteer' && (
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-3">Event Registrations</h3>
+              {registrations.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {registrations.map((reg) => (
+                        <tr key={reg._id}>
+                          <td className="px-6 py-4 whitespace-nowrap">{reg.event_id?.name || 'Unknown Event'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">{formatDate(reg.registration_date)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs rounded-full ${reg.status === 'registered' ? 'bg-blue-100 text-blue-800' :
+                              reg.status === 'attended' ? 'bg-green-100 text-green-800' :
+                                reg.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                                  'bg-gray-100 text-gray-800'
+                              }`}>
+                              {reg.status.charAt(0).toUpperCase() + reg.status.slice(1)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Link to={`/admin/events/${reg.event_id?._id}`} className="text-primary hover:text-primary/80">View Event</Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-gray-500">No event registrations for this user.</p>
+              )}
+            </div>
+          )
+        }
+
+        {/* Reports */}
+        <div className="mb-6">
+          <h3 className="text-lg font-medium mb-3">Submitted Reports</h3>
+          {reports.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {reports.map((report) => (
+                    <tr key={report._id}>
+                      <td className="px-6 py-4 whitespace-nowrap">{formatDate(report.created_at)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{report.reported_type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{report.reason.substring(0, 30)}...</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs rounded-full ${report.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          report.status === 'under_review' ? 'bg-blue-100 text-blue-800' :
+                            report.status === 'resolved' ? 'bg-green-100 text-green-800' :
+                              'bg-gray-100 text-gray-800'
+                          }`}>
+                          {report.status.charAt(0).toUpperCase() + report.status.slice(1).replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Link to={`/admin/reports/${report._id}`} className="text-primary hover:text-primary/80">View</Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500">No reports submitted by this user.</p>
+          )}
+        </div>
+
+        {/* Admin Actions */}
+        <div>
+          <h3 className="text-lg font-medium mb-3">Admin Actions</h3>
+          {actions.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {actions.map((action) => (
+                    <tr key={action._id}>
+                      <td className="px-6 py-4 whitespace-nowrap">{formatDate(action.date)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{action.action}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{action.admin_id?.name || 'Unknown Admin'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{action.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500">No admin actions taken for this user.</p>
+          )}
+        </div>
+      </div >
+
+      {/* Status Update Modal */}
+      {showStatusModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+          <div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 text-center">Update User Status</h3>
+              <div className="mt-4 px-2">
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                    Current Status: {getStatusBadge(userData.user.status)}
+                  </label>
+                  <select
+                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    value={newStatus}
+                    onChange={e => setNewStatus(e.target.value)}
+                  >
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                    Reason for Status Change
+                  </label>
+                  <textarea
+                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    value={statusReason}
+                    onChange={(e) => {
+                      setStatusReason(e.target.value);
+                      if (e.target.value.trim()) setShowReasonWarning(false);
+                    }}
+                    rows="3"
+                    placeholder="Provide a reason for this status change"
+                  ></textarea>
+
+                  {showReasonWarning && (
+                    <p className="text-sm text-red-500 mt-1">This field is required.</p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setShowStatusModal(false)}
+                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    disabled={statusUpdateLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStatusUpdate}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
+                    disabled={statusUpdateLoading || !newStatus || newStatus === userData.user.status}
+                  >
+                    {statusUpdateLoading ? 'Updating...' : 'Update Status'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
+      )}
+
+      {/* Verification Rejection Reason Modal */}
+      {showRejectionModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+          <div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 text-center">
+                Reject {isRejectionForVolunteer ? 'NRIC' : 'Organization'} Verification
+              </h3>
+              <div className="mt-4 px-2">
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                    Rejection Reason
+                  </label>
+                  <textarea
+                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    value={rejectionReason}
+                    onChange={(e) => {
+                      setRejectionReason(e.target.value);
+                      if (e.target.value.trim()) setShowRejectionReasonWarning(false);
+                    }}
+                    rows="3"
+                    placeholder={`Explain why the ${isRejectionForVolunteer ? 'NRIC' : 'certification'} is being rejected`}
+                  ></textarea>
+
+                  {showRejectionReasonWarning && (
+                    <p className="text-sm text-red-500 mt-1">Please provide a reason for rejection.</p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setShowRejectionModal(false)}
+                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    disabled={rejectionLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleRejectWithReason}
+                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
+                    disabled={rejectionLoading}
+                  >
+                    {rejectionLoading ? 'Rejecting...' : 'Reject'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Verification Required Modal */}
+      <Dialog open={showVerificationModal} onOpenChange={setShowVerificationModal}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <div className="flex items-center mb-2">
+              <ShieldAlert className="h-6 w-6 text-yellow-500 mr-2" />
+              <DialogTitle>Verification Required</DialogTitle>
+            </div>
+            <DialogDescription>
+              <div className="mb-4">
+                <p className="mb-4">
+                  You are currently not verified. Before registering for events, please upload the relevant certification documents to complete the verification process.
+                </p>
+
+                <p className="text-sm text-gray-600">
+                  Verification helps establish trust with volunteers and ensures all organizers meet our community standards.
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setShowVerificationModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleGoToProfile}>
+              Go to Profile
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

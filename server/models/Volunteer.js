@@ -52,6 +52,11 @@ const volunteerSchema = new Schema({
 			type: Boolean,
 			default: false,
 		},
+		rejection_reason: String,
+		requires_reupload: {
+			type: Boolean,
+			default: false
+		}
 	},
 });
 

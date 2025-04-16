@@ -129,7 +129,7 @@ exports.getDashboardStats = async (req, res) => {
 			reports: {
 				pending: pendingReports,
 				resolved: resolvedReports,
-				under_review : underReviewReports,
+				under_review: underReviewReports,
 			},
 			verifications: {
 				pending: pendingVerifications,
@@ -456,8 +456,8 @@ exports.updateUserStatus = async (req, res) => {
 				status === "suspended"
 					? "suspension"
 					: status === "active"
-					? "activation"
-					: "deactivation",
+						? "activation"
+						: "deactivation",
 			target_type: user.role,
 			target_id: profile._id,
 			reason: reason || `User ${status} by admin`,
@@ -643,9 +643,20 @@ exports.updateVerificationStatus = async (req, res) => {
 		if (!volunteer.nric_image) {
 			volunteer.nric_image = {};
 		}
-		
+
 		// Update verification status
 		volunteer.nric_image.verified = verified;
+
+		// If rejecting, add rejection reason and flag for re-upload
+		if (!verified) {
+			volunteer.nric_image.rejection_reason = reason || "NRIC verification rejected by admin";
+			volunteer.nric_image.requires_reupload = true;
+		} else {
+			// Clear rejection reason and re-upload flag if approving
+			volunteer.nric_image.rejection_reason = null;
+			volunteer.nric_image.requires_reupload = false;
+		}
+
 		await volunteer.save();
 
 		// Step 7: Create admin action record for audit trail
@@ -674,6 +685,7 @@ exports.updateVerificationStatus = async (req, res) => {
 				_id: volunteer._id,
 				name: volunteer.name,
 				nric_verified: volunteer.nric_image.verified,
+				nric_rejection_reason: volunteer.nric_image.rejection_reason,
 			},
 		});
 	} catch (error) {
@@ -1547,6 +1559,14 @@ exports.updateOrganiserVerification = async (req, res) => {
 
 		// Update verification status
 		organiser.verification_status = status;
+
+		// If rejected, update the certification document information
+		if (status === "rejected" && organiser.certification_document) {
+			organiser.certification_document.verified = false;
+			organiser.certification_document.rejection_reason = reason || "Certification document rejected";
+			organiser.certification_document.requires_reupload = true;
+		}
+
 		await organiser.save();
 
 		// Create admin action record

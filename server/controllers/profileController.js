@@ -475,15 +475,15 @@ exports.uploadCertification = async (req, res) => {
 		// Get file details
 		const { filename, mimetype } = req.file;
 
-		// Check if previous certification document exists
-		const wasRejected = organiser.certification_document && organiser.certification_document.status === "rejected";
+		// Check if previous certification document exists and its status
+		const wasRejected = organiser.verification_status === "rejected" ||
+			(organiser.certification_document && organiser.certification_document.requires_reupload);
 
 		// Update organiser document with certification details
 		organiser.certification_document = {
 			filename,
 			contentType: mimetype,
 			uploaded_at: new Date(),
-			status: "pending",
 			verified: false,
 			requires_reupload: false,
 			rejection_reason: null
@@ -559,9 +559,9 @@ exports.getProfileEvents = async (req, res) => {
 			const registrations = await EventRegistration.find({
 				user_id: userId
 			}).populate("event_id");
-			
+
 			console.log("🔍 Registrations found:", registrations.length);
-			
+
 			// Filter out any registrations with null event_id
 			const validRegistrations = registrations.filter(reg => reg.event_id);
 			console.log("🔍 Valid registrations with event data:", validRegistrations.length);
@@ -572,7 +572,7 @@ exports.getProfileEvents = async (req, res) => {
 					console.log("❌ Missing event data for registration:", reg._id);
 					return null;
 				}
-				
+
 				return {
 					...reg.event_id._doc,
 					registration_status: reg.status,
