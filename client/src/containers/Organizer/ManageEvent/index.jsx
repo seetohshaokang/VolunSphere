@@ -99,6 +99,15 @@ function OrganizerManageEvent() {
           const eventData = await response.json();
           console.log("Fetched event data:", eventData);
 
+          // Check if event is completed and redirect if it is
+          if (eventData.status === "completed") {
+            setError("Completed events cannot be edited.");
+            setTimeout(() => {
+              navigate(`/organizer/events/${id}`);
+            }, 2000);
+            return;
+          }
+
           // Set current image URL if exists
           if (eventData.image_url) {
             setCurrentImageUrl(eventData.image_url);
@@ -172,7 +181,7 @@ function OrganizerManageEvent() {
 
       fetchEventDetails();
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;

@@ -544,10 +544,26 @@ exports.getEventById = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Get registration count
+    // Get accurate registration count by only counting active registrations
     const registrationCount = await EventRegistration.countDocuments({
       event_id: id,
+      status: { $in: ["confirmed", "pending"] }, // Only count active registrations
     });
+
+    // Update the event's registered_count if it doesn't match the actual count
+    if (event.registered_count !== registrationCount) {
+      console.log(
+        `Correcting registration count for event ${id}: DB shows ${event.registered_count}, actual count is ${registrationCount}`
+      );
+
+      // Update the event's registered_count in the database
+      await Event.findByIdAndUpdate(id, {
+        registered_count: registrationCount,
+      });
+
+      // Update the local object as well
+      event.registered_count = registrationCount;
+    }
 
     // Check if event has passed its end date
     const now = new Date();
@@ -561,7 +577,7 @@ exports.getEventById = async (req, res) => {
       ) {
         dynamicStatus = "completed";
 
-        // Optionally update the database record (can be removed if you prefer to only update via the scheduled job)
+        // Optionally update the database record
         await Event.findByIdAndUpdate(id, { status: "completed" });
       } else if (
         !event.is_recurring &&
@@ -570,15 +586,15 @@ exports.getEventById = async (req, res) => {
       ) {
         dynamicStatus = "completed";
 
-        // Optionally update the database record (can be removed if you prefer to only update via the scheduled job)
+        // Optionally update the database record
         await Event.findByIdAndUpdate(id, { status: "completed" });
       }
     }
 
-    // Return event with registration count and dynamic status
+    // Return event with verified registration count and dynamic status
     return res.status(200).json({
       ...event._doc,
-      registered_count: registrationCount,
+      registered_count: registrationCount, // Always use the accurate count
       status: dynamicStatus,
     });
   } catch (error) {
@@ -607,6 +623,13 @@ exports.updateEvent = async (req, res) => {
     const event = await Event.findById(id);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check if event is completed - prevent editing completed events
+    if (event.status === "completed") {
+      return res
+        .status(403)
+        .json({ message: "Completed events cannot be edited" });
     }
 
     // Get organiser
@@ -736,6 +759,13 @@ exports.deleteEvent = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
+    // Check if event is completed - prevent deleting completed events
+    if (event.status === "completed") {
+      return res
+        .status(403)
+        .json({ message: "Completed events cannot be deleted" });
+    }
+
     // Get organiser
     const organiser = await Organiser.findOne({ user_id: userId });
     if (!organiser) {
@@ -856,23 +886,24 @@ exports.signupForEvent = async (req, res) => {
         name: event.name,
         organiser_id: event.organiser_id,
         is_recurring: true,
-        _id: { $ne: id } // Exclude current event
+        _id: { $ne: id }, // Exclude current event
       });
-      
+
       if (relatedEvents.length > 0) {
-        const relatedEventIds = relatedEvents.map(e => e._id);
-        
+        const relatedEventIds = relatedEvents.map((e) => e._id);
+
         // Check if volunteer is already registered for any related events
         const existingRecurringRegistration = await EventRegistration.findOne({
           user_id: userId,
           event_id: { $in: relatedEventIds },
-          status: { $in: ["confirmed", "pending"] }
+          status: { $in: ["confirmed", "pending"] },
         });
-        
+
         if (existingRecurringRegistration) {
-          return res.status(400).json({ 
-            message: "You are already signed up for another instance of this recurring event",
-            isRecurring: true 
+          return res.status(400).json({
+            message:
+              "You are already signed up for another instance of this recurring event",
+            isRecurring: true,
           });
         }
       }
@@ -1013,7 +1044,7 @@ exports.removeEventSignup = async (req, res) => {
         // Update registered_count in a separate operation
         if (event && event.registered_count > 0) {
           await Event.findByIdAndUpdate(id, {
-            registered_count: event.registered_count - 1,
+            $set: { registered_count: Math.max(0, event.registered_count - 1) },
           });
         }
       }
@@ -1025,12 +1056,14 @@ exports.removeEventSignup = async (req, res) => {
       if (event && event.registered_count > 0) {
         // Update registered_count in a separate operation
         await Event.findByIdAndUpdate(id, {
-          registered_count: event.registered_count - 1,
+          $set: { registered_count: Math.max(0, event.registered_count - 1) },
         });
       }
     }
 
-    console.log(`Event ${id} updated, new registered count: ${event.registered_count - 1}`);
+    console.log(
+      `Event ${id} updated, new registered count: ${event.registered_count - 1}`
+    );
 
     return res.status(200).json({
       message: wasRemovalByOrganizer
