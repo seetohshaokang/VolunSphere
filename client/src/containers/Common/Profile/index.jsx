@@ -14,12 +14,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Eye, Loader2, Trash } from "lucide-react";
+import { Edit, Eye, Loader2, Trash, PenSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
-import NricUploader from "../../../components/NricUploader";
 import { useAuth } from "../../../contexts/AuthContext";
+import DocumentUploader from "../../../components/DocumentUploader";
 import Api from "../../../helpers/Api";
 
 function Profile() {
@@ -30,6 +30,8 @@ function Profile() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [events, setEvents] = useState([]);
+  const [fetchingEvents, setFetchingEvents] = useState(false);
+  const [eventsError, setEventsError] = useState(null);
   const [profile, setProfile] = useState({
     firstName: "",
     lastName: "",
@@ -42,11 +44,9 @@ function Profile() {
     skills: [],
     address: "",
   });
-
+  
   const [nricFile, setNricFile] = useState(null);
   const [uploadingNric, setUploadingNric] = useState(false);
-
-  // Add timestamp for cache busting
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
   // Format date for input field (YYYY-MM-DD)
@@ -57,107 +57,134 @@ function Profile() {
   };
 
   useEffect(() => {
-    console.log("User data:", user);
     fetchUserProfile();
     fetchUserEvents();
   }, [user]);
 
   const fetchUserProfile = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const response = await Api.getUserProfile({
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch profile data");
-      }
-
-      const data = await response.json();
-      console.log("Profile data received:", data);
-      console.log("NRIC data:", data.profile.nric_image);
-
-      // Parse name (assuming it comes as full name)
-      let firstName = data.profile.name || "";
-      let lastName = "";
-
-      if (firstName.includes(" ")) {
-        const nameParts = firstName.split(" ");
-        firstName = nameParts[0];
-        lastName = nameParts.slice(1).join(" ");
-      }
-
-      // Log the avatar URL we're going to use
-      console.log("Setting avatar to:", data.profile.profile_picture_url);
-
-      setProfile({
-        firstName,
-        lastName,
-        email: data.user.email || "Email not provided",
-        phone: data.profile.phone || "",
-        dob: data.profile.dob ? formatDateForInput(data.profile.dob) : "",
-        bio: data.profile.bio || data.profile.description || "",
-        avatar: data.profile.profile_picture_url,
-        address: data.profile.address || "",
-        skills:
-          data.profile.skills ||
-          data.profile.volunteer_skills?.map((skill) => skill.skill_name) ||
-          [],
-        nric_image: data.profile.nric_image || null,
-      });
-    } catch (err) {
-      console.error("Error fetching profile:", err);
-      setError("Failed to load profile data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+		if (!user) return;
+	
+		setLoading(true);
+		try {
+			const response = await Api.getUserProfile({
+				headers: {
+					"Cache-Control": "no-cache",
+					Pragma: "no-cache",
+				},
+			});
+	
+			if (!response.ok) {
+				throw new Error("Failed to fetch profile data");
+			}
+	
+			const data = await response.json();
+			
+			// Parse name (assuming it comes as full name)
+			let firstName = data.profile.name || data.profile.organisation_name || "";
+			let lastName = "";
+	
+			if (firstName.includes(" ")) {
+				const nameParts = firstName.split(" ");
+				firstName = nameParts[0];
+				lastName = nameParts.slice(1).join(" ");
+			}
+			
+			// Build profile object with common fields
+			const profileData = {
+				firstName,
+				lastName,
+				email: data.user.email || "Email not provided",
+				phone: data.profile.phone || "",
+				bio: data.profile.bio || data.profile.description || "",
+				avatar: data.profile.profile_picture_url,
+				address: data.profile.address || "",
+			};
+			
+			// Add role-specific fields
+			if (data.user.role === "volunteer") {
+				profileData.dob = data.profile.dob
+					? formatDateForInput(data.profile.dob)
+					: "";
+				profileData.skills =
+					data.profile.skills ||
+					data.profile.volunteer_skills?.map(
+						(skill) => skill.skill_name
+					) ||
+					[];
+				profileData.nric_image = data.profile.nric_image || null;
+				profileData.preferred_causes = data.profile.preferred_causes || [];
+			} else if (data.user.role === "organiser") {
+				profileData.website = data.profile.website || "";
+				profileData.organisation_name = data.profile.organisation_name || "";
+				profileData.certification_document = data.profile.certification_document || null;
+				profileData.verification_status = data.profile.verification_status || "pending";
+			}
+			
+			setProfile(profileData);
+		} catch (err) {
+			setError("Failed to load profile data. Please try again.");
+		} finally {
+			setLoading(false);
+		}
+	};
 
   const fetchUserEvents = async () => {
     if (!user) {
-      console.log("No user found, returning early.");
       return;
     }
 
+    setEvents([]);
+    setFetchingEvents(true);
+    setEventsError(null);
+
     try {
-      let response;
-      if (user.role === "organiser") {
-        console.log("Fetching organized events...");
-        response = await Api.getOrganizedEvents();
-      } else {
-        console.log("Fetching registered events...");
-        response = await Api.getRegisteredEvents();
-      }
+      const response = await Api.getUserEvents();
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to fetch ${
-            user.role === "organiser" ? "organized" : "registered"
-          } events`
-        );
+        throw new Error(`Failed to fetch events for ${user.role}`);
       }
 
       const data = await response.json();
-      console.log("Fetched event data:", data);
+      const eventsData = data.events || [];
 
-      // Now access the events array from the response object
-      const events = data.events || [];
+      if (!Array.isArray(eventsData)) {
+        setEventsError("Invalid data format received from server");
+        return;
+      }
 
-      // Check if the events array has any items
-      if (events.length === 0) {
-        console.log("No events found.");
-        setEvents([]); // Set empty events if no events are found
+      if (eventsData.length === 0) {
+        setEvents([]);
+        return;
+      }
+
+      if (user.role === "volunteer") {
+        // For volunteers, enhance each event with registration status
+        const enhancedEvents = eventsData.map(event => {
+          if (!event) return null;
+          
+          // Determine if this is a volunteer registration or event
+          const eventObj = event.event || event;
+          const status = eventObj?.status || 'active';
+          
+          // For volunteer registrations, get the registration status
+          const registrationStatus = event.registration_status || event.status || 'registered';
+          
+          // Enhance the event object with registration_status for display
+          return {
+            ...event,
+            registration_status: registrationStatus
+          };
+        }).filter(Boolean); // Remove any null values
+        
+        setEvents(enhancedEvents);
       } else {
-        setEvents(events);
+        // For organizers, just set all events
+        setEvents(eventsData);
       }
     } catch (err) {
-      console.error("Error fetching events:", err);
-      // Non-critical error, don't show to user
+      setEventsError(`Failed to load volunteer activities: ${err.message}`);
+    } finally {
+      setFetchingEvents(false);
     }
   };
 
@@ -193,18 +220,7 @@ function Profile() {
       formData.append("dob", profile.dob);
       formData.append("address", profile.address);
 
-      // Log what's in the FormData
-      console.log("Preparing form data:", {
-        name: `${profile.firstName} ${profile.lastName}`.trim(),
-        phone: profile.phone,
-        bio: profile.bio,
-        dob: profile.dob,
-        address: profile.address,
-        hasAvatarFile: profile.avatarFile ? "Yes" : "No",
-      });
-
       if (profile.avatarFile) {
-        console.log("Attaching profile picture file:", profile.avatarFile.name);
         formData.append("profile_picture", profile.avatarFile);
       }
 
@@ -216,9 +232,7 @@ function Profile() {
         formData.append("skills", JSON.stringify(profile.skills));
       }
 
-      // This is a nested try block that can stay or be flattened
       const data = await Api.updateUserProfile(formData);
-      console.log("API Response:", data);
 
       if (!data || !data.profile) {
         throw new Error("Failed to update profile");
@@ -235,7 +249,6 @@ function Profile() {
 
       fetchUserProfile();
     } catch (err) {
-      console.error("Error updating profile:", err);
       setError("Failed to update profile. Please try again.");
     } finally {
       setLoading(false);
@@ -262,49 +275,25 @@ function Profile() {
 
       const response = await Api.uploadNRIC(formData);
 
-      if (response.ok) {
-        const data = await response.json();
-        setSuccess(
-          data.message ||
-            "NRIC uploaded successfully. It will be verified by an adminstrator."
-        );
-        setNricFile(null);
-        // Refresh profile data to show updated NRIC status
-        fetchUserProfile();
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || "Failed to upload NRIC");
-      }
-    } catch (err) {
-      console.error("Error uploading NRIC:", err);
-      setError("Failed to upload NRIC> Please try again.");
-    } finally {
-      setUploadingNric(false);
-    }
-  };
-
-  const handleDeleteEvent = async (eventId) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this event? This action cannot be undone."
-      )
-    ) {
-      try {
-        const response = await Api.deleteEvent(eventId);
-
-        if (!response.ok) {
-          throw new Error("Failed to delete event");
-        }
-
-        // Refresh the events list
-        fetchUserEvents();
-        setSuccess("Event deleted successfully");
-      } catch (err) {
-        console.error("Error deleting event:", err);
-        setError("Failed to delete event. Please try again.");
-      }
-    }
-  };
+			if (response.ok) {
+				const data = await response.json();
+				setSuccess(
+					data.message ||
+					"NRIC uploaded successfully. It will be verified by an adminstrator."
+				);
+				setNricFile(null);
+				// Refresh profile data to show updated NRIC status
+				fetchUserProfile();
+			} else {
+				const errorData = await response.json();
+				setError(errorData.message || "Failed to upload NRIC");
+			}
+		} catch (err) {
+			setError("Failed to upload NRIC. Please try again.");
+		} finally {
+			setUploadingNric(false);
+		}
+	};
 
   if (loading && !profile.email) {
     return (
@@ -332,22 +321,121 @@ function Profile() {
       return `${profile.avatar}?t=${imageTimestamp}`;
     }
 
-    // If it's a relative path with a file extension
-    if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
-      // Determine if it's a server-hosted image or a local asset
-      if (
-        profile.avatar.startsWith("/uploads/") ||
-        profile.avatar.includes("profile-")
-      ) {
-        return `http://localhost:8000${
-          profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"
-        }${profile.avatar}?t=${imageTimestamp}`;
-      }
-      return `${profile.avatar}?t=${imageTimestamp}`;
-    }
+		// If it's a relative path with a file extension
+		if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
+			// Determine if it's a server-hosted image or a local asset
+			if (
+				profile.avatar.startsWith("/uploads/") ||
+				profile.avatar.includes("profile-")
+			) {
+				return `http://localhost:8000${profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"
+					}${profile.avatar}?t=${imageTimestamp}`;
+			}
+			return `${profile.avatar}?t=${imageTimestamp}`;
+		}
 
     // If it's just a filename (most likely from server)
     return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
+  };
+
+  // Helper function to determine registration status badge variant
+  const getRegistrationStatusVariant = (status) => {
+    switch (status?.toLowerCase()) {
+      case "registered":
+        return "default"; // Blue badge
+      case "confirmed":
+        return "default"; // Blue badge
+      case "completed":
+        return "success"; // Green badge
+      case "cancelled":
+        return "destructive"; // Red badge
+      case "not_attended":
+        return "outline"; // Outline badge
+      case "attended":
+        return "success"; // Green badge
+      case "pending":
+        return "outline"; // Outline badge
+      case "removed_by_organizer":
+        return "destructive"; // Red badge
+      default:
+        return "outline"; // Default fallback
+    }
+  };
+
+  // Helper function to format registration status for display
+  const formatRegistrationStatus = (status) => {
+    if (!status) return "REGISTERED";
+    
+    // Check if the event is completed based on date
+    if (status.toLowerCase() === "confirmed" || status.toLowerCase() === "registered") {
+      const eventDate = new Date();
+      const now = new Date();
+      
+      // If event date is in the past, mark as COMPLETED
+      if (eventDate < now) {
+        return "COMPLETED";
+      }
+    }
+    
+    // Override specific status values for cleaner display
+    switch (status.toLowerCase()) {
+      case "confirmed":
+        return "REGISTERED";
+      case "not_attended":
+        return "NOT ATTENDED";
+      case "attended":
+        return "COMPLETED";
+      case "removed_by_organizer":
+        return "REMOVED";
+      default:
+        // Replace underscores with spaces and capitalize
+        return status.replace(/_/g, ' ').toUpperCase();
+    }
+  };
+
+  // Helper function to determine if an event is completed based on date
+  const isEventCompleted = (event) => {
+    if (!event) return false;
+    
+    // Find the first valid date from all the possible date fields
+    const dateField = event.end_datetime || 
+                     event.start_datetime || 
+                     event.date || 
+                     event.start_date ||
+                     (event.event ? (event.event.end_datetime || event.event.start_datetime || event.event.date || event.event.start_date) : null);
+    
+    if (!dateField) return false;
+    
+    const eventDate = new Date(dateField);
+    if (isNaN(eventDate.getTime())) {
+      return false;
+    }
+    
+    const now = new Date();    
+    return eventDate < now;
+  };
+
+  // Helper function to get event status for display
+  const getEventStatus = (event) => {
+    // First check registration status if available
+    if (event.registration_status) {
+      if (event.registration_status.toLowerCase() === "confirmed" || 
+          event.registration_status.toLowerCase() === "registered") {
+        // Check if event is completed based on date
+        if (isEventCompleted(event)) {
+          return "completed";
+        }
+        return "registered";
+      }
+      return event.registration_status;
+    }
+    
+    // If no registration status, derive from event status and date
+    if (isEventCompleted(event)) {
+      return "completed";
+    }
+    
+    return "registered";
   };
 
   return (
@@ -408,311 +496,400 @@ function Profile() {
             </CardContent>
           </Card>
 
-          <Card className="md:col-span-2">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle>Personal Information</CardTitle>
-              {!isEditing && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  disabled={loading}
-                >
-                  <Edit className="h-4 w-4 mr-2" /> Edit Profile
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {!isEditing ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-4">
-                    <span className="font-bold">Name:</span>
-                    <span className="col-span-2">
-                      {profile.firstName} {profile.lastName}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <span className="font-bold">Email:</span>
-                    <span className="col-span-2">{profile.email}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <span className="font-bold">Phone:</span>
-                    <span className="col-span-2">
-                      {profile.phone || "Not provided"}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <span className="font-bold">Date of Birth:</span>
-                    <span className="col-span-2">
-                      {profile.dob
-                        ? new Date(profile.dob).toLocaleDateString()
-                        : "Not provided"}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <span className="font-bold">Address:</span>
-                    <span className="col-span-2">
-                      {profile.address || "Not provided"}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <span className="font-bold">Bio:</span>
-                    <span className="col-span-2">
-                      {profile.bio || "No bio provided"}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="avatar">Profile Picture</Label>
-                      <div className="flex flex-col space-y-2">
-                        {profile.avatar && (
-                          <div className="flex justify-center my-2">
-                            <Avatar className="w-20 h-20 border-2 border-primary">
-                              <AvatarImage
-                                src={
-                                  profile.avatarFile
-                                    ? URL.createObjectURL(profile.avatarFile)
-                                    : getAvatarUrl()
-                                }
-                                alt="Profile preview"
-                              />
-                              <AvatarFallback>
-                                {profile.firstName?.charAt(0) || ""}
-                                {profile.lastName?.charAt(0) || ""}
-                              </AvatarFallback>
-                            </Avatar>
-                          </div>
-                        )}
-                        <div className="relative">
-                          <div className="flex items-center gap-2">
-                            <label
-                              htmlFor="avatar"
-                              className="border border-input bg-background rounded-md px-3 py-2 text-sm cursor-pointer inline-block min-w-24 text-center hover:bg-accent hover:text-accent-foreground transition-colors"
-                            >
-                              Choose file
-                            </label>
-                            <span className="text-sm text-gray-600">
-                              {profile.avatarFile
-                                ? profile.avatarFile.name
-                                : "No file chosen"}
-                            </span>
-                            <Input
-                              id="avatar"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Accepted formats: JPEG, PNG, WebP. Max size: 5MB.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        value={profile.firstName}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        value={profile.lastName}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={profile.email}
-                        onChange={handleChange}
-                        required
-                        disabled
-                      />
-                      <p className="text-sm text-muted-foreground">
-                        Email cannot be changed
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        value={profile.phone}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Date of Birth</Label>
-                      <Input
-                        id="dob"
-                        name="dob"
-                        type="date"
-                        value={profile.dob}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address">Address</Label>
-                      <Input
-                        id="address"
-                        name="address"
-                        value={profile.address}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bio">Bio</Label>
-                      <Textarea
-                        id="bio"
-                        name="bio"
-                        value={profile.bio}
-                        onChange={handleChange}
-                        rows={4}
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsEditing(false)}
-                        disabled={loading}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        disabled={loading}
-                        className="border-2 border-black"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          "Save Changes"
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </form>
-              )}
-            </CardContent>
-          </Card>
+					<Card className="md:col-span-2">
+						<CardHeader className="flex flex-row items-center justify-between pb-2">
+							<CardTitle>Personal Information</CardTitle>
+							{!isEditing && (
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setIsEditing(true)}
+									disabled={loading}
+								>
+									<Edit className="h-4 w-4 mr-2" /> Edit
+									Profile
+								</Button>
+							)}
+						</CardHeader>
+						<CardContent>
+							{!isEditing ? (
+								<div className="space-y-3">
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">Name:</span>
+										<span className="col-span-2">
+											{profile.firstName}{" "}
+											{profile.lastName}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Email:
+										</span>
+										<span className="col-span-2">
+											{profile.email}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Phone:
+										</span>
+										<span className="col-span-2">
+											{profile.phone || "Not provided"}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Date of Birth:
+										</span>
+										<span className="col-span-2">
+											{profile.dob
+												? new Date(
+													profile.dob
+												).toLocaleDateString()
+												: "Not provided"}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">
+											Address:
+										</span>
+										<span className="col-span-2">
+											{profile.address || "Not provided"}
+										</span>
+									</div>
+									<div className="grid grid-cols-3 gap-4">
+										<span className="font-bold">Bio:</span>
+										<span className="col-span-2">
+											{profile.bio || "No bio provided"}
+										</span>
+									</div>
+								</div>
+							) : (
+								<form onSubmit={handleSubmit}>
+									<div className="space-y-4">
+										<div className="space-y-2">
+											<Label htmlFor="avatar">
+												Profile Picture
+											</Label>
+											<div className="flex flex-col space-y-2">
+												{profile.avatar && (
+													<div className="flex justify-center my-2">
+														<Avatar className="w-20 h-20 border-2 border-primary">
+															<AvatarImage
+																src={
+																	profile.avatarFile
+																		? URL.createObjectURL(
+																			profile.avatarFile
+																		)
+																		: getAvatarUrl()
+																}
+																alt="Profile preview"
+															/>
+															<AvatarFallback>
+																{profile.firstName?.charAt(
+																	0
+																) || ""}
+																{profile.lastName?.charAt(
+																	0
+																) || ""}
+															</AvatarFallback>
+														</Avatar>
+													</div>
+												)}
+												<div className="relative">
+													<div className="flex items-center gap-2">
+														<label
+															htmlFor="avatar"
+															className="border border-input bg-background rounded-md px-3 py-2 text-sm cursor-pointer inline-block min-w-24 text-center hover:bg-accent hover:text-accent-foreground transition-colors"
+														>
+															Choose file
+														</label>
+														<span className="text-sm text-gray-600">
+															{profile.avatarFile
+																? profile
+																	.avatarFile
+																	.name
+																: "No file chosen"}
+														</span>
+														<Input
+															id="avatar"
+															type="file"
+															accept="image/*"
+															onChange={
+																handleFileChange
+															}
+															className="hidden"
+														/>
+													</div>
+													<p className="text-xs text-muted-foreground mt-1">
+														Accepted formats: JPEG,
+														PNG, WebP. Max size:
+														5MB.
+													</p>
+												</div>
+											</div>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="firstName">
+												First Name
+											</Label>
+											<Input
+												id="firstName"
+												name="firstName"
+												value={profile.firstName}
+												onChange={handleChange}
+												required
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="lastName">
+												Last Name
+											</Label>
+											<Input
+												id="lastName"
+												name="lastName"
+												value={profile.lastName}
+												onChange={handleChange}
+												required
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="email">Email</Label>
+											<Input
+												id="email"
+												name="email"
+												type="email"
+												value={profile.email}
+												onChange={handleChange}
+												required
+												disabled
+											/>
+											<p className="text-sm text-muted-foreground">
+												Email cannot be changed
+											</p>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="phone">
+												Phone Number
+											</Label>
+											<Input
+												id="phone"
+												name="phone"
+												value={profile.phone}
+												onChange={handleChange}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="dob">
+												Date of Birth
+											</Label>
+											<Input
+												id="dob"
+												name="dob"
+												type="date"
+												value={profile.dob}
+												onChange={handleChange}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="address">
+												Address
+											</Label>
+											<Input
+												id="address"
+												name="address"
+												value={profile.address}
+												onChange={handleChange}
+											/>
+										</div>
+										<div className="space-y-2">
+											<Label htmlFor="bio">Bio</Label>
+											<Textarea
+												id="bio"
+												name="bio"
+												value={profile.bio}
+												onChange={handleChange}
+												rows={4}
+											/>
+										</div>
+										<div className="flex justify-end gap-2 mt-4">
+											<Button
+												type="button"
+												variant="outline"
+												onClick={() =>
+													setIsEditing(false)
+												}
+												disabled={loading}
+											>
+												Cancel
+											</Button>
+											<Button
+												type="submit"
+												disabled={loading}
+												className="border-2 border-black"
+											>
+												{loading ? (
+													<>
+														<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+														Saving...
+													</>
+												) : (
+													"Save Changes"
+												)}
+											</Button>
+										</div>
+									</div>
+								</form>
+							)}
+						</CardContent>
+					</Card>
 
-          {/* NRIC Verification Card - Only show for volunteers */}
-          {user?.role === "volunteer" && (
-            <NricUploader
-              profile={profile}
-              onUploadSuccess={fetchUserProfile}
-              setError={setError}
-              setSuccess={setSuccess}
-            />
-          )}
+					<DocumentUploader
+						profile={profile}
+						onUploadSuccess={fetchUserProfile}
+						setError={setError}
+						setSuccess={setSuccess}
+						isOrganizer={user?.role === "organiser"}
+					/>
 
-          <Card className="md:col-span-3">
-            <CardHeader>
-              <CardTitle>
-                {user?.role === "volunteer"
-                  ? "My Volunteer Activities"
-                  : "My Organized Events"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {events.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Event</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {events.map((event) => (
-                      <TableRow key={event._id}>
-                        <TableCell className="font-medium">
-                          {event.name || event.event?.name || "Unnamed Event"}
-                        </TableCell>
-                        <TableCell>
-                          {event.start_date || event.event?.start_date
-                            ? new Date(
-                                event.start_date || event.event?.start_date
-                              ).toLocaleDateString()
-                            : "No date specified"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              (event.status || event.event?.status) === "active"
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {(
-                              event.status ||
-                              event.event?.status ||
-                              "active"
-                            ).toUpperCase()}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" asChild>
-                              <Link to={`/events/${event._id}`}>
-                                <Eye className="h-4 w-4 mr-1" /> View
-                              </Link>
-                            </Button>
-                            {user?.role === "organiser" && (
-                              <Button variant="outline" size="sm" asChild>
-                                <Link to={`/events/edit/${event._id}`}>
-                                  <Edit className="h-4 w-4 mr-1" /> Edit
-                                </Link>
-                              </Button>
-                            )}
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteEvent(event._id)}
-                            >
-                              <Trash className="h-4 w-4 mr-1" /> Delete
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  {user?.role === "volunteer"
-                    ? "You haven't registered for any events yet."
-                    : "You haven't created any events yet."}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
+					<Card className="md:col-span-3">
+						<CardHeader>
+							<CardTitle>
+								{user?.role === "volunteer"
+									? "My Volunteer Activities"
+									: "My Organized Events"}
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{eventsError && (
+								<Alert variant="destructive" className="mb-4">
+									<AlertDescription>{eventsError}</AlertDescription>
+								</Alert>
+							)}
+
+							{fetchingEvents && (
+								<div className="flex justify-center items-center py-8">
+									<Loader2 className="h-8 w-8 animate-spin text-primary" />
+									<span className="ml-2">Loading activities...</span>
+								</div>
+							)}
+
+							{!fetchingEvents && Array.isArray(events) && events.length > 0 ? (
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Event</TableHead>
+											<TableHead>Date</TableHead>
+											<TableHead>Status</TableHead>
+											<TableHead className="text-left">Actions</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{events.map((event, index) => {
+											if (!event) return null;
+											
+											const eventName = event.name || 
+												event.event?.name ||
+												"Unnamed Event";
+												
+											const eventDate = event.start_datetime || 
+												event.end_datetime || 
+												event.start_date || 
+												event.event?.start_date || 
+												event.date;
+												
+											const eventId = event._id || 
+												event.event?._id || 
+												event.event_id || 
+												`event-${index}`;
+												
+											const status = getEventStatus(event);
+											
+											return (
+												<TableRow key={eventId}>
+													<TableCell className="font-medium">
+														{eventName}
+													</TableCell>
+													<TableCell>
+														{eventDate
+															? new Date(eventDate).toLocaleDateString()
+															: "No date specified"}
+													</TableCell>
+													<TableCell>
+														{user?.role === "volunteer" ? (
+															<Badge
+																variant={getRegistrationStatusVariant(status)}
+															>
+																{formatRegistrationStatus(status)}
+															</Badge>
+														) : (
+															<Badge
+																variant={
+																	(event.status ||
+																		event.event?.status) ===
+																		"active"
+																		? "default"
+																		: "secondary"
+																}
+															>
+																{(
+																	event.status ||
+																	event.event?.status ||
+																	"active"
+																).toUpperCase()}
+															</Badge>
+														)}
+													</TableCell>
+													<TableCell>
+														<div className="flex justify-start gap-2">
+															<Button
+																variant="outline"
+																size="sm"
+																className="p-2 h-9 w-9 border border-gray-300 rounded-md flex items-center justify-center"
+																asChild
+															>
+																<Link
+																	to={
+																		user?.role === "volunteer"
+																			? `/volunteer/events/${eventId}`
+																			: `/organizer/events/${eventId}`
+																	}
+																>
+																	<Eye className="h-5 w-5" />
+																</Link>
+															</Button>
+															{user?.role === "organiser" && (
+																<Button
+																	variant="outline"
+																	size="sm"
+																	className="p-2 h-9 w-9 border border-gray-300 rounded-md flex items-center justify-center"
+																	asChild
+																>
+																	<Link to={`/events/edit/${eventId}`}>
+																		<PenSquare className="h-5 w-5" />
+																	</Link>
+																</Button>
+															)}
+														</div>
+													</TableCell>
+												</TableRow>
+											)
+										})}
+									</TableBody>
+								</Table>
+							) : !fetchingEvents && (
+								<div className="text-center py-6 text-muted-foreground">
+									{user?.role === "volunteer" 
+										? "You haven't registered for any volunteer activities yet."
+										: "You haven't organized any events yet."}
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		</div>
+	);
 }
 
 export default Profile;

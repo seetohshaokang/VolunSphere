@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import ContentHeader from "../../../components/ContentHeader";
 import Api from "../../../helpers/Api";
-import NricViewer from "../../../components/NricViewer"; // Import the NricViewer component
+import DocumentViewer from "../../../components/DocumentViewer"; // Import DocumentViewer instead of just NricViewer
 
 const AdminUserDetail = () => {
   const { id } = useParams();
@@ -174,6 +174,12 @@ const AdminUserDetail = () => {
   // Function to handle organization verification
   const handleVerifyOrganization = async (isApproved) => {
     try {
+      // Check if organizer has a certification document before allowing approval
+      if (isApproved && (!profile?.certification_document || !profile?.certification_document?.filename)) {
+        alert('Cannot approve an organization without an uploaded certification document');
+        return;
+      }
+
       // This would need to be implemented in your API
       const response = await Api.updateOrganiserVerification(
         userData.profile._id,
@@ -253,7 +259,7 @@ const AdminUserDetail = () => {
       <div className="flex justify-end mb-6">
         <button
           onClick={() => setShowStatusModal(true)}
-          className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded"
+           className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
         >
           Change User Status
         </button>
@@ -330,8 +336,9 @@ const AdminUserDetail = () => {
               <div className="mt-4">
                 <p className="text-gray-600 mb-2">NRIC Image:</p>
                 {profile?.nric_image?.filename ? (
-                  <NricViewer 
+                  <DocumentViewer 
                     filename={profile.nric_image.filename} 
+                    documentType="nric"
                     className="w-full border rounded-md"
                   />
                 ) : (
@@ -389,7 +396,13 @@ const AdminUserDetail = () => {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleVerifyOrganization(true)}
-                      className="bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded"
+                      className={`bg-green-500 hover:bg-green-600 text-white text-xs py-1 px-2 rounded ${
+                        !profile?.certification_document?.filename ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      disabled={!profile?.certification_document?.filename}
+                      title={!profile?.certification_document?.filename ? 
+                        'Cannot approve without certification document' : 
+                        'Approve organization'}
                     >
                       Approve
                     </button>
@@ -402,6 +415,21 @@ const AdminUserDetail = () => {
                   </div>
                 )}
               </div>
+              
+              {/* Certification Document Viewer Section */}
+              <div className="mt-4">
+                <p className="text-gray-600 mb-2">Certification Document:</p>
+                {profile?.certification_document?.filename ? (
+                  <DocumentViewer 
+                    filename={profile.certification_document.filename} 
+                    documentType="certification"
+                    className="w-full border rounded-md"
+                  />
+                ) : (
+                  <p className="text-gray-500">No certification document uploaded</p>
+                )}
+              </div>
+              
               <div>
                 <p className="text-gray-600">Website:</p>
                 <p className="font-medium">{profile?.website || 'Not provided'}</p>
@@ -623,7 +651,7 @@ const AdminUserDetail = () => {
                   </button>
                   <button
                     onClick={handleStatusUpdate}
-                    className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
                     disabled={statusUpdateLoading || !newStatus || newStatus === userData.user.status}
                   >
                     {statusUpdateLoading ? 'Updating...' : 'Update Status'}

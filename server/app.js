@@ -6,7 +6,6 @@ const compression = require("compression");
 const helmet = require("helmet");
 const passport = require("./config/passport");
 const session = require("express-session");
-const rateLimit = require("express-rate-limit");
 const routes = require("./routes/indexRoutes");
 const connectDB = require("./config/database");
 const path = require("path");
@@ -27,17 +26,6 @@ app.set("trust proxy", 1);
 app.use(helmet());
 
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
-
-// Rate limiting - protect against brute force attacks
-const limiter = rateLimit({
-	windowMs: 15 * 60 * 1000, // 15 minutes
-	max: 100, // 100 requests per IP
-	standardHeaders: true,
-	legacyHeaders: false,
-	message:
-		"Too many requests from this IP, please try again after 15 minutes",
-});
-app.use("/api/", limiter); // Apply to all API routes
 
 // CORS Configuration
 const allowedOrigins = [
@@ -89,6 +77,12 @@ app.use(
 	"/api/uploads/nric",
 	express.static(path.join(__dirname, "public/uploads/nric"))
 );
+
+app.use(
+	"/api/uploads/organizer_docs",
+	express.static(path.join(__dirname, "public/uploads/organizer_docs"))
+);
+
 
 // Session configuration - required for passport
 app.use(

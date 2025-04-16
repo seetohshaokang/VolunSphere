@@ -369,67 +369,147 @@ exports.deleteProfile = async (req, res) => {
  * @param {string} req.user.id - User ID
  * @param {Object} req.file - Uploaded NRIC image
  * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with upload status
- * @throws {Error} If server error occurs during NRIC upload
- *
- * Steps:
- * 1. Check if user is a volunteer
- * 2. Check if file was uploaded
- * 3. Find volunteer profile
- * 4. Update volunteer's NRIC image
- * 5. Save volunteer profile
- * 6. Return success message
  */
 exports.uploadNRIC = async (req, res) => {
 	try {
+		// Verify user is a volunteer
 		const userId = req.user.id;
-		console.log("🔍 uploadNRIC called for userId:", userId);
-
-		// Check if user is a volunteer
 		const user = await User.findById(userId);
+
 		if (!user || user.role !== "volunteer") {
-			return res
-				.status(403)
-				.json({ message: "Only volunteers can upload NRIC" });
+			return res.status(403).json({
+				message: "Access denied. Only volunteers can upload NRIC images."
+			});
+		}
+
+		// Volunteer profile lookup
+		const volunteer = await Volunteer.findOne({ user_id: userId });
+		if (!volunteer) {
+			return res.status(404).json({
+				message: "Volunteer profile not found."
+			});
 		}
 
 		// Check if file was uploaded
 		if (!req.file) {
-			return res.status(400).json({ message: "No file uploaded" });
+			return res.status(400).json({
+				message: "No file uploaded. Please select an image."
+			});
 		}
 
-		// Find volunteer profile
-		const volunteer = await Volunteer.findOne({ user_id: userId });
-		if (!volunteer) {
-			return res
-				.status(404)
-				.json({ message: "Volunteer profile not found" });
-		}
+		// Get file details
+		const { filename, mimetype } = req.file;
 
-		// Update volunteer's NRIC image
+		// Check if previous NRIC image exists
+		const wasRejected = volunteer.nric_image && volunteer.nric_image.status === "rejected";
+
+		// Update volunteer document with NRIC image details
 		volunteer.nric_image = {
-			filename: req.file.filename,
-			contentType: req.file.mimetype,
+			filename,
+			contentType: mimetype,
 			uploaded_at: new Date(),
+			status: "pending",
 			verified: false,
+			requires_reupload: false,
+			rejection_reason: null
 		};
 
 		await volunteer.save();
-		console.log("✅ NRIC uploaded successfully");
 
 		return res.status(200).json({
-			message:
-				"NRIC uploaded successfully. It will be verified by an administrator.",
+			message: wasRejected
+				? "New NRIC image uploaded successfully. It will be reviewed by an administrator."
+				: "NRIC image uploaded successfully. It will be verified by an administrator.",
 			nric_image: {
-				filename: req.file.filename,
-			},
+				filename,
+				uploaded_at: volunteer.nric_image.uploaded_at,
+				verified: false,
+				status: "pending"
+			}
 		});
 	} catch (error) {
-		console.error("❌ Error uploading NRIC:", error);
+		console.error("Error uploading NRIC:", error);
 		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
+			message: "Server error while uploading NRIC",
+			error: error.message
+		});
+	}
+};
+
+/**
+ * Upload organizer's charity certification document for verification
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Authenticated user information
+ * @param {string} req.user.id - User ID
+ * @param {Object} req.file - Uploaded certification document
+ * @param {Object} res - Express response object
+ */
+exports.uploadCertification = async (req, res) => {
+	try {
+		// Verify user is an organizer
+		const userId = req.user.id;
+		const user = await User.findById(userId);
+
+		if (!user || user.role !== "organiser") {
+			return res.status(403).json({
+				message: "Access denied. Only organisers can upload certification documents."
+			});
+		}
+
+		// Organiser profile lookup
+		const organiser = await Organiser.findOne({ user_id: userId });
+		if (!organiser) {
+			return res.status(404).json({
+				message: "Organiser profile not found."
+			});
+		}
+
+		// Check if file was uploaded
+		if (!req.file) {
+			return res.status(400).json({
+				message: "No file uploaded. Please select a document."
+			});
+		}
+
+		// Get file details
+		const { filename, mimetype } = req.file;
+
+		// Check if previous certification document exists
+		const wasRejected = organiser.certification_document && organiser.certification_document.status === "rejected";
+
+		// Update organiser document with certification details
+		organiser.certification_document = {
+			filename,
+			contentType: mimetype,
+			uploaded_at: new Date(),
+			status: "pending",
+			verified: false,
+			requires_reupload: false,
+			rejection_reason: null
+		};
+
+		// Also update the overall verification status
+		organiser.verification_status = "pending";
+
+		await organiser.save();
+
+		return res.status(200).json({
+			message: wasRejected
+				? "New certification document uploaded successfully. It will be reviewed by an administrator."
+				: "Certification document uploaded successfully. It will be verified by an administrator.",
+			certification_document: {
+				filename,
+				uploaded_at: organiser.certification_document.uploaded_at,
+				verified: false,
+				status: "pending"
+			}
+		});
+	} catch (error) {
+		console.error("Error uploading certification:", error);
+		return res.status(500).json({
+			message: "Server error while uploading certification document",
+			error: error.message
 		});
 	}
 };
@@ -473,16 +553,32 @@ exports.getProfileEvents = async (req, res) => {
 					.json({ message: "Volunteer profile not found" });
 			}
 
-			// Get registered events
-			const registrations = await EventRegistration.find({
-				volunteer_id: volunteer._id,
-			}).populate("event_id");
+			console.log("🔍 Volunteer found:", volunteer._id);
 
-			events = registrations.map((reg) => ({
-				...reg.event_id._doc,
-				registration_status: reg.status,
-				registration_date: reg.registration_date,
-			}));
+			// Get registered events using user_id (volunteer_id is not in the schema)
+			const registrations = await EventRegistration.find({
+				user_id: userId
+			}).populate("event_id");
+			
+			console.log("🔍 Registrations found:", registrations.length);
+			
+			// Filter out any registrations with null event_id
+			const validRegistrations = registrations.filter(reg => reg.event_id);
+			console.log("🔍 Valid registrations with event data:", validRegistrations.length);
+
+			events = validRegistrations.map((reg) => {
+				// Ensure we have event_id data before accessing _doc
+				if (!reg.event_id || !reg.event_id._doc) {
+					console.log("❌ Missing event data for registration:", reg._id);
+					return null;
+				}
+				
+				return {
+					...reg.event_id._doc,
+					registration_status: reg.status,
+					registration_date: reg.signup_date || reg.registration_date,
+				};
+			}).filter(Boolean); // Remove null entries
 		} else if (user.role === "organiser") {
 			// Get organiser profile
 			const organiser = await Organiser.findOne({ user_id: userId });

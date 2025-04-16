@@ -43,9 +43,11 @@ function OrganizerDashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortOption, setSortOption] = useState("newest");
   const [dateFilter, setDateFilter] = useState("all");
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
     fetchOrganizedEvents();
+    checkVerificationStatus();
   }, []);
 
   // Apply filters and sorting whenever the filter criteria change
@@ -262,6 +264,28 @@ function OrganizerDashboard() {
       </div>
     );
   }
+
+  const checkVerificationStatus = async () => {
+    try {
+      const response = await Api.getUserProfile();
+      if (response.ok) {
+        const data = await response.json();
+        // Check if organizer profile is verified
+        if (data.profile && data.profile.verification_status === "verified") {
+          setIsVerified(true);
+        } else {
+          setIsVerified(false);
+        }
+      }
+    } catch (err) {
+      console.error("Error checking verification status:", err);
+      setIsVerified(false);
+    }
+  };
+
+  const handleCreateEventClick = () => {
+    navigate("/events/create");
+  };
 
   // Calculate total volunteers with defensive check
   const totalVolunteers = Array.isArray(events)

@@ -790,7 +790,6 @@ exports.deleteEvent = async (req, res) => {
 /**
  * Sign up for an event
  */
-// In eventController.js - signupForEvent function
 exports.signupForEvent = async (req, res) => {
   try {
     const { id } = req.params;
@@ -849,12 +848,42 @@ exports.signupForEvent = async (req, res) => {
       }
     }
 
+    // NEW CHECK FOR RECURRING EVENTS
+    // If this is a recurring event, check if volunteer is already registered for any instance
+    if (event.is_recurring) {
+      // Find other events with the same name and organizer (likely part of the same recurring series)
+      const relatedEvents = await Event.find({
+        name: event.name,
+        organiser_id: event.organiser_id,
+        is_recurring: true,
+        _id: { $ne: id } // Exclude current event
+      });
+      
+      if (relatedEvents.length > 0) {
+        const relatedEventIds = relatedEvents.map(e => e._id);
+        
+        // Check if volunteer is already registered for any related events
+        const existingRecurringRegistration = await EventRegistration.findOne({
+          user_id: userId,
+          event_id: { $in: relatedEventIds },
+          status: { $in: ["confirmed", "pending"] }
+        });
+        
+        if (existingRecurringRegistration) {
+          return res.status(400).json({ 
+            message: "You are already signed up for another instance of this recurring event",
+            isRecurring: true 
+          });
+        }
+      }
+    }
+
     const volunteer = await Volunteer.findOne({ user_id: userId });
     if (!volunteer) {
       return res.status(404).json({ message: "Volunteer profile not found" });
     }
 
-    // NEW CHECK: Verify the volunteer's NRIC is verified
+    // Verify the volunteer's NRIC is verified
     if (!volunteer.nric_image.verified) {
       return res.status(403).json({
         message: "You need to verify your NRIC before signing up for events",
@@ -873,7 +902,6 @@ exports.signupForEvent = async (req, res) => {
       const registration = new EventRegistration({
         user_id: userId,
         event_id: id,
-        volunteer_id: volunteer._id,
         status: "confirmed",
         signup_date: new Date(),
       });
@@ -914,6 +942,7 @@ exports.removeEventSignup = async (req, res) => {
 
     let registration;
     let wasRemovalByOrganizer = false;
+    let event;
 
     // If registrationId is provided, we're removing a specific registration (organizer action)
     if (registrationId && mongoose.Types.ObjectId.isValid(registrationId)) {
@@ -930,7 +959,7 @@ exports.removeEventSignup = async (req, res) => {
         return res.status(404).json({ message: "Organiser profile not found" });
       }
 
-      const event = await Event.findById(id);
+      event = await Event.findById(id);
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
@@ -960,6 +989,14 @@ exports.removeEventSignup = async (req, res) => {
       return res.status(404).json({ message: "Registration not found" });
     }
 
+    // Find the event if not already retrieved (needed for volunteer self-cancellation)
+    if (!event) {
+      event = await Event.findById(id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+    }
+
     // If this is an organizer removing a volunteer, mark as removed rather than deleting
     if (wasRemovalByOrganizer) {
       // Only decrease count if the registration status was active (not already removed)
@@ -973,10 +1010,8 @@ exports.removeEventSignup = async (req, res) => {
 
       // Only decrement registered_count if the registration was not already cancelled/removed
       if (currentStatus === "confirmed" || currentStatus === "pending") {
-        // Get current event to check registered_count
-        const event = await Event.findById(id);
+        // Update registered_count in a separate operation
         if (event && event.registered_count > 0) {
-          // Update registered_count in a separate operation
           await Event.findByIdAndUpdate(id, {
             registered_count: event.registered_count - 1,
           });
@@ -986,8 +1021,7 @@ exports.removeEventSignup = async (req, res) => {
       // For self-cancellation by volunteer, delete the registration as before
       await EventRegistration.findByIdAndDelete(registration._id);
 
-      // Get current event to check registered_count
-      const event = await Event.findById(id);
+      // Update registered_count if needed
       if (event && event.registered_count > 0) {
         // Update registered_count in a separate operation
         await Event.findByIdAndUpdate(id, {
@@ -995,6 +1029,8 @@ exports.removeEventSignup = async (req, res) => {
         });
       }
     }
+
+    console.log(`Event ${id} updated, new registered count: ${event.registered_count - 1}`);
 
     return res.status(200).json({
       message: wasRemovalByOrganizer

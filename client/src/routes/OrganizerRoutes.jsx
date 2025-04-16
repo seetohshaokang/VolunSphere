@@ -11,21 +11,20 @@ import ProtectedRoute from "./ProtectedRoute";
 export const OrganizerRoutes = (
   <>
     <Route
-      path="/profile"
-      element={
-        <ProtectedRoute roleRequired="organiser">
-          <Profile />
-        </ProtectedRoute>
-      }
-    />
-
-    <Route
       element={
         <ProtectedRoute roleRequired="organiser">
           <MainLayout />
         </ProtectedRoute>
       }
     >
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute roleRequired="organiser">
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
       <Route path="/organizer" element={<OrganizerDashboard />} />
       <Route
         path="/organizer/events/:eventId"

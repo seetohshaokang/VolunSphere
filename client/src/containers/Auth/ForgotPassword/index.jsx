@@ -1,115 +1,113 @@
-// src/containers/Auth/ForgotPassword/index.jsx
+// client/src/containers/Auth/ForgotPassword/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import Api from "../../../helpers/Api";
 
-function ForgotPassword() {
-	const navigate = useNavigate();
+const ForgotPassword = () => {
 	const [email, setEmail] = useState("");
 	const [message, setMessage] = useState("");
 	const [error, setError] = useState("");
-	const [validated, setValidated] = useState(false);
+	const [loading, setLoading] = useState(false);
 
-	const apiUrl = import.meta.env.VITE_API_URL;
-
-	const handleSubmit = async (event) => {
-		event.preventDefault();
-
-		if (!email) {
-			setValidated(true);
-			return;
-		}
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		setLoading(true);
+		setMessage("");
+		setError("");
 
 		try {
-			// Simulate successful email sent
-			setMessage(
-				"If this email is registered, a password reset link has been sent."
-			);
-			setError("");
+			const response = await Api.requestPasswordReset(email);
+			const data = await response.json();
 
-			setTimeout(() => {
-				navigate("/login");
-			}, 3000);
+			if (!response.ok) {
+				throw new Error(
+					data.message || "Failed to request password reset"
+				);
+			}
+
+			setMessage("Password reset email sent. Please check your inbox.");
+			setEmail("");
 		} catch (err) {
-			console.error("Error sending reset link:", err);
-			setError("Failed to send reset link. Please try again later.");
-			setMessage("");
+			setError(err.message || "Something went wrong");
+		} finally {
+			setLoading(false);
 		}
-
-		setValidated(true);
 	};
 
 	return (
-		<div className="min-h-screen flex justify-center items-center p-4">
-			<Card className="w-full max-w-md">
-				<CardHeader className="space-y-1">
-					<CardTitle className="text-2xl font-bold text-center">
-						VolunSphere
+		<div className="max-w-md mx-auto px-4 py-8">
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-2xl font-bold">
+						Forgot Password
 					</CardTitle>
-					<CardDescription className="text-center">
-						Forgot your password?
-					</CardDescription>
 				</CardHeader>
+
 				<CardContent>
 					{message && (
-						<Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
+						<Alert variant="success" className="mb-4">
 							<AlertDescription>{message}</AlertDescription>
 						</Alert>
 					)}
+
 					{error && (
 						<Alert variant="destructive" className="mb-4">
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
 
-					<form onSubmit={handleSubmit} className="space-y-4">
-						<div className="space-y-2">
-							<Label htmlFor="email">Email address</Label>
+					<form onSubmit={handleSubmit}>
+						<div className="mb-4">
+							<Label htmlFor="email" className="block mb-2">
+								Email Address
+							</Label>
 							<Input
-								id="email"
 								type="email"
-								placeholder="Enter your email"
+								id="email"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
+								className="w-full"
 								required
+								placeholder="Enter your email address"
 							/>
-							{validated && !email && (
-								<p className="text-sm text-destructive">
-									Please enter a valid email.
-								</p>
-							)}
 						</div>
 
-						<Button type="submit" className="w-full">
-							Send Reset Link
-						</Button>
+						<div className="flex flex-col space-y-4">
+							<Button
+								type="submit"
+								disabled={loading}
+								className="w-full"
+							>
+								{loading ? (
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										Sending...
+									</>
+								) : (
+									"Send Reset Link"
+								)}
+							</Button>
+
+							<div className="text-center">
+								<Link
+									to="/login"
+									className="text-sm text-primary hover:underline"
+								>
+									Back to Login
+								</Link>
+							</div>
+						</div>
 					</form>
 				</CardContent>
-				<CardFooter className="flex justify-center">
-					<p className="text-center">
-						Remembered your password?{" "}
-						<a
-							href="/login"
-							className="text-primary font-semibold hover:underline"
-						>
-							Log in
-						</a>
-					</p>
-				</CardFooter>
 			</Card>
 		</div>
 	);
-}
+};
 
 export default ForgotPassword;
