@@ -1,4 +1,3 @@
-// src/containers/Organizer/EventDetail/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -270,26 +269,23 @@ function OrganizerEventDetail() {
   // Simplest refresh function possible
   const refreshEventData = async () => {
     try {
-      // Force a delay to make sure the backend has completed its operations
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await Api.getEvent(eventId);
+      if (response.ok) {
+        const updatedEvent = await response.json();
 
-      // Fetch fresh event data with cache-busting
-      const response = await fetch(
-        `${Api.SERVER_PREFIX}/events/${eventId}?nocache=${Date.now()}`
-      );
-      const eventData = await response.json();
-
-      // Update the event state with fresh data from server
-      if (event) {
-        const updatedEvent = {
+        // Update the event state with the latest data
+        setEvent({
           ...event,
-          remainingSlots: eventData.max_volunteers - eventData.registered_count,
-          totalSlots: eventData.max_volunteers,
-        };
-        setEvent(updatedEvent);
+          registered_count: updatedEvent.registered_count,
+        });
+
+        console.log(
+          "Event data refreshed, new registered count:",
+          updatedEvent.registered_count
+        );
       }
     } catch (error) {
-      console.error("Error refreshing event data:", error);
+      console.error("Failed to refresh event data:", error);
     }
   };
   const handleDelete = async () => {
@@ -486,45 +482,54 @@ function OrganizerEventDetail() {
 
         <div className="flex flex-col md:flex-row mt-4 md:mt-0 gap-3">
           <div className="flex gap-3">
-            {!isEditing && (
-              <>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="flex items-center gap-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 shadow-sm px-4 py-2"
-                >
-                  <Link to={`/events/edit/${eventId}`}>
-                    <PencilIcon className="h-4 w-4" /> Edit Event
-                  </Link>
-                </Button>
-
-                <Button
-                  onClick={() => setShowDeleteConfirmModal(true)}
-                  variant="outline"
-                  className="flex items-center gap-2 bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 hover:border-red-300 shadow-sm px-4 py-2"
-                >
-                  <Trash className="h-4 w-4" /> Delete Event
-                </Button>
-              </>
-            )}
-
-            {isEditing ? (
+            {event.status !== "completed" ? (
               <Button
-                onClick={saveEventChanges}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm px-5 py-2"
+                asChild
+                variant="outline"
+                className="flex items-center gap-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 shadow-sm px-4 py-2"
               >
-                Save Changes
+                <Link to={`/events/edit/${eventId}`}>
+                  <PencilIcon className="h-4 w-4" /> Edit Event
+                </Link>
               </Button>
             ) : (
               <Button
-                asChild
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm px-4 py-2"
+                variant="outline"
+                disabled
+                className="flex items-center gap-2 bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed px-4 py-2"
+                title="Completed events cannot be edited"
               >
-                <Link to={`/organizer/events/${eventId}/volunteers`}>
-                  <Users className="h-4 w-4" /> View Volunteers
-                </Link>
+                <PencilIcon className="h-4 w-4" /> Edit Event
               </Button>
             )}
+
+            {event.status !== "completed" ? (
+              <Button
+                onClick={() => setShowDeleteConfirmModal(true)}
+                variant="outline"
+                className="flex items-center gap-2 bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 hover:border-red-300 shadow-sm px-4 py-2"
+              >
+                <Trash className="h-4 w-4" /> Delete Event
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                disabled
+                className="flex items-center gap-2 bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed px-4 py-2"
+                title="Completed events cannot be deleted"
+              >
+                <Trash className="h-4 w-4" /> Delete Event
+              </Button>
+            )}
+
+            <Button
+              asChild
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm px-4 py-2"
+            >
+              <Link to={`/organizer/events/${eventId}/volunteers`}>
+                <Users className="h-4 w-4" /> View Volunteers
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
