@@ -30,11 +30,13 @@ const AdminUsers = () => {
       setLoading(true);
       const response = await Api.getAdminUsers(filters);
       const data = await response.json();
-
+      const testVolunteer = data.users.find(u => u.role === 'volunteer');
+      const testOrganizer = data.users.find(u => u.role === 'organiser');
+      console.log("Sample volunteer:", testVolunteer?.profile);
+      console.log("Sample organizer:", testOrganizer?.profile);
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch users');
       }
-
       setUsers(data.users);
       setPagination(data.pagination);
     } catch (err) {
@@ -73,9 +75,9 @@ const AdminUsers = () => {
       case 'active':
         return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>;
       case 'suspended':
-        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Suspended</span>;
+        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Suspended</span>;
       case 'inactive':
-        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Inactive</span>;
+        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Inactive</span>;
       default:
         return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{status}</span>;
     }
@@ -100,12 +102,12 @@ const AdminUsers = () => {
     switch (status) {
       case 'verified':
         return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Verified</span>;
-      case 'pending':
-        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
-      case 'rejected':
-        return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Rejected</span>;
+      case 'pending_verification':
+        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending Verification</span>;
+      case 'pending_upload':
+        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Pending User Upload</span>;
       default:
-        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Unverified</span>;
+        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{status}</span>;
     }
   };
 
@@ -271,11 +273,17 @@ const AdminUsers = () => {
                         <span>
                           Verification: {user.profile?.nric_image?.verified
                             ? getVerificationBadge('verified')
-                            : getVerificationBadge('pending')}
+                            : user.profile?.nric_image?.filename
+                              ? getVerificationBadge('pending_verification')
+                              : getVerificationBadge('pending_upload')}
                         </span>
                       ) : user.role === 'organiser' ? (
                         <span>
-                          Verification: {getVerificationBadge(user.profile?.verification_status || 'pending')}
+                          Verification: {user.profile?.certification_document?.verified || user.profile?.verification_status === 'verified'
+                            ? getVerificationBadge('verified')
+                            : user.profile?.certification_document?.filename
+                              ? getVerificationBadge('pending_verification')
+                              : getVerificationBadge('pending_upload')}
                         </span>
                       ) : (
                         <span>Admin Account</span>
@@ -290,8 +298,8 @@ const AdminUsers = () => {
                       </Link>
                       <button
                         className={`${user.status === 'active'
-                            ? 'text-yellow-600 hover:text-yellow-900'
-                            : 'text-green-600 hover:text-green-900'
+                          ? 'text-yellow-600 hover:text-yellow-900'
+                          : 'text-green-600 hover:text-green-900'
                           }`}
                         onClick={() => {
                           // This would typically open a confirmation modal
@@ -327,8 +335,8 @@ const AdminUsers = () => {
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
               className={`px-4 py-2 border rounded ${pagination.page === 1
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
             >
               Previous
@@ -337,8 +345,8 @@ const AdminUsers = () => {
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.pages}
               className={`px-4 py-2 border rounded ${pagination.page === pagination.pages
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
             >
               Next

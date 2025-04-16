@@ -225,13 +225,13 @@ exports.getUsers = async (req, res) => {
 					profile = await Volunteer.findOne({
 						user_id: user._id,
 					}).select(
-						"name phone profile_picture_url skills preferred_causes nric_image.verified"
+						"name phone profile_picture_url skills preferred_causes nric_image"
 					);
 				} else if (user.role === "organiser") {
 					profile = await Organiser.findOne({
 						user_id: user._id,
 					}).select(
-						"organisation_name phone profile_picture_url verification_status"
+						"organisation_name phone profile_picture_url verification_status certification_document"
 					);
 				}
 
@@ -404,6 +404,7 @@ exports.updateUserStatus = async (req, res) => {
 		// Step 1: Verify user has admin permissions
 		const adminUserId = req.user.id;
 		const admin = await Admin.findOne({ user_id: adminUserId });
+
 		if (!admin) {
 			return res.status(403).json({
 				message: "Access denied. Admin permissions required.",
@@ -421,7 +422,8 @@ exports.updateUserStatus = async (req, res) => {
 		// Step 3: Validate status
 		if (!status || !["active", "inactive", "suspended"].includes(status)) {
 			return res.status(400).json({
-				message: "Invalid status. Must be active, inactive, or suspended.",
+				message:
+					"Invalid status. Must be active, inactive, or suspended.",
 			});
 		}
 
@@ -443,54 +445,45 @@ exports.updateUserStatus = async (req, res) => {
 			return res.status(404).json({ message: "User profile not found" });
 		}
 
-		try {
-			// Step 6: Update user status
-			user.status = status;
-			await user.save();
+		// Step 6: Update user status
+		user.status = status;
+		await user.save();
 
-			// Step 7: Create admin action record for audit trail
-			const action = new AdminAction({
-				admin_id: admin._id,
-				action:
-					status === "suspended"
-						? "suspension"
-						: status === "active"
-						? "activation"
-						: "deactivation",
-				target_type: user.role,
-				target_id: profile._id,
-				reason: reason || `User ${status} by admin`,
-				date: new Date(),
-			});
-			await action.save();
+		// Step 7: Create admin action record for audit trail
+		const action = new AdminAction({
+			admin_id: admin._id,
+			action:
+				status === "suspended"
+					? "suspension"
+					: status === "active"
+					? "activation"
+					: "deactivation",
+			target_type: user.role,
+			target_id: profile._id,
+			reason: reason || `User ${status} by admin`,
+			date: new Date(),
+		});
+		await action.save();
 
-			// Step 8: Handle side effects based on status change
-			if (status === "suspended" && user.role === "volunteer") {
-				await EventRegistration.updateMany(
-					{ volunteer_id: profile._id, status: "registered" },
-					{ $set: { status: "cancelled" } }
-				);
-			}
-
-			if (status === "suspended" && user.role === "organiser") {
-				await Event.updateMany(
-					{ organiser_id: profile._id, status: "active" },
-					{ $set: { status: "cancelled" } }
-				);
-			}
-
-			// Step 9: Return success
-			return res.status(200).json({
-				message: `User status updated to ${status}`,
-				user: { ...user.toObject(), status },
-			});
-		} catch (error) {
-			console.error("Error during status update:", error);
-			return res.status(500).json({
-				message: "Failed to update status",
-				error: error.message,
-			});
+		// Step 8: Handle side effects based on status change
+		if (status === "suspended" && user.role === "volunteer") {
+			await EventRegistration.updateMany(
+				{ volunteer_id: profile._id, status: "registered" },
+				{ $set: { status: "cancelled" } }
+			);
 		}
+
+		if (status === "suspended" && user.role === "organiser") {
+			await Event.updateMany(
+				{ organiser_id: profile._id, status: "active" },
+				{ $set: { status: "cancelled" } }
+			);
+		}
+
+		return res.status(200).json({
+			message: `User status updated to ${status}`,
+			user: { ...user.toObject(), status },
+		});
 	} catch (error) {
 		console.error("Error updating user status:", error);
 		return res.status(500).json({

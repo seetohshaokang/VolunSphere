@@ -1,4 +1,3 @@
-// src/containers/Organizer/Dashboard/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +19,7 @@ import {
   Search,
   SlidersHorizontal,
   ArrowUpDown,
+  ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -37,6 +37,8 @@ function OrganizerDashboard() {
   const [error, setError] = useState(null);
   const [authError, setAuthError] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // Add state for the verification modal
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   // Filtering and sorting states
   const [searchTerm, setSearchTerm] = useState("");
@@ -139,8 +141,8 @@ function OrganizerDashboard() {
           const eventDate = event.start_datetime
             ? new Date(event.start_datetime)
             : event.recurrence_start_date
-            ? new Date(event.recurrence_start_date)
-            : null;
+              ? new Date(event.recurrence_start_date)
+              : null;
           return eventDate && eventDate > now;
         });
       } else if (dateFilter === "past") {
@@ -148,12 +150,12 @@ function OrganizerDashboard() {
           const eventDate = event.end_datetime
             ? new Date(event.end_datetime)
             : event.recurrence_end_date
-            ? new Date(event.recurrence_end_date)
-            : event.start_datetime
-            ? new Date(event.start_datetime)
-            : event.recurrence_start_date
-            ? new Date(event.recurrence_start_date)
-            : null;
+              ? new Date(event.recurrence_end_date)
+              : event.start_datetime
+                ? new Date(event.start_datetime)
+                : event.recurrence_start_date
+                  ? new Date(event.recurrence_start_date)
+                  : null;
           return eventDate && eventDate < now;
         });
       }
@@ -283,8 +285,18 @@ function OrganizerDashboard() {
     }
   };
 
+  // Updated to show verification modal if not verified
   const handleCreateEventClick = () => {
-    navigate("/events/create");
+    if (isVerified) {
+      navigate("/events/create");
+    } else {
+      setShowVerificationModal(true);
+    }
+  };
+
+  const handleGoToProfile = () => {
+    setShowVerificationModal(false);
+    navigate("/profile");
   };
 
   // Calculate total volunteers with defensive check
@@ -312,7 +324,7 @@ function OrganizerDashboard() {
           Welcome back, {user?.name || "Organizer"}
         </h2>
         <Button
-          onClick={() => navigate("/events/create")}
+          onClick={handleCreateEventClick}
           className="border-2 border-black"
         >
           <Plus className="h-4 w-4 mr-2" /> Create New Event
@@ -481,7 +493,7 @@ function OrganizerDashboard() {
                 </p>
               )}
               <Button
-                onClick={() => navigate("/events/create")}
+                onClick={handleCreateEventClick}
                 className="border-2 border-black"
               >
                 <Plus className="h-4 w-4 mr-2" /> Create Your First Event
@@ -577,6 +589,42 @@ function OrganizerDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Verification Required Modal */}
+      {showVerificationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              <ShieldAlert className="h-6 w-6 text-yellow-500 mr-2" />
+              <h3 className="text-lg font-semibold">Verification Required</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="mb-4">
+                You are currently not verified. Before creating events, please upload the relevant certification documents to complete the verification process.
+              </p>
+              
+              <p className="text-sm text-gray-600">
+                Verification helps establish trust with volunteers and ensures all organizers meet our community standards.
+              </p>
+            </div>
+            
+            <div className="flex justify-between">
+              <Button 
+                variant="destructive"
+                onClick={() => setShowVerificationModal(false)}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                Cancel
+              </Button>
+              
+              <Button onClick={handleGoToProfile}>
+                Go to Profile
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
