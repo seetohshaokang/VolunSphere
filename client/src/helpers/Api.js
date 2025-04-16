@@ -807,6 +807,7 @@ const Api = {
 			body: JSON.stringify({ email }),
 		});
 	},
+
 	resetPassword(token, newPassword) {
 		return fetch(`${SERVER_PREFIX}/auth/reset-password/${token}`, {
 			method: "POST",
@@ -814,6 +815,14 @@ const Api = {
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify({ newPassword }),
+		});
+	},
+
+	getUserEvents() {
+		return fetch(`${SERVER_PREFIX}/profile/events`, {
+			headers: {
+				Authorization: `Bearer ${localStorage.getItem("token")}`,
+			},
 		});
 	},
 };

@@ -6,64 +6,64 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Eye, Loader2, Trash, PenSquare } from "lucide-react";
+import { Edit, Eye, Loader2, PenSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
-import { useAuth } from "../../../contexts/AuthContext";
 import DocumentUploader from "../../../components/DocumentUploader";
+import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 
 function Profile() {
-  const { user, logout, refreshProfile } = useAuth();
-  const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [fetchingEvents, setFetchingEvents] = useState(false);
-  const [eventsError, setEventsError] = useState(null);
-  const [profile, setProfile] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    dob: "",
-    bio: "",
-    avatar: null,
-    avatarFile: null,
-    skills: [],
-    address: "",
-  });
-  
-  const [nricFile, setNricFile] = useState(null);
-  const [uploadingNric, setUploadingNric] = useState(false);
-  const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+	const { user, logout, refreshProfile } = useAuth();
+	const navigate = useNavigate();
+	const [isEditing, setIsEditing] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const [success, setSuccess] = useState(null);
+	const [events, setEvents] = useState([]);
+	const [fetchingEvents, setFetchingEvents] = useState(false);
+	const [eventsError, setEventsError] = useState(null);
+	const [profile, setProfile] = useState({
+		firstName: "",
+		lastName: "",
+		email: "",
+		phone: "",
+		dob: "",
+		bio: "",
+		avatar: null,
+		avatarFile: null,
+		skills: [],
+		address: "",
+	});
 
-  // Format date for input field (YYYY-MM-DD)
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toISOString().split("T")[0];
-  };
+	const [nricFile, setNricFile] = useState(null);
+	const [uploadingNric, setUploadingNric] = useState(false);
+	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-  useEffect(() => {
-    fetchUserProfile();
-    fetchUserEvents();
-  }, [user]);
+	// Format date for input field (YYYY-MM-DD)
+	const formatDateForInput = (dateString) => {
+		if (!dateString) return "";
+		const date = new Date(dateString);
+		return date.toISOString().split("T")[0];
+	};
 
-  const fetchUserProfile = async () => {
+	useEffect(() => {
+		fetchUserProfile();
+		fetchUserEvents();
+	}, [user]);
+
+	const fetchUserProfile = async () => {
 		if (!user) return;
-	
+
 		setLoading(true);
 		try {
 			const response = await Api.getUserProfile({
@@ -72,23 +72,24 @@ function Profile() {
 					Pragma: "no-cache",
 				},
 			});
-	
+
 			if (!response.ok) {
 				throw new Error("Failed to fetch profile data");
 			}
-	
+
 			const data = await response.json();
-			
+
 			// Parse name (assuming it comes as full name)
-			let firstName = data.profile.name || data.profile.organisation_name || "";
+			let firstName =
+				data.profile.name || data.profile.organisation_name || "";
 			let lastName = "";
-	
+
 			if (firstName.includes(" ")) {
 				const nameParts = firstName.split(" ");
 				firstName = nameParts[0];
 				lastName = nameParts.slice(1).join(" ");
 			}
-			
+
 			// Build profile object with common fields
 			const profileData = {
 				firstName,
@@ -99,7 +100,7 @@ function Profile() {
 				avatar: data.profile.profile_picture_url,
 				address: data.profile.address || "",
 			};
-			
+
 			// Add role-specific fields
 			if (data.user.role === "volunteer") {
 				profileData.dob = data.profile.dob
@@ -112,14 +113,18 @@ function Profile() {
 					) ||
 					[];
 				profileData.nric_image = data.profile.nric_image || null;
-				profileData.preferred_causes = data.profile.preferred_causes || [];
+				profileData.preferred_causes =
+					data.profile.preferred_causes || [];
 			} else if (data.user.role === "organiser") {
 				profileData.website = data.profile.website || "";
-				profileData.organisation_name = data.profile.organisation_name || "";
-				profileData.certification_document = data.profile.certification_document || null;
-				profileData.verification_status = data.profile.verification_status || "pending";
+				profileData.organisation_name =
+					data.profile.organisation_name || "";
+				profileData.certification_document =
+					data.profile.certification_document || null;
+				profileData.verification_status =
+					data.profile.verification_status || "pending";
 			}
-			
+
 			setProfile(profileData);
 		} catch (err) {
 			setError("Failed to load profile data. Please try again.");
@@ -128,158 +133,165 @@ function Profile() {
 		}
 	};
 
-  const fetchUserEvents = async () => {
-    if (!user) {
-      return;
-    }
+	const fetchUserEvents = async () => {
+		if (!user) {
+			return;
+		}
 
-    setEvents([]);
-    setFetchingEvents(true);
-    setEventsError(null);
+		setEvents([]);
+		setFetchingEvents(true);
+		setEventsError(null);
 
-    try {
-      const response = await Api.getUserEvents();
+		try {
+			const response = await Api.getUserEvents();
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch events for ${user.role}`);
-      }
+			if (!response.ok) {
+				throw new Error(`Failed to fetch events for ${user.role}`);
+			}
 
-      const data = await response.json();
-      const eventsData = data.events || [];
+			const data = await response.json();
+			const eventsData = data.events || [];
 
-      if (!Array.isArray(eventsData)) {
-        setEventsError("Invalid data format received from server");
-        return;
-      }
+			if (!Array.isArray(eventsData)) {
+				setEventsError("Invalid data format received from server");
+				return;
+			}
 
-      if (eventsData.length === 0) {
-        setEvents([]);
-        return;
-      }
+			if (eventsData.length === 0) {
+				setEvents([]);
+				return;
+			}
 
-      if (user.role === "volunteer") {
-        // For volunteers, enhance each event with registration status
-        const enhancedEvents = eventsData.map(event => {
-          if (!event) return null;
-          
-          // Determine if this is a volunteer registration or event
-          const eventObj = event.event || event;
-          const status = eventObj?.status || 'active';
-          
-          // For volunteer registrations, get the registration status
-          const registrationStatus = event.registration_status || event.status || 'registered';
-          
-          // Enhance the event object with registration_status for display
-          return {
-            ...event,
-            registration_status: registrationStatus
-          };
-        }).filter(Boolean); // Remove any null values
-        
-        setEvents(enhancedEvents);
-      } else {
-        // For organizers, just set all events
-        setEvents(eventsData);
-      }
-    } catch (err) {
-      setEventsError(`Failed to load volunteer activities: ${err.message}`);
-    } finally {
-      setFetchingEvents(false);
-    }
-  };
+			if (user.role === "volunteer") {
+				// For volunteers, enhance each event with registration status
+				const enhancedEvents = eventsData
+					.map((event) => {
+						if (!event) return null;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setProfile({ ...profile, [name]: value });
-  };
+						// Determine if this is a volunteer registration or event
+						const eventObj = event.event || event;
+						const status = eventObj?.status || "active";
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Create a preview URL for display purposes
-      const imageUrl = URL.createObjectURL(file);
-      setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
-    }
-  };
+						// For volunteer registrations, get the registration status
+						const registrationStatus =
+							event.registration_status ||
+							event.status ||
+							"registered";
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
+						// Enhance the event object with registration_status for display
+						return {
+							...event,
+							registration_status: registrationStatus,
+						};
+					})
+					.filter(Boolean); // Remove any null values
 
-    try {
-      // Create FormData for the API call
-      const formData = new FormData();
-      formData.append(
-        "name",
-        `${profile.firstName} ${profile.lastName}`.trim()
-      );
-      formData.append("phone", profile.phone);
-      formData.append("bio", profile.bio);
-      formData.append("dob", profile.dob);
-      formData.append("address", profile.address);
+				setEvents(enhancedEvents);
+			} else {
+				// For organizers, just set all events
+				setEvents(eventsData);
+			}
+		} catch (err) {
+			setEventsError(
+				`Failed to load volunteer activities: ${err.message}`
+			);
+		} finally {
+			setFetchingEvents(false);
+		}
+	};
 
-      if (profile.avatarFile) {
-        formData.append("profile_picture", profile.avatarFile);
-      }
+	const handleChange = (e) => {
+		const { name, value } = e.target;
+		setProfile({ ...profile, [name]: value });
+	};
 
-      if (
-        user.role === "volunteer" &&
-        profile.skills &&
-        profile.skills.length > 0
-      ) {
-        formData.append("skills", JSON.stringify(profile.skills));
-      }
+	const handleFileChange = (e) => {
+		const file = e.target.files[0];
+		if (file) {
+			// Create a preview URL for display purposes
+			const imageUrl = URL.createObjectURL(file);
+			setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
+		}
+	};
 
-      const data = await Api.updateUserProfile(formData);
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		setLoading(true);
+		setError(null);
+		setSuccess(null);
 
-      if (!data || !data.profile) {
-        throw new Error("Failed to update profile");
-      }
+		try {
+			// Create FormData for the API call
+			const formData = new FormData();
+			formData.append(
+				"name",
+				`${profile.firstName} ${profile.lastName}`.trim()
+			);
+			formData.append("phone", profile.phone);
+			formData.append("bio", profile.bio);
+			formData.append("dob", profile.dob);
+			formData.append("address", profile.address);
 
-      setImageTimestamp(Date.now());
-      setSuccess("Profile updated successfully!");
-      setIsEditing(false);
+			if (profile.avatarFile) {
+				formData.append("profile_picture", profile.avatarFile);
+			}
 
-      // Update the profile data in the auth context
-      if (typeof refreshProfile === "function") {
-        refreshProfile();
-      }
+			if (
+				user.role === "volunteer" &&
+				profile.skills &&
+				profile.skills.length > 0
+			) {
+				formData.append("skills", JSON.stringify(profile.skills));
+			}
 
-      fetchUserProfile();
-    } catch (err) {
-      setError("Failed to update profile. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+			const data = await Api.updateUserProfile(formData);
 
-  const handleNricFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNricFile(file);
-    }
-  };
+			if (!data || !data.profile) {
+				throw new Error("Failed to update profile");
+			}
 
-  const handleNricUpload = async () => {
-    if (!nricFile) return;
-    setUploadingNric(true);
-    setError(null);
-    setSuccess(null);
+			setImageTimestamp(Date.now());
+			setSuccess("Profile updated successfully!");
+			setIsEditing(false);
 
-    try {
-      // Create Form Data for the API call
-      const formData = new FormData();
-      formData.append("nric_image", nricFile);
+			// Update the profile data in the auth context
+			if (typeof refreshProfile === "function") {
+				refreshProfile();
+			}
 
-      const response = await Api.uploadNRIC(formData);
+			fetchUserProfile();
+		} catch (err) {
+			setError("Failed to update profile. Please try again.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleNricFileChange = (e) => {
+		const file = e.target.files[0];
+		if (file) {
+			setNricFile(file);
+		}
+	};
+
+	const handleNricUpload = async () => {
+		if (!nricFile) return;
+		setUploadingNric(true);
+		setError(null);
+		setSuccess(null);
+
+		try {
+			// Create Form Data for the API call
+			const formData = new FormData();
+			formData.append("nric_image", nricFile);
+
+			const response = await Api.uploadNRIC(formData);
 
 			if (response.ok) {
 				const data = await response.json();
 				setSuccess(
 					data.message ||
-					"NRIC uploaded successfully. It will be verified by an adminstrator."
+						"NRIC uploaded successfully. It will be verified by an adminstrator."
 				);
 				setNricFile(null);
 				// Refresh profile data to show updated NRIC status
@@ -295,31 +307,31 @@ function Profile() {
 		}
 	};
 
-  if (loading && !profile.email) {
-    return (
-      <div className="min-h-screen flex justify-center items-center">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading profile...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+	if (loading && !profile.email) {
+		return (
+			<div className="min-h-screen flex justify-center items-center">
+				<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full">
+					<div className="flex justify-center items-center h-64">
+						<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						<span className="ml-2">Loading profile...</span>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
-  // Function to handle avatar URL with potential cache busting
-  const getAvatarUrl = () => {
-    if (!profile.avatar) {
-      return user?.role === "organiser"
-        ? "/src/assets/default-avatar-red.png"
-        : "/src/assets/default-avatar-blue.png";
-    }
+	// Function to handle avatar URL with potential cache busting
+	const getAvatarUrl = () => {
+		if (!profile.avatar) {
+			return user?.role === "organiser"
+				? "/src/assets/default-avatar-red.png"
+				: "/src/assets/default-avatar-blue.png";
+		}
 
-    // If it's a full URL
-    if (profile.avatar.startsWith("http")) {
-      return `${profile.avatar}?t=${imageTimestamp}`;
-    }
+		// If it's a full URL
+		if (profile.avatar.startsWith("http")) {
+			return `${profile.avatar}?t=${imageTimestamp}`;
+		}
 
 		// If it's a relative path with a file extension
 		if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
@@ -328,173 +340,197 @@ function Profile() {
 				profile.avatar.startsWith("/uploads/") ||
 				profile.avatar.includes("profile-")
 			) {
-				return `http://localhost:8000${profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"
-					}${profile.avatar}?t=${imageTimestamp}`;
+				return `http://localhost:8000${
+					profile.avatar.startsWith("/") ? "" : "/uploads/profiles/"
+				}${profile.avatar}?t=${imageTimestamp}`;
 			}
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
 
-    // If it's just a filename (most likely from server)
-    return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
-  };
+		// If it's just a filename (most likely from server)
+		return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
+	};
 
-  // Helper function to determine registration status badge variant
-  const getRegistrationStatusVariant = (status) => {
-    switch (status?.toLowerCase()) {
-      case "registered":
-        return "default"; // Blue badge
-      case "confirmed":
-        return "default"; // Blue badge
-      case "completed":
-        return "success"; // Green badge
-      case "cancelled":
-        return "destructive"; // Red badge
-      case "not_attended":
-        return "outline"; // Outline badge
-      case "attended":
-        return "success"; // Green badge
-      case "pending":
-        return "outline"; // Outline badge
-      case "removed_by_organizer":
-        return "destructive"; // Red badge
-      default:
-        return "outline"; // Default fallback
-    }
-  };
+	// Helper function to determine registration status badge variant
+	const getRegistrationStatusVariant = (status) => {
+		switch (status?.toLowerCase()) {
+			case "registered":
+				return "default"; // Blue badge
+			case "confirmed":
+				return "default"; // Blue badge
+			case "completed":
+				return "success"; // Green badge
+			case "cancelled":
+				return "destructive"; // Red badge
+			case "not_attended":
+				return "outline"; // Outline badge
+			case "attended":
+				return "success"; // Green badge
+			case "pending":
+				return "outline"; // Outline badge
+			case "removed_by_organizer":
+				return "destructive"; // Red badge
+			default:
+				return "outline"; // Default fallback
+		}
+	};
 
-  // Helper function to format registration status for display
-  const formatRegistrationStatus = (status) => {
-    if (!status) return "REGISTERED";
-    
-    // Check if the event is completed based on date
-    if (status.toLowerCase() === "confirmed" || status.toLowerCase() === "registered") {
-      const eventDate = new Date();
-      const now = new Date();
-      
-      // If event date is in the past, mark as COMPLETED
-      if (eventDate < now) {
-        return "COMPLETED";
-      }
-    }
-    
-    // Override specific status values for cleaner display
-    switch (status.toLowerCase()) {
-      case "confirmed":
-        return "REGISTERED";
-      case "not_attended":
-        return "NOT ATTENDED";
-      case "attended":
-        return "COMPLETED";
-      case "removed_by_organizer":
-        return "REMOVED";
-      default:
-        // Replace underscores with spaces and capitalize
-        return status.replace(/_/g, ' ').toUpperCase();
-    }
-  };
+	// Helper function to format registration status for display
+	const formatRegistrationStatus = (status) => {
+		if (!status) return "REGISTERED";
 
-  // Helper function to determine if an event is completed based on date
-  const isEventCompleted = (event) => {
-    if (!event) return false;
-    
-    // Find the first valid date from all the possible date fields
-    const dateField = event.end_datetime || 
-                     event.start_datetime || 
-                     event.date || 
-                     event.start_date ||
-                     (event.event ? (event.event.end_datetime || event.event.start_datetime || event.event.date || event.event.start_date) : null);
-    
-    if (!dateField) return false;
-    
-    const eventDate = new Date(dateField);
-    if (isNaN(eventDate.getTime())) {
-      return false;
-    }
-    
-    const now = new Date();    
-    return eventDate < now;
-  };
+		// Check if the event is completed based on date
+		if (
+			status.toLowerCase() === "confirmed" ||
+			status.toLowerCase() === "registered"
+		) {
+			const eventDate = new Date();
+			const now = new Date();
 
-  // Helper function to get event status for display
-  const getEventStatus = (event) => {
-    // First check registration status if available
-    if (event.registration_status) {
-      if (event.registration_status.toLowerCase() === "confirmed" || 
-          event.registration_status.toLowerCase() === "registered") {
-        // Check if event is completed based on date
-        if (isEventCompleted(event)) {
-          return "completed";
-        }
-        return "registered";
-      }
-      return event.registration_status;
-    }
-    
-    // If no registration status, derive from event status and date
-    if (isEventCompleted(event)) {
-      return "completed";
-    }
-    
-    return "registered";
-  };
+			// If event date is in the past, mark as COMPLETED
+			if (eventDate < now) {
+				return "COMPLETED";
+			}
+		}
 
-  return (
-    <div className="min-h-screen">
-      {/* Main content container with width constraints matching main page */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
-        <ContentHeader
-          title="My Profile"
-          links={[
-            { to: "/organizer", label: "Home" },
-            { label: "Profile", isActive: true },
-          ]}
-          className="mt-8 mb-8"
-        />
+		// Override specific status values for cleaner display
+		switch (status.toLowerCase()) {
+			case "confirmed":
+				return "REGISTERED";
+			case "not_attended":
+				return "NOT ATTENDED";
+			case "attended":
+				return "COMPLETED";
+			case "removed_by_organizer":
+				return "REMOVED";
+			default:
+				// Replace underscores with spaces and capitalize
+				return status.replace(/_/g, " ").toUpperCase();
+		}
+	};
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+	// Helper function to determine if an event is completed based on date
+	const isEventCompleted = (event) => {
+		if (!event) return false;
 
-        {success && (
-          <Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
+		// Find the first valid date from all the possible date fields
+		const dateField =
+			event.end_datetime ||
+			event.start_datetime ||
+			event.date ||
+			event.start_date ||
+			(event.event
+				? event.event.end_datetime ||
+				  event.event.start_datetime ||
+				  event.event.date ||
+				  event.event.start_date
+				: null);
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-1">
-            <CardContent className="p-6 flex flex-col items-center text-center">
-              <Avatar className="w-24 h-24 border-4 border-primary">
-                <AvatarImage src={getAvatarUrl()} alt="User profile" />
-                <AvatarFallback>
-                  {profile.firstName?.charAt(0) || ""}
-                  {profile.lastName?.charAt(0) || ""}
-                </AvatarFallback>
-              </Avatar>
-              <h2 className="text-xl font-bold mt-4">
-                {profile.firstName} {profile.lastName}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {user?.role === "volunteer" ? "Volunteer" : "Event Organizer"}
-              </p>
-              {user?.role === "volunteer" &&
-                profile.skills &&
-                profile.skills.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-semibold mb-2">Skills</h3>
-                    <div className="flex flex-wrap gap-1 justify-center">
-                      {profile.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </CardContent>
-          </Card>
+		if (!dateField) return false;
+
+		const eventDate = new Date(dateField);
+		if (isNaN(eventDate.getTime())) {
+			return false;
+		}
+
+		const now = new Date();
+		return eventDate < now;
+	};
+
+	// Helper function to get event status for display
+	const getEventStatus = (event) => {
+		// First check registration status if available
+		if (event.registration_status) {
+			if (
+				event.registration_status.toLowerCase() === "confirmed" ||
+				event.registration_status.toLowerCase() === "registered"
+			) {
+				// Check if event is completed based on date
+				if (isEventCompleted(event)) {
+					return "completed";
+				}
+				return "registered";
+			}
+			return event.registration_status;
+		}
+
+		// If no registration status, derive from event status and date
+		if (isEventCompleted(event)) {
+			return "completed";
+		}
+
+		return "registered";
+	};
+
+	return (
+		<div className="min-h-screen">
+			{/* Main content container with width constraints matching main page */}
+			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
+				<ContentHeader
+					title="My Profile"
+					links={[
+						{ to: "/organizer", label: "Home" },
+						{ label: "Profile", isActive: true },
+					]}
+					className="mt-8 mb-8"
+				/>
+
+				{error && (
+					<Alert variant="destructive" className="mb-6">
+						<AlertDescription>{error}</AlertDescription>
+					</Alert>
+				)}
+
+				{success && (
+					<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
+						<AlertDescription>{success}</AlertDescription>
+					</Alert>
+				)}
+
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<Card className="md:col-span-1">
+						<CardContent className="p-6 flex flex-col items-center text-center">
+							<Avatar className="w-24 h-24 border-4 border-primary">
+								<AvatarImage
+									src={getAvatarUrl()}
+									alt="User profile"
+								/>
+								<AvatarFallback>
+									{profile.firstName?.charAt(0) || ""}
+									{profile.lastName?.charAt(0) || ""}
+								</AvatarFallback>
+							</Avatar>
+							<h2 className="text-xl font-bold mt-4">
+								{profile.firstName} {profile.lastName}
+							</h2>
+							<p className="text-sm text-muted-foreground">
+								{user?.role === "volunteer"
+									? "Volunteer"
+									: "Event Organizer"}
+							</p>
+							{user?.role === "volunteer" &&
+								profile.skills &&
+								profile.skills.length > 0 && (
+									<div className="mt-4">
+										<h3 className="text-sm font-semibold mb-2">
+											Skills
+										</h3>
+										<div className="flex flex-wrap gap-1 justify-center">
+											{profile.skills.map(
+												(skill, index) => (
+													<Badge
+														key={index}
+														variant="secondary"
+													>
+														{skill}
+													</Badge>
+												)
+											)}
+										</div>
+									</div>
+								)}
+						</CardContent>
+					</Card>
 
 					<Card className="md:col-span-2">
 						<CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -544,8 +580,8 @@ function Profile() {
 										<span className="col-span-2">
 											{profile.dob
 												? new Date(
-													profile.dob
-												).toLocaleDateString()
+														profile.dob
+												  ).toLocaleDateString()
 												: "Not provided"}
 										</span>
 									</div>
@@ -579,8 +615,8 @@ function Profile() {
 																src={
 																	profile.avatarFile
 																		? URL.createObjectURL(
-																			profile.avatarFile
-																		)
+																				profile.avatarFile
+																		  )
 																		: getAvatarUrl()
 																}
 																alt="Profile preview"
@@ -607,8 +643,8 @@ function Profile() {
 														<span className="text-sm text-gray-600">
 															{profile.avatarFile
 																? profile
-																	.avatarFile
-																	.name
+																		.avatarFile
+																		.name
 																: "No file chosen"}
 														</span>
 														<Input
@@ -763,48 +799,60 @@ function Profile() {
 						<CardContent>
 							{eventsError && (
 								<Alert variant="destructive" className="mb-4">
-									<AlertDescription>{eventsError}</AlertDescription>
+									<AlertDescription>
+										{eventsError}
+									</AlertDescription>
 								</Alert>
 							)}
 
 							{fetchingEvents && (
 								<div className="flex justify-center items-center py-8">
 									<Loader2 className="h-8 w-8 animate-spin text-primary" />
-									<span className="ml-2">Loading activities...</span>
+									<span className="ml-2">
+										Loading activities...
+									</span>
 								</div>
 							)}
 
-							{!fetchingEvents && Array.isArray(events) && events.length > 0 ? (
+							{!fetchingEvents &&
+							Array.isArray(events) &&
+							events.length > 0 ? (
 								<Table>
 									<TableHeader>
 										<TableRow>
 											<TableHead>Event</TableHead>
 											<TableHead>Date</TableHead>
 											<TableHead>Status</TableHead>
-											<TableHead className="text-left">Actions</TableHead>
+											<TableHead className="text-left">
+												Actions
+											</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>
 										{events.map((event, index) => {
 											if (!event) return null;
-											
-											const eventName = event.name || 
+
+											const eventName =
+												event.name ||
 												event.event?.name ||
 												"Unnamed Event";
-												
-											const eventDate = event.start_datetime || 
-												event.end_datetime || 
-												event.start_date || 
-												event.event?.start_date || 
+
+											const eventDate =
+												event.start_datetime ||
+												event.end_datetime ||
+												event.start_date ||
+												event.event?.start_date ||
 												event.date;
-												
-											const eventId = event._id || 
-												event.event?._id || 
-												event.event_id || 
+
+											const eventId =
+												event._id ||
+												event.event?._id ||
+												event.event_id ||
 												`event-${index}`;
-												
-											const status = getEventStatus(event);
-											
+
+											const status =
+												getEventStatus(event);
+
 											return (
 												<TableRow key={eventId}>
 													<TableCell className="font-medium">
@@ -812,29 +860,39 @@ function Profile() {
 													</TableCell>
 													<TableCell>
 														{eventDate
-															? new Date(eventDate).toLocaleDateString()
+															? new Date(
+																	eventDate
+															  ).toLocaleDateString()
 															: "No date specified"}
 													</TableCell>
 													<TableCell>
-														{user?.role === "volunteer" ? (
+														{user?.role ===
+														"volunteer" ? (
 															<Badge
-																variant={getRegistrationStatusVariant(status)}
+																variant={getRegistrationStatusVariant(
+																	status
+																)}
 															>
-																{formatRegistrationStatus(status)}
+																{formatRegistrationStatus(
+																	status
+																)}
 															</Badge>
 														) : (
 															<Badge
 																variant={
 																	(event.status ||
-																		event.event?.status) ===
-																		"active"
+																		event
+																			.event
+																			?.status) ===
+																	"active"
 																		? "default"
 																		: "secondary"
 																}
 															>
 																{(
 																	event.status ||
-																	event.event?.status ||
+																	event.event
+																		?.status ||
 																	"active"
 																).toUpperCase()}
 															</Badge>
@@ -850,7 +908,8 @@ function Profile() {
 															>
 																<Link
 																	to={
-																		user?.role === "volunteer"
+																		user?.role ===
+																		"volunteer"
 																			? `/volunteer/events/${eventId}`
 																			: `/organizer/events/${eventId}`
 																	}
@@ -858,14 +917,17 @@ function Profile() {
 																	<Eye className="h-5 w-5" />
 																</Link>
 															</Button>
-															{user?.role === "organiser" && (
+															{user?.role ===
+																"organiser" && (
 																<Button
 																	variant="outline"
 																	size="sm"
 																	className="p-2 h-9 w-9 border border-gray-300 rounded-md flex items-center justify-center"
 																	asChild
 																>
-																	<Link to={`/events/edit/${eventId}`}>
+																	<Link
+																		to={`/events/edit/${eventId}`}
+																	>
 																		<PenSquare className="h-5 w-5" />
 																	</Link>
 																</Button>
@@ -873,16 +935,18 @@ function Profile() {
 														</div>
 													</TableCell>
 												</TableRow>
-											)
+											);
 										})}
 									</TableBody>
 								</Table>
-							) : !fetchingEvents && (
-								<div className="text-center py-6 text-muted-foreground">
-									{user?.role === "volunteer" 
-										? "You haven't registered for any volunteer activities yet."
-										: "You haven't organized any events yet."}
-								</div>
+							) : (
+								!fetchingEvents && (
+									<div className="text-center py-6 text-muted-foreground">
+										{user?.role === "volunteer"
+											? "You haven't registered for any volunteer activities yet."
+											: "You haven't organized any events yet."}
+									</div>
+								)
 							)}
 						</CardContent>
 					</Card>
