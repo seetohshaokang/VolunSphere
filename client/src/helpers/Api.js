@@ -436,6 +436,7 @@ const Api = {
 
   // Registration management
   checkInRegistration(registrationId) {
+    console.log(`API: Checking in registration ${registrationId}`);
     return fetch(`${SERVER_PREFIX}/registrations/${registrationId}/check-in`, {
       method: "POST",
       headers: {
@@ -446,6 +447,7 @@ const Api = {
   },
 
   checkOutRegistration(registrationId) {
+    console.log(`API: Checking out/resetting registration ${registrationId}`);
     return fetch(`${SERVER_PREFIX}/registrations/${registrationId}/check-out`, {
       method: "POST",
       headers: {
@@ -454,12 +456,37 @@ const Api = {
       },
     });
   },
+  resetCheckInStatus(registrationId) {
+    console.log(`API: Resetting check-in for registration ${registrationId}`);
+    return fetch(`${SERVER_PREFIX}/registrations/${registrationId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({
+        // Reset these fields to remove check-in status
+        check_in_time: null,
+        check_out_time: null,
+        attendance_status: "not_attended",
+        status: "confirmed", // Reset the status back to confirmed from attended
+      }),
+    });
+  },
 
-  toggleRegistrationStatus(registrationId, currentStatus) {
-    const endpoint =
-      currentStatus === "attended"
-        ? `${SERVER_PREFIX}/registrations/${registrationId}/check-out`
-        : `${SERVER_PREFIX}/registrations/${registrationId}/check-in`;
+  // Update the toggleRegistrationStatus method to use the correct approach:
+  toggleRegistrationStatus(registrationId, hasCheckIn) {
+    // Use a more direct approach instead of trying to determine which endpoint to call
+    console.log(
+      `API: Toggling registration ${registrationId}, has check-in: ${hasCheckIn}`
+    );
+
+    // If hasCheckIn is true, we need to undo the check-in; otherwise, we check in
+    const endpoint = hasCheckIn
+      ? `${SERVER_PREFIX}/registrations/${registrationId}/check-out`
+      : `${SERVER_PREFIX}/registrations/${registrationId}/check-in`;
+
+    console.log(`Using endpoint: ${endpoint}`);
 
     return fetch(endpoint, {
       method: "POST",

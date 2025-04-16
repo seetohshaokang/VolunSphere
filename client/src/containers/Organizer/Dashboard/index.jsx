@@ -287,7 +287,10 @@ function OrganizerDashboard() {
         <h2 className="text-2xl font-bold">
           Welcome back, {user?.name || "Organizer"}
         </h2>
-        <Button onClick={() => navigate("/events/create")} className="border-2 border-black">
+        <Button
+          onClick={() => navigate("/events/create")}
+          className="border-2 border-black"
+        >
           <Plus className="h-4 w-4 mr-2" /> Create New Event
         </Button>
       </div>
@@ -453,7 +456,10 @@ function OrganizerDashboard() {
                   You haven't created any events yet.
                 </p>
               )}
-              <Button onClick={() => navigate("/events/create")} className="border-2 border-black">
+              <Button
+                onClick={() => navigate("/events/create")}
+                className="border-2 border-black"
+              >
                 <Plus className="h-4 w-4 mr-2" /> Create Your First Event
               </Button>
             </div>
@@ -475,20 +481,33 @@ function OrganizerDashboard() {
                         e.target.src = "/src/assets/default-event.jpg";
                       }}
                     />
-                    <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded text-xs font-medium">
-                      {event.status === "active" ? (
-                        <span className="text-green-600">Active</span>
-                      ) : event.status === "completed" ? (
-                        <span className="text-gray-600">Completed</span>
-                      ) : event.status === "draft" ? (
-                        <span className="text-yellow-600">Draft</span>
-                      ) : (
-                        <span className="text-red-600">{event.status}</span>
-                      )}
-                    </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold text-lg mb-2">{event.name}</h3>
+                    <div className="flex flex-col mb-2">
+                      <h3 className="font-bold text-lg">{event.name}</h3>
+
+                      {/* Add the status badge here, under the title */}
+                      <div className="mt-1">
+                        {event.status === "active" ? (
+                          <Badge className="bg-green-500 text-white font-medium">
+                            Active
+                          </Badge>
+                        ) : event.status === "completed" ? (
+                          <Badge className="bg-blue-500 text-white font-medium">
+                            Completed
+                          </Badge>
+                        ) : event.status === "draft" ? (
+                          <Badge className="bg-yellow-500 text-white font-medium">
+                            Draft
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-red-500 text-white font-medium">
+                            {event.status}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="flex items-center text-sm text-gray-600 mb-1">
                       <Calendar className="h-4 w-4 mr-1" />
                       {getEventDate(event)}

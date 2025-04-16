@@ -5,6 +5,7 @@ import Profile from "../containers/Common/Profile";
 import OrganizerDashboard from "../containers/Organizer/Dashboard";
 import OrganizerEventDetail from "../containers/Organizer/EventDetail";
 import OrganizerManageEvent from "../containers/Organizer/ManageEvent";
+import EventVolunteersPage from "../containers/Organizer/EventVolunteers";
 import ProtectedRoute from "./ProtectedRoute";
 
 export const OrganizerRoutes = (
@@ -29,6 +30,10 @@ export const OrganizerRoutes = (
       <Route
         path="/organizer/events/:eventId"
         element={<OrganizerEventDetail />}
+      />
+      <Route
+        path="/organizer/events/:eventId/volunteers"
+        element={<EventVolunteersPage />}
       />
       <Route path="/events/create" element={<OrganizerManageEvent />} />
       <Route path="/events/edit/:id" element={<OrganizerManageEvent />} />

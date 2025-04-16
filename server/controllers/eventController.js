@@ -629,10 +629,10 @@ exports.updateEvent = async (req, res) => {
       "description",
       "location",
       "causes",
-      "max_volunteers",
       "contact_person",
       "contact_email",
       "status",
+      "requirements",
     ];
 
     allowedFields.forEach((field) => {
@@ -640,6 +640,17 @@ exports.updateEvent = async (req, res) => {
         updateFields[field] = req.body[field];
       }
     });
+
+    // Handle max_volunteers separately to prevent registered_count from being affected
+    if (req.body.max_volunteers !== undefined) {
+      updateFields.max_volunteers = req.body.max_volunteers;
+
+      // Only set registered_count if it's explicitly provided
+      // DO NOT change registered_count just because max_volunteers changed
+      if (req.body.registered_count !== undefined) {
+        updateFields.registered_count = req.body.registered_count;
+      }
+    }
 
     // If middleware processed an image upload, get the new URL
     if (req.body.image_url) {
@@ -845,9 +856,9 @@ exports.signupForEvent = async (req, res) => {
 
     // NEW CHECK: Verify the volunteer's NRIC is verified
     if (!volunteer.nric_image.verified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: "You need to verify your NRIC before signing up for events",
-        requiresVerification: true 
+        requiresVerification: true,
       });
     }
 

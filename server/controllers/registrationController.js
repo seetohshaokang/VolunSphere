@@ -306,78 +306,52 @@ exports.updateRegistration = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { feedback } = req.body;
 
-    // Check if ID is valid
+    // Validate MongoDB ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid registration ID" });
     }
 
-    // Find registration by ID
+    // Find registration
     const registration = await EventRegistration.findById(id);
     if (!registration) {
       return res.status(404).json({ message: "Registration not found" });
     }
 
-    // Check authorization
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // Prepare update data
+    // Update the registration with the provided data
+    // Check each field if it's explicitly set to null (for reset operations)
     const updateData = {};
 
-    // Volunteer can add feedback to their own registrations
-    if (user.role === "volunteer") {
-      const volunteer = await Volunteer.findOne({ user_id: userId });
-      if (
-        !volunteer ||
-        volunteer._id.toString() !== registration.volunteer_id.toString()
-      ) {
-        return res.status(403).json({
-          message: "Not authorized to update this registration",
-        });
-      }
-
-      if (feedback) {
-        updateData["feedback.from_volunteer"] = {
-          comment: feedback.comment,
-          rating: feedback.rating,
-          submitted_at: new Date(),
-        };
-      }
-    }
-    // Organiser can add feedback to volunteers for their events
-    else if (user.role === "organiser") {
-      const organiser = await Organiser.findOne({ user_id: userId });
-      const event = await Event.findById(registration.event_id);
-
-      if (
-        !organiser ||
-        !event ||
-        event.organiser_id.toString() !== organiser._id.toString()
-      ) {
-        return res.status(403).json({
-          message: "Not authorized to update this registration",
-        });
-      }
-
-      if (feedback) {
-        updateData["feedback.from_organiser"] = {
-          comment: feedback.comment,
-          rating: feedback.rating,
-          submitted_at: new Date(),
-        };
-      }
+    // Handle check-in time reset
+    if (req.body.check_in_time === null) {
+      updateData.check_in_time = null;
+    } else if (req.body.check_in_time) {
+      updateData.check_in_time = req.body.check_in_time;
     }
 
-    // Update registration
+    // Handle check-out time reset
+    if (req.body.check_out_time === null) {
+      updateData.check_out_time = null;
+    } else if (req.body.check_out_time) {
+      updateData.check_out_time = req.body.check_out_time;
+    }
+
+    // Handle status updates
+    if (req.body.status) {
+      updateData.status = req.body.status;
+    }
+
+    // Handle attendance_status updates
+    if (req.body.attendance_status) {
+      updateData.attendance_status = req.body.attendance_status;
+    }
+
+    // Perform the update
     const updatedRegistration = await EventRegistration.findByIdAndUpdate(
       id,
       { $set: updateData },
-      { new: true, runValidators: true }
-    ).populate("event_id volunteer_id");
+      { new: true }
+    );
 
     return res.status(200).json({
       message: "Registration updated successfully",

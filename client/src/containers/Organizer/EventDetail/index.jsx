@@ -22,9 +22,10 @@ import {
   RepeatIcon,
   UsersIcon,
   Trash,
+  Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
@@ -484,32 +485,45 @@ function OrganizerEventDetail() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row mt-4 md:mt-0 gap-2">
-          <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row mt-4 md:mt-0 gap-3">
+          <div className="flex gap-3">
             {!isEditing && (
               <>
                 <Button
-                  onClick={() => setIsEditing(true)}
+                  asChild
                   variant="outline"
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-2 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 shadow-sm px-4 py-2"
                 >
-                  <PencilIcon className="h-4 w-4" /> Edit
+                  <Link to={`/events/edit/${eventId}`}>
+                    <PencilIcon className="h-4 w-4" /> Edit Event
+                  </Link>
                 </Button>
+
                 <Button
                   onClick={() => setShowDeleteConfirmModal(true)}
-                  variant="destructive"
-                  className="flex items-center gap-1"
+                  variant="outline"
+                  className="flex items-center gap-2 bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 hover:border-red-300 shadow-sm px-4 py-2"
                 >
-                  <Trash className="h-4 w-4" /> Delete
+                  <Trash className="h-4 w-4" /> Delete Event
                 </Button>
               </>
             )}
 
             {isEditing ? (
-              <Button onClick={saveEventChanges}>Save Changes</Button>
+              <Button
+                onClick={saveEventChanges}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm px-5 py-2"
+              >
+                Save Changes
+              </Button>
             ) : (
-              <Button onClick={() => setShowVolunteersModal(true)}>
-                View Registered Volunteers
+              <Button
+                asChild
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm px-4 py-2"
+              >
+                <Link to={`/organizer/events/${eventId}/volunteers`}>
+                  <Users className="h-4 w-4" /> View Volunteers
+                </Link>
               </Button>
             )}
           </div>
@@ -860,14 +874,6 @@ function OrganizerEventDetail() {
           </div>
         </div>
       )}
-
-      <EventVolunteersModal
-        isOpen={showVolunteersModal}
-        onClose={() => setShowVolunteersModal(false)}
-        eventId={eventId}
-        eventName={event.title}
-        onVolunteerRemoved={refreshEventData}
-      />
 
       <Dialog
         open={showDeleteConfirmModal}

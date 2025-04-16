@@ -364,6 +364,28 @@ function OrganizerManageEvent() {
     }
   };
 
+  // Use the check-out endpoint to undo check-in
+  const handleUndoCheckIn = async (registrationId) => {
+    try {
+      console.log(`Undoing check-in for registration ${registrationId}`);
+
+      // Use the API method for check-out instead of direct PUT request
+      const response = await Api.checkOutRegistration(registrationId);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to undo check-in");
+      }
+
+      console.log("Check-in status successfully reset");
+      // Refresh the list after update
+      await fetchVolunteers();
+    } catch (err) {
+      console.error("Error undoing check-in:", err);
+      setError("Failed to undo check-in: " + (err.message || "Unknown error"));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-12">
