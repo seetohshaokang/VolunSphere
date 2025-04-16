@@ -799,7 +799,7 @@ const Api = {
 	},
 
 	requestPasswordReset(email) {
-		return fetch(`${SERVER_PREFIX}/auth/forgot-password`, {
+		return fetch(`${SERVER_PREFIX}/auth/reset-password`, {
 			method: "POST",
 			headers: {
 				"Content-type": "application/json",
