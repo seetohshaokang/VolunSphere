@@ -1,4 +1,3 @@
-// src/containers/Organizer/Dashboard/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,14 +11,16 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import {
-	AlertCircle,
-	Calendar,
-	Clock,
-	MapPin,
-	Plus,
-	Search,
-	SlidersHorizontal,
-	Users,
+  AlertCircle,
+  Calendar,
+  Clock,
+  MapPin,
+  Plus,
+  Users,
+  Search,
+  SlidersHorizontal,
+  ArrowUpDown,
+  ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,14 +29,16 @@ import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 
 function OrganizerDashboard() {
-	const { user, logout } = useAuth();
-	const navigate = useNavigate();
-	const [events, setEvents] = useState([]);
-	const [filteredEvents, setFilteredEvents] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [authError, setAuthError] = useState(false);
-	const [showFilters, setShowFilters] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [authError, setAuthError] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  // Add state for the verification modal
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
 	// Filtering and sorting states
 	const [searchTerm, setSearchTerm] = useState("");
@@ -134,33 +137,33 @@ function OrganizerDashboard() {
 			result = result.filter((event) => event.status === statusFilter);
 		}
 
-		// Apply date filter
-		if (dateFilter !== "all") {
-			const now = new Date();
-			if (dateFilter === "upcoming") {
-				result = result.filter((event) => {
-					const eventDate = event.start_datetime
-						? new Date(event.start_datetime)
-						: event.recurrence_start_date
-						? new Date(event.recurrence_start_date)
-						: null;
-					return eventDate && eventDate > now;
-				});
-			} else if (dateFilter === "past") {
-				result = result.filter((event) => {
-					const eventDate = event.end_datetime
-						? new Date(event.end_datetime)
-						: event.recurrence_end_date
-						? new Date(event.recurrence_end_date)
-						: event.start_datetime
-						? new Date(event.start_datetime)
-						: event.recurrence_start_date
-						? new Date(event.recurrence_start_date)
-						: null;
-					return eventDate && eventDate < now;
-				});
-			}
-		}
+    // Apply date filter
+    if (dateFilter !== "all") {
+      const now = new Date();
+      if (dateFilter === "upcoming") {
+        result = result.filter((event) => {
+          const eventDate = event.start_datetime
+            ? new Date(event.start_datetime)
+            : event.recurrence_start_date
+              ? new Date(event.recurrence_start_date)
+              : null;
+          return eventDate && eventDate > now;
+        });
+      } else if (dateFilter === "past") {
+        result = result.filter((event) => {
+          const eventDate = event.end_datetime
+            ? new Date(event.end_datetime)
+            : event.recurrence_end_date
+              ? new Date(event.recurrence_end_date)
+              : event.start_datetime
+                ? new Date(event.start_datetime)
+                : event.recurrence_start_date
+                  ? new Date(event.recurrence_start_date)
+                  : null;
+          return eventDate && eventDate < now;
+        });
+      }
+    }
 
 		// Apply sorting
 		switch (sortOption) {
@@ -291,9 +294,19 @@ function OrganizerDashboard() {
 		}
 	};
 
-	const handleCreateEventClick = () => {
-		navigate("/events/create");
-	};
+  // Updated to show verification modal if not verified
+  const handleCreateEventClick = () => {
+    if (isVerified) {
+      navigate("/events/create");
+    } else {
+      setShowVerificationModal(true);
+    }
+  };
+
+  const handleGoToProfile = () => {
+    setShowVerificationModal(false);
+    navigate("/profile");
+  };
 
 	// Calculate total volunteers with defensive check
 	const totalVolunteers = Array.isArray(events)
@@ -315,17 +328,17 @@ function OrganizerDashboard() {
 				]}
 			/>
 
-			<div className="flex justify-between items-center mb-6">
-				<h2 className="text-2xl font-bold">
-					Welcome back, {user?.name || "Organizer"}
-				</h2>
-				<Button
-					onClick={() => navigate("/events/create")}
-					className="border-2 border-black"
-				>
-					<Plus className="h-4 w-4 mr-2" /> Create New Event
-				</Button>
-			</div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">
+          Welcome back, {user?.name || "Organizer"}
+        </h2>
+        <Button
+          onClick={handleCreateEventClick}
+          className="border-2 border-black"
+        >
+          <Plus className="h-4 w-4 mr-2" /> Create New Event
+        </Button>
+      </div>
 
 			{/* Stats overview */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -516,65 +529,53 @@ function OrganizerDashboard() {
 						</div>
 					</div>
 
-					{loading ? (
-						<div className="flex justify-center py-12">
-							<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-						</div>
-					) : error ? (
-						<div className="text-red-500 text-center py-6">
-							{error}
-						</div>
-					) : !Array.isArray(filteredEvents) ||
-					  filteredEvents.length === 0 ? (
-						<div className="text-center py-12">
-							{events.length > 0 ? (
-								<p className="text-muted-foreground mb-4">
-									No events match your filters. Try adjusting
-									your search criteria.
-								</p>
-							) : (
-								<p className="text-muted-foreground mb-4">
-									You haven't created any events yet.
-								</p>
-							)}
-							<Button
-								onClick={() => navigate("/events/create")}
-								className="border-2 border-black"
-							>
-								<Plus className="h-4 w-4 mr-2" /> Create Your
-								First Event
-							</Button>
-						</div>
-					) : (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-							{filteredEvents.map((event) => (
-								<div
-									key={event._id || event.id}
-									className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-									onClick={() =>
-										handleCardClick(event._id || event.id)
-									}
-								>
-									<div className="relative">
-										<img
-											src={
-												event.image_url ||
-												"/src/assets/default-event.jpg"
-											}
-											alt={event.name}
-											className="h-40 w-full object-cover"
-											onError={(e) => {
-												e.target.onerror = null;
-												e.target.src =
-													"/src/assets/default-event.jpg";
-											}}
-										/>
-									</div>
-									<div className="p-4">
-										<div className="flex flex-col mb-2">
-											<h3 className="font-bold text-lg">
-												{event.name}
-											</h3>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : error ? (
+            <div className="text-red-500 text-center py-6">{error}</div>
+          ) : !Array.isArray(filteredEvents) || filteredEvents.length === 0 ? (
+            <div className="text-center py-12">
+              {events.length > 0 ? (
+                <p className="text-muted-foreground mb-4">
+                  No events match your filters. Try adjusting your search
+                  criteria.
+                </p>
+              ) : (
+                <p className="text-muted-foreground mb-4">
+                  You haven't created any events yet.
+                </p>
+              )}
+              <Button
+                onClick={handleCreateEventClick}
+                className="border-2 border-black"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Create Your First Event
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map((event) => (
+                <div
+                  key={event._id || event.id}
+                  className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleCardClick(event._id || event.id)}
+                >
+                  <div className="relative">
+                    <img
+                      src={event.image_url || "/src/assets/default-event.jpg"}
+                      alt={event.name}
+                      className="h-40 w-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/src/assets/default-event.jpg";
+                      }}
+                    />
+                  </div>
+                  <div className="p-4">
+                    <div className="flex flex-col mb-2">
+                      <h3 className="font-bold text-lg">{event.name}</h3>
 
 											{/* Add the status badge here, under the title */}
 											<div className="mt-1">
@@ -633,28 +634,60 @@ function OrganizerDashboard() {
 												</div>
 											)}
 
-										<Button
-											className="w-full"
-											onClick={(e) => {
-												e.stopPropagation(); // Prevent triggering the card click
-												navigate(
-													`/organizer/events/${
-														event._id || event.id
-													}`
-												);
-											}}
-										>
-											Manage Event
-										</Button>
-									</div>
-								</div>
-							))}
-						</div>
-					)}
-				</CardContent>
-			</Card>
-		</div>
-	);
+                    <Button
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent triggering the card click
+                        navigate(`/organizer/events/${event._id || event.id}`);
+                      }}
+                    >
+                      Manage Event
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Verification Required Modal */}
+      {showVerificationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              <ShieldAlert className="h-6 w-6 text-yellow-500 mr-2" />
+              <h3 className="text-lg font-semibold">Verification Required</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="mb-4">
+                You are currently not verified. Before creating events, please upload the relevant certification documents to complete the verification process.
+              </p>
+              
+              <p className="text-sm text-gray-600">
+                Verification helps establish trust with volunteers and ensures all organizers meet our community standards.
+              </p>
+            </div>
+            
+            <div className="flex justify-between">
+              <Button 
+                variant="destructive"
+                onClick={() => setShowVerificationModal(false)}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                Cancel
+              </Button>
+              
+              <Button onClick={handleGoToProfile}>
+                Go to Profile
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default OrganizerDashboard;

@@ -77,9 +77,9 @@ function Login() {
 				</CardHeader>
 				<CardContent>
 					{error && (
-						<Alert variant="destructive" className="mb-4">
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
+						<div className="mb-4 border border-red-500 bg-red-100 text-red-700 px-4 py-3 rounded">
+							<p>{error}</p>
+						</div>
 					)}
 
 					<form onSubmit={handleSubmit} className="space-y-4">
