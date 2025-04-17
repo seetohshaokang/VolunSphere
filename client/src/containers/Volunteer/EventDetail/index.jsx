@@ -10,15 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  AlertTriangle, 
-  ShieldAlert, 
-  CalendarIcon, 
-  MapPinIcon, 
-  UsersIcon, 
+import {
+  AlertTriangle,
+  ShieldAlert,
+  CalendarIcon,
+  MapPinIcon,
+  UsersIcon,
   RepeatIcon,
   ClockIcon,
-  User
+  User,
+  Home,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
@@ -83,7 +84,12 @@ function EventDetail() {
   useEffect(() => {
     // Only check signup status if user is logged in and event is loaded
     if (user && event) {
-      console.log("Checking signup status for user:", user.id, "event:", eventId);
+      console.log(
+        "Checking signup status for user:",
+        user.id,
+        "event:",
+        eventId
+      );
       checkSignupStatus();
     }
   }, [user, event, eventId]); // Include eventId in the dependency array
@@ -152,7 +158,10 @@ function EventDetail() {
 
         console.log("Updated isSignedUp state to:", !!data.isSignedUp);
       } else {
-        console.error("Error response from signup status check:", response.status);
+        console.error(
+          "Error response from signup status check:",
+          response.status
+        );
         // If there's an error, assume not signed up
         setIsSignedUp(false);
         setWasRemoved(false);
@@ -172,7 +181,11 @@ function EventDetail() {
       if (response.ok) {
         const data = await response.json();
         // For volunteers, we need to check the nric_image.verified property
-        if (data.profile && data.profile.nric_image && data.profile.nric_image.verified) {
+        if (
+          data.profile &&
+          data.profile.nric_image &&
+          data.profile.nric_image.verified
+        ) {
           return true; // Volunteer is verified
         } else {
           return false; // Volunteer is not verified
@@ -268,7 +281,9 @@ function EventDetail() {
           // Show the verification modal instead of a simple error message
           setShowVerificationModal(true);
         } else {
-          setError(data.message || "Failed to sign up for the event. Please try again.");
+          setError(
+            data.message || "Failed to sign up for the event. Please try again."
+          );
         }
       }
     } catch (error) {
@@ -287,7 +302,11 @@ function EventDetail() {
     if (!event) return false;
 
     // Find the first valid date from all possible date fields
-    const dateField = event.end_datetime || event.end_date || event.start_datetime || event.start_date;
+    const dateField =
+      event.end_datetime ||
+      event.end_date ||
+      event.start_datetime ||
+      event.start_date;
 
     if (!dateField) return false;
 
@@ -334,8 +353,8 @@ function EventDetail() {
       };
 
       const timeOptions = {
-        hour: '2-digit',
-        minute: '2-digit'
+        hour: "2-digit",
+        minute: "2-digit",
       };
 
       const dateStr = startDateTime.toLocaleDateString(undefined, dateOptions);
@@ -346,12 +365,21 @@ function EventDetail() {
 
         if (startDateTime.toDateString() === endDateTime.toDateString()) {
           // Same day, show date once with time range
-          const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
+          const endTimeStr = endDateTime.toLocaleTimeString(
+            undefined,
+            timeOptions
+          );
           return `${dateStr}, ${timeStr} - ${endTimeStr}`;
         } else {
           // Different days, show complete range
-          const endDateStr = endDateTime.toLocaleDateString(undefined, dateOptions);
-          const endTimeStr = endDateTime.toLocaleTimeString(undefined, timeOptions);
+          const endDateStr = endDateTime.toLocaleDateString(
+            undefined,
+            dateOptions
+          );
+          const endTimeStr = endDateTime.toLocaleTimeString(
+            undefined,
+            timeOptions
+          );
           return `${dateStr}, ${timeStr} - ${endDateStr}, ${endTimeStr}`;
         }
       }
@@ -371,7 +399,10 @@ function EventDetail() {
           year: "numeric",
         };
 
-        return `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
+        return `${startDate.toLocaleDateString(
+          undefined,
+          options
+        )} - ${endDate.toLocaleDateString(undefined, options)}`;
       }
 
       if (event.recurrence_start_date) {
@@ -438,7 +469,9 @@ function EventDetail() {
       }
 
       if (response.ok) {
-        setSuccessMessage("You have successfully cancelled your registration for this event.");
+        setSuccessMessage(
+          "You have successfully cancelled your registration for this event."
+        );
 
         // Update state to reflect cancellation
         setIsSignedUp(false);
@@ -451,7 +484,9 @@ function EventDetail() {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        setError(data.message || "Failed to cancel registration. Please try again.");
+        setError(
+          data.message || "Failed to cancel registration. Please try again."
+        );
       }
     } catch (error) {
       console.error("Error cancelling registration:", error);
@@ -493,7 +528,10 @@ function EventDetail() {
     return Math.max(0, event.registered_count || 0);
   };
 
-  const isEventFull = event && event.max_volunteers > 0 && event.registered_count >= event.max_volunteers;
+  const isEventFull =
+    event &&
+    event.max_volunteers > 0 &&
+    event.registered_count >= event.max_volunteers;
 
   // Loading state
   if (loading) {
@@ -515,9 +553,7 @@ function EventDetail() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
         <div className="flex justify-center">
-          <Button onClick={() => navigate("/events")}>
-            Back to Events
-          </Button>
+          <Button onClick={() => navigate("/events")}>Back to Events</Button>
         </div>
       </div>
     );
@@ -533,9 +569,7 @@ function EventDetail() {
           </AlertDescription>
         </Alert>
         <div className="flex justify-center">
-          <Button onClick={() => navigate("/events")}>
-            Back to Events
-          </Button>
+          <Button onClick={() => navigate("/events")}>Back to Events</Button>
         </div>
       </div>
     );
@@ -543,6 +577,15 @@ function EventDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Back to Home button */}
+      <div className="flex justify-start mb-6">
+        <Button variant="outline" className="flex items-center gap-2" asChild>
+          <Link to="/">
+            <Home className="h-4 w-4" /> Back to Home
+          </Link>
+        </Button>
+      </div>
+
       {/* Event header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6">
         <div>
@@ -581,9 +624,7 @@ function EventDetail() {
       {/* Registration success message */}
       {successMessage && (
         <Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
-          <AlertDescription>
-            {successMessage}
-          </AlertDescription>
+          <AlertDescription>{successMessage}</AlertDescription>
         </Alert>
       )}
 
@@ -625,7 +666,9 @@ function EventDetail() {
               {/* Description */}
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Description</h3>
-                <div className="text-gray-700 whitespace-pre-line">{event.description}</div>
+                <div className="text-gray-700 whitespace-pre-line">
+                  {event.description}
+                </div>
               </div>
 
               {/* Event timing details */}
@@ -642,15 +685,16 @@ function EventDetail() {
                       </span>
                     </div>
 
-                    {event.recurrence_days && event.recurrence_days.length > 0 && (
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <CalendarIcon className="h-5 w-5 text-primary" />
-                        <span className="font-medium">Recurring Days:</span>
-                        <span>
-                          {formatRecurringDays(event.recurrence_days)}
-                        </span>
-                      </div>
-                    )}
+                    {event.recurrence_days &&
+                      event.recurrence_days.length > 0 && (
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <CalendarIcon className="h-5 w-5 text-primary" />
+                          <span className="font-medium">Recurring Days:</span>
+                          <span>
+                            {formatRecurringDays(event.recurrence_days)}
+                          </span>
+                        </div>
+                      )}
 
                     {event.recurrence_time && (
                       <div className="flex items-center gap-2 text-gray-700">
@@ -711,11 +755,11 @@ function EventDetail() {
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold mb-2">Requirements</h3>
                   <ul className="list-disc pl-5 space-y-1">
-                    {event.requirements
-                      .split(",")
-                      .map((req, index) => (
-                        <li key={index} className="text-gray-700">{req.trim()}</li>
-                      ))}
+                    {event.requirements.split(",").map((req, index) => (
+                      <li key={index} className="text-gray-700">
+                        {req.trim()}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               )}
@@ -777,7 +821,8 @@ function EventDetail() {
                   {isEventCompleted() ? (
                     <div className="mb-4 bg-gray-50 p-4 rounded-md">
                       <p className="text-gray-700">
-                        This event has been completed. You cannot cancel your registration.
+                        This event has been completed. You cannot cancel your
+                        registration.
                       </p>
                     </div>
                   ) : (
@@ -792,17 +837,26 @@ function EventDetail() {
               ) : (
                 <button
                   onClick={handleSignupClick}
-                  disabled={!event.status || event.status !== "active" || isEventFull || wasRemoved}
-                  className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${!event.status || event.status !== "active" || isEventFull || wasRemoved
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                    }`}
+                  disabled={
+                    !event.status ||
+                    event.status !== "active" ||
+                    isEventFull ||
+                    wasRemoved
+                  }
+                  className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${
+                    !event.status ||
+                    event.status !== "active" ||
+                    isEventFull ||
+                    wasRemoved
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
                 >
                   {!event.status || event.status !== "active"
                     ? "Event Not Active"
                     : isEventFull
-                      ? "No Spots Available"
-                      : "I want to volunteer"}
+                    ? "No Spots Available"
+                    : "I want to volunteer"}
                 </button>
               )}
 
@@ -816,9 +870,11 @@ function EventDetail() {
                     <div
                       className="bg-blue-600 h-full rounded-full"
                       style={{
-                        width: `${((event.registered_count || 0) / event.max_volunteers) *
+                        width: `${
+                          ((event.registered_count || 0) /
+                            event.max_volunteers) *
                           100
-                          }%`,
+                        }%`,
                       }}
                     ></div>
                   </div>
@@ -871,7 +927,10 @@ function EventDetail() {
                   </ul>
                   {event.is_recurring && (
                     <p className="font-medium text-yellow-600 mt-2 mb-2">
-                      <strong>Important:</strong> This is a recurring event. You can only sign up for one instance of a recurring event. If you sign up for this event, you won't be able to sign up for other instances.
+                      <strong>Important:</strong> This is a recurring event. You
+                      can only sign up for one instance of a recurring event. If
+                      you sign up for this event, you won't be able to sign up
+                      for other instances.
                     </p>
                   )}
                 </>
@@ -913,10 +972,13 @@ function EventDetail() {
             </div>
             <DialogDescription>
               <p className="mb-4">
-                You are currently not verified. Before registering for events, please upload the relevant certification documents to complete the verification process.
+                You are currently not verified. Before registering for events,
+                please upload the relevant certification documents to complete
+                the verification process.
               </p>
               <p className="text-sm text-gray-600">
-                Verification helps establish trust with volunteers and ensures all organizers meet our community standards.
+                Verification helps establish trust with volunteers and ensures
+                all organizers meet our community standards.
               </p>
             </DialogDescription>
           </DialogHeader>
@@ -927,11 +989,7 @@ function EventDetail() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleGoToProfile}
-            >
-              Go to Profile
-            </Button>
+            <Button onClick={handleGoToProfile}>Go to Profile</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

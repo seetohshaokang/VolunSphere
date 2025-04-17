@@ -22,6 +22,7 @@ import {
   UsersIcon,
   Trash,
   Users,
+  Home,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
@@ -442,6 +443,14 @@ function OrganizerEventDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex justify-between items-center mb-4">
+        <Button variant="outline" className="flex items-center gap-2" asChild>
+          <Link to="/organizer">
+            <Home className="h-4 w-4" /> Back to Home
+          </Link>
+        </Button>
+      </div>
+
       <ContentHeader
         title={event.title}
         links={[
@@ -474,8 +483,10 @@ function OrganizerEventDetail() {
               {event.status.toUpperCase()}
             </Badge>
 
-            {event.isRecurring && (
+            {event.isRecurring ? (
               <Badge className="bg-blue-100 text-blue-800">RECURRING</Badge>
+            ) : (
+              <Badge className="bg-purple-100 text-purple-800">ONE-TIME</Badge>
             )}
           </div>
         </div>
