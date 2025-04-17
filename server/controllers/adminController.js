@@ -228,7 +228,7 @@ exports.getUsers = async (req, res) => {
           profile = await Organiser.findOne({
             user_id: user._id,
           }).select(
-            "organisation_name phone profile_picture_url verification_status certification_document"
+            "name phone profile_picture_url verification_status certification_document"
           );
         }
 

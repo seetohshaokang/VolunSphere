@@ -1,6 +1,7 @@
-// src/containers/EventDetail/index.jsx - Modified sections
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +10,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertTriangle, ShieldAlert } from "lucide-react";
+import { 
+  AlertTriangle, 
+  ShieldAlert, 
+  CalendarIcon, 
+  MapPinIcon, 
+  UsersIcon, 
+  RepeatIcon,
+  ClockIcon,
+  User
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import { getEventImageUrl } from "../../../helpers/eventHelper";
+
+// Map of numeric day values to weekday names
+const DAYS_OF_WEEK = {
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+};
 
 function EventDetail() {
   const { eventId } = useParams();
@@ -287,10 +308,9 @@ function EventDetail() {
       const endDate = new Date(event.end_date);
 
       const options = {
-        weekday: "short",
+        month: "numeric",
+        day: "numeric",
         year: "numeric",
-        month: "short",
-        day: "2-digit",
       };
 
       if (startDate.toDateString() === endDate.toDateString()) {
@@ -308,10 +328,9 @@ function EventDetail() {
       const startDateTime = new Date(event.start_datetime);
 
       const dateOptions = {
-        weekday: "short",
+        month: "numeric",
+        day: "numeric",
         year: "numeric",
-        month: "short",
-        day: "2-digit",
       };
 
       const timeOptions = {
@@ -347,10 +366,9 @@ function EventDetail() {
         const endDate = new Date(event.recurrence_end_date);
 
         const options = {
-          weekday: "short",
+          month: "numeric",
+          day: "numeric",
           year: "numeric",
-          month: "short",
-          day: "2-digit",
         };
 
         return `${startDate.toLocaleDateString(undefined, options)} - ${endDate.toLocaleDateString(undefined, options)}`;
@@ -359,10 +377,9 @@ function EventDetail() {
       if (event.recurrence_start_date) {
         const startDate = new Date(event.recurrence_start_date);
         const options = {
-          weekday: "short",
+          month: "numeric",
+          day: "numeric",
           year: "numeric",
-          month: "short",
-          day: "2-digit",
         };
         return startDate.toLocaleDateString(undefined, options);
       }
@@ -447,186 +464,117 @@ function EventDetail() {
     }
   };
 
+  // Format recurring days for display
+  const formatRecurringDays = (days) => {
+    if (!days || days.length === 0) return "No days specified";
+
+    return days.map((day) => DAYS_OF_WEEK[day]).join(", ");
+  };
+
+  // Format time for display
+  const formatTime = (time) => {
+    if (!time) return "";
+
+    // If time is in 24-hour format (HH:MM), convert to 12-hour format
+    if (time.match(/^\d{1,2}:\d{2}$/)) {
+      const [hours, minutes] = time.split(":");
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    }
+
+    return time;
+  };
+
+  // Calculate filled spots
+  const calculateFilledSpots = () => {
+    if (!event || !event.max_volunteers) return 0;
+    return Math.max(0, event.registered_count || 0);
+  };
+
+  const isEventFull = event && event.max_volunteers > 0 && event.registered_count >= event.max_volunteers;
+
+  // Loading state
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        <p className="ml-3 text-lg">Loading event details...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (!event) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertDescription>
-          Event not found or has been removed.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Check if event is at capacity
-  const isEventFull =
-    event.max_volunteers > 0 &&
-    (event.registered_count || 0) >= event.max_volunteers;
-
-  // Render sidebar with registration options
-  const renderRegisterSidebar = () => {
-    // Debug log for UI state
-    console.log("Rendering sidebar with state:", {
-      isSignedUp,
-      wasRemoved,
-      eventStatus: event?.status,
-      isEventFull
-    });
-
-    return (
-      <div className="lg:sticky lg:top-24 lg:self-start">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex mb-5">
-            <div className="text-2xl mr-3">📍</div>
-            <div>
-              <h5 className="font-semibold text-gray-700 mb-1">Location</h5>
-              <p className="text-gray-800">{event.location}</p>
-            </div>
-          </div>
-
-          <div className="flex mb-6">
-            <div className="text-2xl mr-3">🗓️</div>
-            <div>
-              <h5 className="font-semibold text-gray-700 mb-1">
-                Date and time
-              </h5>
-              <p className="text-gray-800">{formatDateRange()}</p>
-              {event.start_time && event.end_time && (
-                <p className="text-gray-800">
-                  <strong>Time: </strong>
-                  {event.start_time} - {event.end_time}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Conditional rendering based on signup status */}
-          {wasRemoved ? (
-            <div className="mb-4 bg-red-50 p-4 rounded-md">
-              <div className="flex items-start mb-2">
-                <AlertTriangle className="h-5 w-5 text-red-600 mr-2 mt-0.5" />
-                <p className="text-red-700 font-medium">
-                  You were removed from this event
-                </p>
-              </div>
-              {removalReason && (
-                <p className="text-red-600 text-sm ml-7">{removalReason}</p>
-              )}
-              <p className="text-gray-600 text-sm mt-2 ml-7">
-                You cannot sign up for this event again.
-              </p>
-            </div>
-          ) : isSignedUp ? (
-            <>
-              <div className="mb-4 bg-green-50 p-4 rounded-md">
-                <p className="text-green-700 font-medium">
-                  You are signed up for this event
-                </p>
-              </div>
-              {isEventCompleted() ? (
-                <div className="mb-4 bg-gray-50 p-4 rounded-md">
-                  <p className="text-gray-700">
-                    This event has been completed. You cannot cancel your registration.
-                  </p>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowConfirmModal(true)}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md text-base font-medium transition-colors"
-                >
-                  Cancel Signup
-                </button>
-              )}
-            </>
-          ) : (
-            <button
-              onClick={handleSignupClick}
-              disabled={!event.status || event.status !== "active" || isEventFull || wasRemoved}
-              className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${!event.status || event.status !== "active" || isEventFull || wasRemoved
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-                }`}
-            >
-              {!event.status || event.status !== "active"
-                ? "Event Not Active"
-                : isEventFull
-                  ? "No Spots Available"
-                  : "I want to volunteer"}
-            </button>
-          )}
-
-          {event.max_volunteers > 0 && (
-            <div className="mt-5 text-center text-gray-600">
-              <p className="mb-2">
-                <strong>{getAvailableSlots(event)}</strong> of{" "}
-                <strong>{event.max_volunteers}</strong> spots left
-              </p>
-              <div className="bg-gray-200 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-blue-600 h-full rounded-full"
-                  style={{
-                    width: `${((event.registered_count || 0) / event.max_volunteers) *
-                      100
-                      }%`,
-                  }}
-                ></div>
-              </div>
-            </div>
-          )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="ml-3 text-lg">Loading event details...</p>
         </div>
       </div>
     );
-  };
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <div className="flex justify-center">
+          <Button onClick={() => navigate("/events")}>
+            Back to Events
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // No event found state
+  if (!event) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Alert variant="destructive" className="my-6">
+          <AlertDescription>
+            Event not found or has been removed.
+          </AlertDescription>
+        </Alert>
+        <div className="flex justify-center">
+          <Button onClick={() => navigate("/events")}>
+            Back to Events
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 mt-6">
-      {/* Breadcrumb navigation */}
-      <nav className="mb-5">
-        <ol className="flex space-x-2 text-sm">
-          <li>
-            <a href="/" className="text-blue-600 hover:underline">
-              Home
-            </a>
-          </li>
-          <li className="flex items-center">
-            <span className="mx-2 text-gray-400">/</span>
-            <a href="/events" className="text-blue-600 hover:underline">
-              Volunteer
-            </a>
-          </li>
-          <li className="flex items-center">
-            <span className="mx-2 text-gray-400">/</span>
-            <span className="text-gray-600">{event.name}</span>
-          </li>
-        </ol>
-      </nav>
-
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Event header */}
-      <div className="relative mb-6">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-          {event.name}
-        </h1>
-        <div className="flex items-center mb-4">
-          <div className="w-6 h-6 bg-gray-200 rounded-full mr-2"></div>
-          <span className="text-gray-700">
-            {event.organiser_name || "Organization"}
-          </span>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800 mb-2">
+            {event.name}
+          </h1>
+          <div className="flex items-center mb-2">
+            <div className="w-6 h-6 bg-gray-200 rounded-full mr-2"></div>
+            <span className="text-gray-600">
+              {event.organiser_name || "Organization"}
+            </span>
+          </div>
+
+          <div className="mt-2 flex gap-2">
+            <Badge
+              className={
+                event.status === "active"
+                  ? "bg-green-100 text-green-800"
+                  : event.status === "draft"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : event.status === "completed"
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-gray-100 text-gray-800"
+              }
+            >
+              {(event.status || "ACTIVE").toUpperCase()}
+            </Badge>
+
+            {event.is_recurring && (
+              <Badge className="bg-blue-100 text-blue-800">RECURRING</Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -639,53 +587,33 @@ function EventDetail() {
         </Alert>
       )}
 
-      {/* Main content grid */}
+      {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          {/* Event image */}
-          <div className="relative w-full h-96 mb-6 rounded-lg overflow-hidden shadow-md">
-            <img
-              src={
-                event.image_url
-                  ? getEventImageUrl(event.image_url, imageTimestamp)
-                  : `https://source.unsplash.com/random/800x400/?${event.cause || "volunteer"
-                  }`
-              }
-              alt={event.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          <Card className="mb-6 shadow-sm">
+            <CardContent className="p-6">
+              {/* Banner image */}
+              <div className="mb-6">
+                <img
+                  src={
+                    event.image_url
+                      ? getEventImageUrl(event.image_url, imageTimestamp)
+                      : "/src/assets/default-event.jpg"
+                  }
+                  alt={event.name}
+                  className="w-full h-64 object-cover rounded-md shadow-sm"
+                />
+              </div>
 
-          {/* Event Description */}
-          <div className="prose max-w-none mb-8">
-            <h2 className="text-xl font-semibold mb-4">Description</h2>
-            <div className="whitespace-pre-line">{event.description}</div>
-          </div>
-
-          {/* Event Details */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Event Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {event.contact_person && (
-                <div>
-                  <h3 className="font-medium text-gray-700">Contact Person</h3>
-                  <p>{event.contact_person}</p>
-                </div>
-              )}
-              {event.contact_email && (
-                <div>
-                  <h3 className="font-medium text-gray-700">Contact Email</h3>
-                  <p>{event.contact_email}</p>
-                </div>
-              )}
+              {/* Categories/Causes */}
               {event.causes && event.causes.length > 0 && (
-                <div className="md:col-span-2">
-                  <h3 className="font-medium text-gray-700">Causes</h3>
-                  <div className="flex flex-wrap gap-2 mt-1">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2">Categories</h3>
+                  <div className="flex flex-wrap gap-2">
                     {event.causes.map((cause, index) => (
                       <span
                         key={index}
-                        className="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md"
+                        className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm"
                       >
                         {cause}
                       </span>
@@ -693,26 +621,212 @@ function EventDetail() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Requirements Section - if available */}
-          {event.requirements && (
-            <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Requirements</h2>
-              <ul className="list-disc pl-5 space-y-1">
-                {event.requirements
-                  .split(",")
-                  .map((req, index) => (
-                    <li key={index} className="text-gray-700">{req.trim()}</li>
-                  ))}
-              </ul>
-            </div>
-          )}
+              {/* Description */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Description</h3>
+                <div className="text-gray-700 whitespace-pre-line">{event.description}</div>
+              </div>
+
+              {/* Event timing details */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">Event Schedule</h3>
+
+                {event.is_recurring ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <RepeatIcon className="h-5 w-5 text-primary" />
+                      <span className="font-medium">Recurring Event:</span>
+                      <span className="capitalize">
+                        {event.recurrence_pattern || "Weekly"}
+                      </span>
+                    </div>
+
+                    {event.recurrence_days && event.recurrence_days.length > 0 && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <CalendarIcon className="h-5 w-5 text-primary" />
+                        <span className="font-medium">Recurring Days:</span>
+                        <span>
+                          {formatRecurringDays(event.recurrence_days)}
+                        </span>
+                      </div>
+                    )}
+
+                    {event.recurrence_time && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <ClockIcon className="h-5 w-5 text-primary" />
+                        <span className="font-medium">Event Time:</span>
+                        <span>
+                          {formatTime(event.recurrence_time.start)} -{" "}
+                          {formatTime(event.recurrence_time.end)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <CalendarIcon className="h-5 w-5 text-primary" />
+                      <span className="font-medium">Date:</span>
+                      <span>{formatDateRange()}</span>
+                    </div>
+
+                    {event.start_time && event.end_time && (
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <ClockIcon className="h-5 w-5 text-primary" />
+                        <span className="font-medium">Time:</span>
+                        <span>
+                          {event.start_time} - {event.end_time}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Contact Info */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">
+                  Contact Information
+                </h3>
+                <p className="text-gray-700">
+                  {event.contact_person && (
+                    <>
+                      <span className="font-medium">Contact Person:</span>{" "}
+                      {event.contact_person}
+                      <br />
+                    </>
+                  )}
+                  {event.contact_email && (
+                    <>
+                      <span className="font-medium">Email:</span>{" "}
+                      {event.contact_email}
+                    </>
+                  )}
+                </p>
+              </div>
+
+              {/* Requirements Section - if available */}
+              {event.requirements && (
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold mb-2">Requirements</h3>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {event.requirements
+                      .split(",")
+                      .map((req, index) => (
+                        <li key={index} className="text-gray-700">{req.trim()}</li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Sidebar with registration */}
-        {renderRegisterSidebar()}
+        <div className="lg:col-span-1">
+          <Card className="sticky top-6">
+            <CardContent className="p-5">
+              <div className="flex mb-5">
+                <div className="text-2xl mr-3">📍</div>
+                <div>
+                  <h5 className="font-semibold text-gray-700 mb-1">Location</h5>
+                  <p className="text-gray-800">{event.location}</p>
+                </div>
+              </div>
+
+              <div className="flex mb-6">
+                <div className="text-2xl mr-3">🗓️</div>
+                <div>
+                  <h5 className="font-semibold text-gray-700 mb-1">
+                    Date and time
+                  </h5>
+                  <p className="text-gray-800">{formatDateRange()}</p>
+                  {event.start_time && event.end_time && (
+                    <p className="text-gray-800">
+                      <strong>Time: </strong>
+                      {event.start_time} - {event.end_time}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Conditional rendering based on signup status */}
+              {wasRemoved ? (
+                <div className="mb-4 bg-red-50 p-4 rounded-md">
+                  <div className="flex items-start mb-2">
+                    <AlertTriangle className="h-5 w-5 text-red-600 mr-2 mt-0.5" />
+                    <p className="text-red-700 font-medium">
+                      You were removed from this event
+                    </p>
+                  </div>
+                  {removalReason && (
+                    <p className="text-red-600 text-sm ml-7">{removalReason}</p>
+                  )}
+                  <p className="text-gray-600 text-sm mt-2 ml-7">
+                    You cannot sign up for this event again.
+                  </p>
+                </div>
+              ) : isSignedUp ? (
+                <>
+                  <div className="mb-4 bg-green-50 p-4 rounded-md">
+                    <p className="text-green-700 font-medium">
+                      You are signed up for this event
+                    </p>
+                  </div>
+                  {isEventCompleted() ? (
+                    <div className="mb-4 bg-gray-50 p-4 rounded-md">
+                      <p className="text-gray-700">
+                        This event has been completed. You cannot cancel your registration.
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowConfirmModal(true)}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-md text-base font-medium transition-colors"
+                    >
+                      Cancel Signup
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  onClick={handleSignupClick}
+                  disabled={!event.status || event.status !== "active" || isEventFull || wasRemoved}
+                  className={`w-full py-3 px-4 rounded-md text-base font-medium transition-colors ${!event.status || event.status !== "active" || isEventFull || wasRemoved
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                    }`}
+                >
+                  {!event.status || event.status !== "active"
+                    ? "Event Not Active"
+                    : isEventFull
+                      ? "No Spots Available"
+                      : "I want to volunteer"}
+                </button>
+              )}
+
+              {event.max_volunteers > 0 && (
+                <div className="mt-5 text-center text-gray-600">
+                  <p className="mb-2">
+                    <strong>{getAvailableSlots(event)}</strong> of{" "}
+                    <strong>{event.max_volunteers}</strong> spots left
+                  </p>
+                  <div className="bg-gray-200 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-full rounded-full"
+                      style={{
+                        width: `${((event.registered_count || 0) / event.max_volunteers) *
+                          100
+                          }%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Confirmation Dialog */}
