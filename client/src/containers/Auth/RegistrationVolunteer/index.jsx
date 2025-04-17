@@ -120,7 +120,7 @@ function RegistrationVolunteer() {
       </Button>
 
       {/* Volunteer Description */}
-      <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-start pt-40 items-center text-center">
+      <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-center items-center text-center">
         <h1 className="text-4xl font-bold mb-6 text-white">VolunSphere</h1>
         <p className="text-xl mb-6 text-white">
           Make a difference in your community
@@ -259,12 +259,16 @@ function RegistrationVolunteer() {
                 </Label>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
-              >
-                Sign up
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="text-primary hover:bg-gray-100"
+                >
+                  Sign up
+                </Button>
+              </div>
 
               <p className="text-center mt-6">
                 Already have an account?{" "}

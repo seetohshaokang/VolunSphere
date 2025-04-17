@@ -233,43 +233,48 @@ function Home() {
 
 	return (
 		<div className="min-h-screen flex flex-col">
-			<div className="mb-6">
+			<div className="mb-4">
 				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
 					<h1 className="text-2xl font-bold mb-2 sm:mb-0 flex items-center">
 						Find Volunteer Opportunities
 					</h1>
 				</div>
-				<div className="h-px bg-border mt-2 mb-4"></div>
+				<div className="h-px bg-border mt-2"></div>
 			</div>
 
-			{/* Custom Search bar */}
-			<div className="relative mb-6">
-				<div className="flex w-full">
-					<Input
-						type="text"
-						placeholder="Search for volunteer opportunities..."
-						value={searchTerm}
-						onChange={handleSearchInputChange}
-						onKeyDown={handleKeyDown}
-						className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12"
+			{/* Search and filter section */}
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+				{/* Custom Search bar */}
+				<div className="relative md:col-span-4">
+					<div className="flex w-full">
+						<Input
+							type="text"
+							placeholder="Search for volunteer opportunities..."
+							value={searchTerm}
+							onChange={handleSearchInputChange}
+							onKeyDown={handleKeyDown}
+							className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12"
+						/>
+						<Button
+							className="rounded-l-none h-12 border border-input"
+							onClick={handleSearchSubmit}
+						>
+							<Search className="h-5 w-5 mr-2" />
+							Search
+						</Button>
+					</div>
+				</div>
+
+				{/* Filter section */}
+				<div className="md:col-span-4">
+					<FilterControls
+						filters={filters}
+						categories={categories}
+						locations={locations}
+						handleFilterChange={handleFilterChange}
 					/>
-					<Button
-						className="rounded-l-none h-12 border border-input"
-						onClick={handleSearchSubmit}
-					>
-						<Search className="h-5 w-5 mr-2" />
-						Search
-					</Button>
 				</div>
 			</div>
-
-			{/* Filter section */}
-			<FilterControls
-				filters={filters}
-				categories={categories}
-				locations={locations}
-				handleFilterChange={handleFilterChange}
-			/>
 
 			{/* Results count */}
 			<ResultsHeader eventCount={filteredEvents.length} />

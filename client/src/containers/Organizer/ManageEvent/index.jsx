@@ -407,14 +407,7 @@ function OrganizerManageEvent() {
     <>
       <ContentHeader
         title={isEditMode ? "Edit Event" : "Create New Event"}
-        links={[
-          { to: "/", label: "Home" },
-          { to: "/organizer", label: "Events" },
-          {
-            label: isEditMode ? "Edit Event" : "Create Event",
-            isActive: true,
-          },
-        ]}
+        links={[]}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -766,8 +759,9 @@ function OrganizerManageEvent() {
 
                   <Button
                     type="submit"
+                    variant="outline"
                     disabled={submitLoading}
-                    className="order-1 sm:order-2 border-2 border-black"
+                    className="order-1 sm:order-2 border-black"
                   >
                     {submitLoading ? (
                       <div className="flex items-center">

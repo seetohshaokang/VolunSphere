@@ -343,12 +343,6 @@ const EventVolunteersPage = () => {
     <div className="container mx-auto px-4 py-6">
       <ContentHeader
         title={`Registered Volunteers - ${eventName}`}
-        links={[
-          { to: "/", label: "Home" },
-          { to: "/organizer", label: "Events" },
-          { to: `/organizer/events/${eventId}`, label: eventName },
-          { label: "Volunteers", isActive: true },
-        ]}
       />
 
       <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
@@ -600,9 +594,10 @@ const EventVolunteersPage = () => {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
+                variant="outline"
                 onClick={confirmRemoveVolunteer}
                 disabled={isRemoving}
+                className="bg-red-500 hover:bg-red-600 text-white hover:text-white"
               >
                 {isRemoving ? (
                   <>

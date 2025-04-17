@@ -43,12 +43,14 @@ function Registration() {
             I want to find volunteers
           </h2>
 
-          <button
+          <Button
+            variant="outline"
+            size="lg"
             onClick={() => navigate("/registrationorganiser")}
-            className="mt-8 md:mt-20 border-2 border-white bg-transparent text-white font-semibold text-xl py-3 px-6 md:py-4 md:px-8 rounded-lg hover:bg-white hover:text-[#0066FF] transition-colors"
+            className="mt-8 md:mt-20 border border-white bg-transparent text-white font-semibold text-xl hover:bg-white hover:text-[#0066FF]"
           >
             SIGN UP AS ORGANISER
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -94,12 +96,14 @@ function Registration() {
             I want to help others
           </h2>
 
-          <button
+          <Button
+            variant="outline"
+            size="lg"
             onClick={() => navigate("/registrationvolunteer")}
-            className="mt-8 md:mt-20 border-2 border-[#0066FF] bg-transparent text-[#0066FF] font-semibold text-xl py-3 px-6 md:py-4 md:px-8 rounded-lg hover:bg-[#0066FF] hover:text-white transition-colors"
+            className="mt-8 md:mt-20 border border-[#0066FF] bg-transparent text-[#0066FF] font-semibold text-xl hover:bg-[#0066FF] hover:text-white"
           >
             SIGN UP AS VOLUNTEER
-          </button>
+          </Button>
         </div>
       </div>
     </div>

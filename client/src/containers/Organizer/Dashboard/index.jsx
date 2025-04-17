@@ -42,6 +42,7 @@ function OrganizerDashboard() {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   // Filtering and sorting states
+  const [inputSearchTerm, setInputSearchTerm] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortOption, setSortOption] = useState("newest");
@@ -58,11 +59,12 @@ function OrganizerDashboard() {
     if (events.length > 0) {
       applyFiltersAndSort();
     }
-  }, [events, searchTerm, statusFilter, sortOption, dateFilter]);
+  }, [events, statusFilter, sortOption, dateFilter, searchTerm]);
 
-  const fetchOrganizedEvents = async () => {
+  const fetchOrganizedEvents = async (searchQuery = "") => {
     try {
       setLoading(true);
+      
       const response = await Api.getOrganizedEvents();
 
       // Check if response is OK
@@ -208,7 +210,8 @@ function OrganizerDashboard() {
 
   // Function to reset filters
   const resetFilters = () => {
-    setSearchTerm("");
+    setInputSearchTerm("");
+    setSearchTerm(""); // Also reset the applied search term
     setStatusFilter("all");
     setDateFilter("all");
     setSortOption("newest");
@@ -297,7 +300,7 @@ function OrganizerDashboard() {
 
   const handleGoToProfile = () => {
     setShowVerificationModal(false);
-    navigate("/profile");
+    navigate("/organizer/profile");
   };
 
   // Calculate total volunteers with defensive check
@@ -310,14 +313,26 @@ function OrganizerDashboard() {
     ? events.filter((e) => e.status === "active").length
     : 0;
 
+  const handleSearchInputChange = (e) => {
+    const newValue = e.target.value;
+    setInputSearchTerm(newValue);
+    
+    if (newValue === '') {
+      setSearchTerm('');
+    }
+  };
+  
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      setSearchTerm(inputSearchTerm);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <ContentHeader
         title="Organizer Dashboard"
-        links={[
-          { to: "/organizer", label: "Home" },
-          { label: "Dashboard", isActive: true },
-        ]}
+        links={[]}
       />
 
       <div className="flex justify-between items-center mb-6">
@@ -326,7 +341,8 @@ function OrganizerDashboard() {
         </h2>
         <Button
           onClick={handleCreateEventClick}
-          className="border-2 border-black"
+          variant="outline"
+          className="border-black"
         >
           <Plus className="h-4 w-4 mr-2" /> Create New Event
         </Button>
@@ -396,8 +412,9 @@ function OrganizerDashboard() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search events..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={inputSearchTerm}
+                  onChange={handleSearchInputChange}
+                  onKeyDown={handleKeyDown}
                   className="pl-10"
                 />
               </div>
@@ -464,7 +481,7 @@ function OrganizerDashboard() {
                 size="sm"
                 onClick={resetFilters}
                 disabled={
-                  !searchTerm &&
+                  !inputSearchTerm &&
                   statusFilter === "all" &&
                   dateFilter === "all" &&
                   sortOption === "newest"
@@ -495,7 +512,8 @@ function OrganizerDashboard() {
               )}
               <Button
                 onClick={handleCreateEventClick}
-                className="border-2 border-black"
+                variant="outline"
+                className="border-black"
               >
                 <Plus className="h-4 w-4 mr-2" /> Create Your First Event
               </Button>
@@ -538,14 +556,19 @@ function OrganizerDashboard() {
 
             <div className="flex justify-between">
               <Button
-                variant="destructive"
+                variant="outline"
                 onClick={() => setShowVerificationModal(false)}
-                className="bg-red-500 hover:bg-red-600"
               >
                 Cancel
               </Button>
 
-              <Button onClick={handleGoToProfile}>Go to Profile</Button>
+              <Button 
+                variant="outline"
+                onClick={handleGoToProfile}
+                className="border-primary text-primary hover:bg-primary/10"
+              >
+                Go to Profile
+              </Button>
             </div>
           </div>
         </div>

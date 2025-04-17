@@ -451,10 +451,7 @@ function VolunteerProfile() {
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
 				<ContentHeader
 					title="My Profile"
-					links={[
-						{ to: "/volunteer", label: "Home" },
-						{ label: "Profile", isActive: true },
-					]}
+					links={[]}
 					className="mt-8 mb-8"
 				/>
 
@@ -746,7 +743,7 @@ function VolunteerProfile() {
 											<Button
 												type="submit"
 												disabled={loading}
-												className="border-2 border-black"
+												variant="outline"
 											>
 												{loading ? (
 													<>

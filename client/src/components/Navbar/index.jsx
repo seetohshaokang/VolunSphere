@@ -164,7 +164,7 @@ function Navbar() {
 								<Button variant="outline" onClick={handleLogin}>
 									Log In
 								</Button>
-								<Button onClick={handleSignup}>Sign Up</Button>
+								<Button variant="outline" onClick={handleSignup}>Sign Up</Button>
 							</div>
 						)}
 					</div>
