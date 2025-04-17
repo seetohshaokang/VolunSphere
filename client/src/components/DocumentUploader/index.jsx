@@ -16,23 +16,25 @@ const DocumentUploader = ({
   const [documentFile, setDocumentFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [localSuccess, setLocalSuccess] = useState(null);
+  // Store the initial role type to prevent role confusion
+  const [userRole] = useState(isOrganizer);
 
   // Set properties based on user type
-  const documentType = isOrganizer ? "certification" : "nric";
-  const title = isOrganizer ? "Charity Certification" : "NRIC Verification";
-  const description = isOrganizer
+  const documentType = userRole ? "certification" : "nric";
+  const title = userRole ? "Charity Certification" : "NRIC Verification";
+  const description = userRole
     ? "Upload your charity certification document. This helps us verify your organization's charitable status."
     : "Upload your NRIC for identity verification. This helps us ensure the safety and security of our community.";
-  const endpoint = isOrganizer ? "/profile/certification" : "/profile/nric";
-  const fileKey = isOrganizer ? "certification_document" : "nric_image";
+  const endpoint = userRole ? "/profile/certification" : "/profile/nric";
+  const fileKey = userRole ? "certification_document" : "nric_image";
 
   // Get document data from the correct property in profile
-  const documentData = isOrganizer
+  const documentData = userRole
     ? profile?.certification_document || null
     : profile?.nric_image || null;
 
   // Check if document is rejected
-  const isRejected = isOrganizer
+  const isRejected = userRole
     ? profile?.verification_status === "rejected" ||
       (documentData && documentData.requires_reupload)
     : documentData && documentData.requires_reupload;
@@ -103,16 +105,18 @@ const DocumentUploader = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {documentData?.verified ? (
+          {documentData?.verified || (userRole && profile?.verification_status === "verified") ? (
             <>
               <Alert className="bg-green-50 border-green-200">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-700">
-                  Your document has been verified
+                  {userRole 
+                    ? "Your organization has been verified. You can now create and manage events." 
+                    : "Your document has been verified"}
                 </AlertDescription>
               </Alert>
 
-              {documentData.filename && (
+              {documentData && documentData.filename && (
                 <div className="mt-4">
                   <h3 className="text-sm font-semibold mb-2">
                     Your Uploaded Document
@@ -129,7 +133,7 @@ const DocumentUploader = ({
               <Alert className="bg-red-50 border-red-200">
                 <XCircle className="h-4 w-4 text-red-600" />
                 <AlertDescription className="text-red-700">
-                  Your {isOrganizer ? "certification document" : "NRIC"} has
+                  Your {userRole ? "certification document" : "NRIC"} has
                   been rejected. Please upload a new document.
                   {documentData?.rejection_reason && (
                     <div className="mt-2 text-sm font-medium">
@@ -186,16 +190,18 @@ const DocumentUploader = ({
                 </Button>
               )}
             </>
-          ) : documentData?.uploaded_at ? (
+          ) : (!userRole && documentData?.uploaded_at) || (userRole && documentData && documentData.uploaded_at) ? (
             <>
               <Alert className="bg-yellow-50 border-yellow-200">
                 <Clock className="h-4 w-4 text-yellow-600" />
                 <AlertDescription className="text-yellow-700">
-                  Your document has been uploaded and is pending verification
+                  {userRole 
+                    ? "Your organization verification is pending review by an administrator. You'll be able to create events once verified."
+                    : "Your document has been uploaded and is pending verification"}
                 </AlertDescription>
               </Alert>
 
-              {documentData.filename && (
+              {documentData && documentData.filename && (
                 <div className="mt-4">
                   <h3 className="text-sm font-semibold mb-2">
                     Your Uploaded Document
