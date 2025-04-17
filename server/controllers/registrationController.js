@@ -506,7 +506,11 @@ exports.checkInRegistration = async (req, res) => {
       {
         $set: {
           check_in_time: new Date(),
-          status: "attended",
+          attendance_status: "attended",
+          status:
+            registration.status === "removed_by_organizer"
+              ? "removed_by_organizer"
+              : "confirmed",
         },
       },
       { new: true }

@@ -1108,7 +1108,8 @@ exports.checkSignupStatus = async (req, res) => {
     if (registration) {
       if (
         registration.status === "confirmed" ||
-        registration.status === "pending"
+        registration.status === "pending" ||
+        registration.status === "attended"
       ) {
         response.isSignedUp = true;
       } else if (registration.status === "removed_by_organizer") {

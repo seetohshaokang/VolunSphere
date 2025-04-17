@@ -118,8 +118,8 @@ const EventVolunteersPage = () => {
       const query = searchQuery.toLowerCase().trim();
       filtered = volunteers.filter((registration) => {
         const volunteerName =
-          registration.volunteer_id?.name?.toLowerCase() || "";
-        const phone = registration.volunteer_id?.phone?.toLowerCase() || "";
+          registration.volunteer_data?.name?.toLowerCase() || "";
+        const phone = registration.volunteer_data?.phone?.toLowerCase() || "";
 
         return volunteerName.includes(query) || phone.includes(query);
       });
@@ -258,7 +258,7 @@ const EventVolunteersPage = () => {
 
       // Format the data for CSV export
       const rows = volunteers.map((registration) => [
-        registration.volunteer_id?.name || "N/A",
+        registration.volunteer_data?.name || "N/A",
         // Status
         registration.status === "removed_by_organizer"
           ? "Removed"
@@ -267,7 +267,7 @@ const EventVolunteersPage = () => {
           : registration.attendance_status === "no_show"
           ? "No Show"
           : "Registered",
-        registration.volunteer_id?.phone || "N/A",
+        registration.volunteer_data?.phone || "N/A",
         new Date(registration.signup_date).toLocaleDateString(),
         // Checked in column (Yes/No) - now based on check_in_time
         registration.check_in_time ? "Yes" : "No",
@@ -437,7 +437,7 @@ const EventVolunteersPage = () => {
                       {/* Simplified volunteer cell with just the name */}
                       <TableCell className="font-medium">
                         <span>
-                          {registration.volunteer_id?.name || "Volunteer"}
+                          {registration.volunteer_data?.name || "Volunteer"}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -472,7 +472,7 @@ const EventVolunteersPage = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {registration.volunteer_id?.phone || "N/A"}
+                        {registration.volunteer_data?.phone || "N/A"}
                       </TableCell>
                       <TableCell>
                         {new Date(
@@ -566,8 +566,8 @@ const EventVolunteersPage = () => {
             <div className="py-4">
               <p className="mb-4">
                 Are you sure you want to remove{" "}
-                <strong>{selectedVolunteer.volunteer_id?.name}</strong> from
-                this event?
+                <strong>{selectedVolunteer.volunteer_data?.name}</strong> from
+                this this event?
               </p>
               <p className="mb-2 text-sm text-gray-600">
                 The volunteer will be notified and{" "}

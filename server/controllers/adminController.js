@@ -1343,7 +1343,7 @@ exports.getEventById = async (req, res) => {
         // Return enhanced registration object with volunteer details
         return {
           ...reg.toObject(),
-          volunteer_id: volunteer,
+          volunteer_data: volunteer,
         };
       })
     );
