@@ -47,7 +47,7 @@ exports.getUserRegistrations = async (req, res) => {
 
     // Get registrations with populated event details
     const registrations = await EventRegistration.find({
-      volunteer_id: volunteer._id,
+      user_id: userId,
     })
       .populate({
         path: "event_id",
@@ -145,7 +145,7 @@ exports.createRegistration = async (req, res) => {
 
     // Check if already registered
     const existingRegistration = await EventRegistration.findOne({
-      volunteer_id: volunteer._id,
+      user_id: userId,
       event_id,
     });
 
@@ -216,18 +216,13 @@ exports.getRegistrationById = async (req, res) => {
     }
 
     // Find registration by ID
-    const registration = await EventRegistration.findById(id)
-      .populate({
-        path: "event_id",
-        populate: {
-          path: "organiser_id",
-          select: "name profile_picture_url",
-        },
-      })
-      .populate({
-        path: "volunteer_id",
+    const registration = await EventRegistration.findById(id).populate({
+      path: "event_id",
+      populate: {
+        path: "organiser_id",
         select: "name profile_picture_url",
-      });
+      },
+    });
 
     if (!registration) {
       return res.status(404).json({ message: "Registration not found" });
@@ -244,7 +239,7 @@ exports.getRegistrationById = async (req, res) => {
       const volunteer = await Volunteer.findOne({ user_id: userId });
       if (
         !volunteer ||
-        volunteer._id.toString() !== registration.volunteer_id._id.toString()
+        volunteer.user_id.toString() !== registration.user_id.toString()
       ) {
         return res.status(403).json({
           message: "Not authorized to view this registration",
@@ -416,7 +411,7 @@ exports.cancelRegistration = async (req, res) => {
       const volunteer = await Volunteer.findOne({ user_id: userId });
       if (
         !volunteer ||
-        volunteer._id.toString() !== registration.volunteer_id.toString()
+        volunteer.user_id.toString() !== registration.user_id.toString()
       ) {
         return res.status(403).json({
           message: "Not authorized to cancel this registration",
@@ -687,7 +682,7 @@ exports.addFeedback = async (req, res) => {
       const volunteer = await Volunteer.findOne({ user_id: userId });
       if (
         !volunteer ||
-        volunteer._id.toString() !== registration.volunteer_id.toString()
+        volunteer.user_id.toString() !== registration.user_id.toString()
       ) {
         return res.status(403).json({
           message: "Not authorized to add feedback to this registration",
