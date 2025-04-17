@@ -932,6 +932,7 @@ exports.signupForEvent = async (req, res) => {
       // Create a new registration
       const registration = new EventRegistration({
         user_id: userId,
+        volunteer_id: volunteer._id,
         event_id: id,
         status: "confirmed",
         signup_date: new Date(),
