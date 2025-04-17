@@ -1,5 +1,6 @@
 // src/routes/AdminRoutes.jsx
 import MainLayout from "@/components/MainLayout";
+import AdminProfile from "@/containers/Admin/Profile";
 import { Route } from "react-router-dom";
 import AdminDashboard from "../containers/Admin/Dashboard";
 import AdminEventDetail from "../containers/Admin/EventDetail";
@@ -21,6 +22,7 @@ export const AdminRoutes = (
 		}
 	>
 		<Route index element={<AdminDashboard />} />
+		<Route path="profile" element={<AdminProfile />} />
 		<Route path="users" element={<AdminUsers />} />
 		<Route path="users/:id" element={<AdminUserDetail />} />
 		<Route path="reports" element={<AdminReports />} />
