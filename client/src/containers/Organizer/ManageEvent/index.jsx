@@ -469,39 +469,6 @@ function OrganizerManageEvent() {
                         )}
                       </div>
                     </div>
-
-                    {/* Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button variant="outline" asChild>
-                        <Link to="/organizer">Cancel</Link>
-                      </Button>
-                      <Button type="submit" disabled={submitLoading}>
-                        {submitLoading ? (
-                          <div className="flex items-center">
-                            <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
-                            {isEditMode ? "Updating..." : "Creating..."}
-                          </div>
-                        ) : (
-                          <>{isEditMode ? "Update Event" : "Create Event"}</>
-                        )}
-                      </Button>
-                      {isEditMode && (
-                        <Button
-                          variant="destructive"
-                          type="button"
-                          onClick={() => setShowDeleteConfirm(true)}
-                          disabled={submitLoading}
-                          className="flex items-center gap-1 ml-2"
-                        >
-                          {submitLoading ? (
-                            <AlertCircle className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash className="h-4 w-4" />
-                          )}
-                          Delete
-                        </Button>
-                      )}
-                    </div>
                   </div>
                 </div>
 
@@ -785,6 +752,50 @@ function OrganizerManageEvent() {
                     </Select>
                   </div>
                 )}
+
+                {/* Action buttons - moved to the bottom of the form */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-6">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    asChild
+                    className="order-3 sm:order-1"
+                  >
+                    <Link to="/organizer">Cancel</Link>
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    disabled={submitLoading}
+                    className="order-1 sm:order-2 border-2 border-black"
+                  >
+                    {submitLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
+                        {isEditMode ? "Updating..." : "Creating..."}
+                      </div>
+                    ) : (
+                      <>{isEditMode ? "Update Event" : "Create Event"}</>
+                    )}
+                  </Button>
+
+                  {isEditMode && (
+                    <Button
+                      variant="destructive"
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={submitLoading}
+                      className="flex items-center gap-1 order-2 sm:order-3 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {submitLoading ? (
+                        <AlertCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash className="h-4 w-4" />
+                      )}
+                      Delete
+                    </Button>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>

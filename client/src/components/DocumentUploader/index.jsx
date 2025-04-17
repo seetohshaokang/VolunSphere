@@ -33,8 +33,9 @@ const DocumentUploader = ({
 
   // Check if document is rejected
   const isRejected = isOrganizer
-    ? (profile?.verification_status === "rejected" || (documentData && documentData.requires_reupload))
-    : (documentData && documentData.requires_reupload);
+    ? profile?.verification_status === "rejected" ||
+      (documentData && documentData.requires_reupload)
+    : documentData && documentData.requires_reupload;
 
   console.log(`DocumentUploader for ${documentType}:`, documentData);
 
@@ -58,7 +59,9 @@ const DocumentUploader = ({
 
       // Use the API endpoint
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}${endpoint}`,
+        `${
+          import.meta.env.VITE_API_URL || "http://localhost:8000/api"
+        }${endpoint}`,
         {
           method: "POST",
           headers: {
@@ -74,7 +77,7 @@ const DocumentUploader = ({
         // Set the local success message instead of using the parent's setSuccess
         setLocalSuccess(
           data.message ||
-          `Document uploaded successfully. It will be verified by an administrator.`
+            `Document uploaded successfully. It will be verified by an administrator.`
         );
         setDocumentFile(null);
 
@@ -126,8 +129,8 @@ const DocumentUploader = ({
               <Alert className="bg-red-50 border-red-200">
                 <XCircle className="h-4 w-4 text-red-600" />
                 <AlertDescription className="text-red-700">
-                  Your {isOrganizer ? "certification document" : "NRIC"} has been rejected.
-                  Please upload a new document.
+                  Your {isOrganizer ? "certification document" : "NRIC"} has
+                  been rejected. Please upload a new document.
                   {documentData?.rejection_reason && (
                     <div className="mt-2 text-sm font-medium">
                       Reason: {documentData.rejection_reason}
@@ -156,9 +159,7 @@ const DocumentUploader = ({
                     Upload New Document
                   </label>
                   <span className="text-sm text-gray-600">
-                    {documentFile
-                      ? documentFile.name
-                      : "No file chosen"}
+                    {documentFile ? documentFile.name : "No file chosen"}
                   </span>
                   <Input
                     id="document_upload"
@@ -173,10 +174,7 @@ const DocumentUploader = ({
                 </p>
               </div>
               {documentFile && (
-                <Button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                >
+                <Button onClick={handleUpload} disabled={uploading}>
                   {uploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -211,9 +209,7 @@ const DocumentUploader = ({
             </>
           ) : (
             <>
-              <div className="text-sm text-muted-foreground">
-                {description}
-              </div>
+              <div className="text-sm text-muted-foreground">{description}</div>
 
               {/* Success message right above the file upload container */}
               {localSuccess && (
@@ -232,9 +228,7 @@ const DocumentUploader = ({
                     Upload Document
                   </label>
                   <span className="text-sm text-gray-600">
-                    {documentFile
-                      ? documentFile.name
-                      : "No file chosen"}
+                    {documentFile ? documentFile.name : "No file chosen"}
                   </span>
                   <Input
                     id="document_upload"
@@ -249,10 +243,7 @@ const DocumentUploader = ({
                 </p>
               </div>
               {documentFile && (
-                <Button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                >
+                <Button onClick={handleUpload} disabled={uploading}>
                   {uploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

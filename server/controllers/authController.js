@@ -23,80 +23,80 @@ const { sendResetEmail } = require("../utils/emailUtils");
  * @throws {Error} If server error occurs during registration
  */
 exports.registerVolunteer = async (req, res) => {
-	try {
-		console.log("registerVolunteer called with data:", {
-			email: req.body.email,
-			// Don't log the actual password for security
-			passwordProvided: !!req.body.password,
-			confirmPasswordProvided: !!req.body.confirmPassword,
-			name: req.body.name,
-			phone: req.body.phone,
-		});
+  try {
+    console.log("registerVolunteer called with data:", {
+      email: req.body.email,
+      // Don't log the actual password for security
+      passwordProvided: !!req.body.password,
+      confirmPasswordProvided: !!req.body.confirmPassword,
+      name: req.body.name,
+      phone: req.body.phone,
+    });
 
-		const { email, password, confirmPassword, name, phone } = req.body;
+    const { email, password, confirmPassword, name, phone } = req.body;
 
-		// Validate input
-		if (!email || !password || !confirmPassword) {
-			console.log("❌ Validation error: Missing required fields");
-			return res.status(400).json({ message: "All fields are required" });
-		}
+    // Validate input
+    if (!email || !password || !confirmPassword) {
+      console.log("❌ Validation error: Missing required fields");
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-		if (password !== confirmPassword) {
-			console.log("❌ Validation error: Passwords do not match");
-			return res.status(400).json({ message: "Passwords do not match" });
-		}
+    if (password !== confirmPassword) {
+      console.log("❌ Validation error: Passwords do not match");
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
 
-		// Check if email already exists
-		const existingUser = await User.findOne({ email });
-		if (existingUser) {
-			console.log("❌ Email already exists in database");
-			return res.status(400).json({ message: "Email already in use" });
-		}
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      console.log("❌ Email already exists in database");
+      return res.status(400).json({ message: "Email already in use" });
+    }
 
-		// Hash password
-		const salt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash(password, salt);
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-		// Create user
-		const newUser = new User({
-			email,
-			password: hashedPassword,
-			role: "volunteer",
-			status: "active",
-			created_at: new Date(),
-		});
+    // Create user
+    const newUser = new User({
+      email,
+      password: hashedPassword,
+      role: "volunteer",
+      status: "active",
+      created_at: new Date(),
+    });
 
-		const savedUser = await newUser.save();
-		console.log("✅ User saved with ID:", savedUser._id);
+    const savedUser = await newUser.save();
+    console.log("✅ User saved with ID:", savedUser._id);
 
-		// Create volunteer profile
-		const volunteer = new Volunteer({
-			user_id: savedUser._id,
-			name: name || "New Volunteer", // Default value if not provided
-			phone: phone || "Not provided", // Default value if not provided
-			dob: new Date(),
-			nric_image: {
-				data: null,
-				contentType: null,
-				verified: false,
-			},
-			skills: [],
-			preferred_causes: [],
-		});
+    // Create volunteer profile
+    const volunteer = new Volunteer({
+      user_id: savedUser._id,
+      name: name || "New Volunteer", // Default value if not provided
+      phone: phone || "Not provided", // Default value if not provided
+      dob: new Date(),
+      nric_image: {
+        data: null,
+        contentType: null,
+        verified: false,
+      },
+      skills: [],
+      preferred_causes: [],
+    });
 
-		await volunteer.save();
-		console.log("✅ Volunteer profile saved successfully");
+    await volunteer.save();
+    console.log("✅ Volunteer profile saved successfully");
 
-		return res.status(201).json({
-			message: "Volunteer registration successful, please login",
-		});
-	} catch (error) {
-		console.error("Error registering volunteer:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(201).json({
+      message: "Volunteer registration successful, please login",
+    });
+  } catch (error) {
+    console.error("Error registering volunteer:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -115,78 +115,90 @@ exports.registerVolunteer = async (req, res) => {
  * @throws {Error} If server error occurs during registration
  */
 exports.registerOrganiser = async (req, res) => {
-	try {
-		console.log(" registerOrganiser called with data:", {
-			email: req.body.email,
-			// Don't log the actual password for security
-			passwordProvided: !!req.body.password,
-			confirmPasswordProvided: !!req.body.confirmPassword,
-			name: req.body.name,
-			phone: req.body.phone,
-		});
+  try {
+    console.log(" registerOrganiser called with data:", {
+      email: req.body.email,
+      // Don't log the actual password for security
+      passwordProvided: !!req.body.password,
+      confirmPasswordProvided: !!req.body.confirmPassword,
+      name: req.body.name,
+      phone: req.body.phone,
+    });
 
-		const { email, password, confirmPassword, name, phone } = req.body;
+    const {
+      email,
+      password,
+      confirmPassword,
+      name,
+      phone,
+      address,
+      website,
+      description,
+    } = req.body;
 
-		// Validate input
-		if (!email || !password || !confirmPassword) {
-			console.log("❌ Validation error: Missing required fields");
-			return res.status(400).json({ message: "All fields are required" });
-		}
+    // Validate input
+    if (!email || !password || !confirmPassword) {
+      console.log("❌ Validation error: Missing required fields");
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
-		if (password !== confirmPassword) {
-			console.log("❌ Validation error: Passwords do not match");
-			return res.status(400).json({ message: "Passwords do not match" });
-		}
+    if (password !== confirmPassword) {
+      console.log("❌ Validation error: Passwords do not match");
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
 
-		// Check if email already exists
-		const existingUser = await User.findOne({ email });
-		if (existingUser) {
-			return res.status(400).json({ message: "Email already in use" });
-		}
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
 
-		// Hash password
-		const salt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash(password, salt);
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-		// Create user
-		const newUser = new User({
-			email,
-			password: hashedPassword,
-			role: "organiser",
-			status: "active",
-			created_at: new Date(),
-		});
+    // Create user
+    const newUser = new User({
+      email,
+      password: hashedPassword,
+      role: "organiser",
+      status: "active",
+      created_at: new Date(),
+    });
 
-		const savedUser = await newUser.save();
-		console.log("✅ User saved with ID:", savedUser._id);
+    const savedUser = await newUser.save();
+    console.log("✅ User saved with ID:", savedUser._id);
 
-		// Create organiser profile
-		const organiser = new Organiser({
-			user_id: savedUser._id,
-			name: name || "New Organisation", // Default value if not provided
-			phone: phone || "Not provided", // Default value if not provided
-			verification_status: "pending",
-		});
+    // Create organiser profile
+    const organiser = new Organiser({
+      user_id: savedUser._id,
+      name: name || "New Organisation", // Default value if not provided
+      phone: phone || "Not provided",
+      address: address,
+      website: website,
+      description: description,
+      verification_status: "pending",
+    });
 
-		await organiser.save();
-		console.log("✅ Organiser profile saved successfully");
+    await organiser.save();
+    console.log("✅ Organiser profile saved successfully");
 
-		return res.status(201).json({
-			message: "Organiser registration successful, please login",
-		});
-	} catch (error) {
-		console.error("Error registering organiser:", error);
-		return res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    return res.status(201).json({
+      message: "Organiser registration successful, please login",
+    });
+  } catch (error) {
+    console.error("Error registering organiser:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 // Keep the old method temporarily for backward compatibility
 exports.registerUser = async (req, res) => {
-	// Original implementation with default values for name and phone
-	// ...
+  // Original implementation with default values for name and phone
+  // ...
 };
 
 /**
@@ -212,93 +224,93 @@ exports.registerUser = async (req, res) => {
  * 8. Return token and user data
  */
 exports.loginUser = async (req, res) => {
-	try {
-		const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-		// Step 1: Validate required input fields
-		if (!email || !password) {
-			return res
-				.status(400)
-				.json({ message: "Email and password are required" });
-		}
+    // Step 1: Validate required input fields
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
+    }
 
-		// Step 2: Find user by email
-		const user = await User.findOne({ email });
-		if (!user) {
-			return res.status(401).json({ message: "Invalid credentials" });
-		}
+    // Step 2: Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-		// Step 3: Check if user account is active
-		if (user.status === "suspended") {
-			return res.status(401).json({
-				message:
-					"Account has been suspended. Please contact our staff for assistance",
-			});
-		}
+    // Step 3: Check if user account is active
+    if (user.status === "suspended") {
+      return res.status(401).json({
+        message:
+          "Account has been suspended. Please contact our staff for assistance",
+      });
+    }
 
-		if (user.status === "inactive") {
-			return res.status(401).json({
-				message:
-					"Account has been deactivated. Please contact our staff for assistance",
-			});
-		}
+    if (user.status === "inactive") {
+      return res.status(401).json({
+        message:
+          "Account has been deactivated. Please contact our staff for assistance",
+      });
+    }
 
-		// Step 4: Verify password
-		const isMatch = await bcrypt.compare(password, user.password);
-		if (!isMatch) {
-			return res.status(401).json({ message: "Invalid credentials" });
-		}
+    // Step 4: Verify password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
-		// Step 5: Create JWT payload with user details
-		const payload = {
-			user: {
-				id: user._id,
-				email: user.email,
-				role: user.role,
-			},
-		};
+    // Step 5: Create JWT payload with user details
+    const payload = {
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+    };
 
-		// Step 6: Get user's profile based on role
-		let profile;
-		if (user.role === "volunteer") {
-			profile = await Volunteer.findOne({ user_id: user._id });
-		} else if (user.role === "organiser") {
-			profile = await Organiser.findOne({ user_id: user._id });
-		} else if (user.role === "admin") {
-			profile = await Admin.findOne({ user_id: user._id });
-		}
+    // Step 6: Get user's profile based on role
+    let profile;
+    if (user.role === "volunteer") {
+      profile = await Volunteer.findOne({ user_id: user._id });
+    } else if (user.role === "organiser") {
+      profile = await Organiser.findOne({ user_id: user._id });
+    } else if (user.role === "admin") {
+      profile = await Admin.findOne({ user_id: user._id });
+    }
 
-		// Step 7: Update last login timestamp
-		user.last_login = new Date();
-		await user.save();
+    // Step 7: Update last login timestamp
+    user.last_login = new Date();
+    await user.save();
 
-		// Step 8: Sign JWT token and send response
-		jwt.sign(
-			payload,
-			process.env.JWT_SECRET,
-			{ expiresIn: "24h" },
-			(err, token) => {
-				if (err) throw err;
-				res.json({
-					message: "Login successful",
-					token,
-					user: {
-						id: user._id,
-						email: user.email,
-						role: user.role,
-						name: profile?.name || profile?.organisation_name || "",
-						profile: profile,
-					},
-				});
-			}
-		);
-	} catch (error) {
-		console.error("Error logging in:", error);
-		res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+    // Step 8: Sign JWT token and send response
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" },
+      (err, token) => {
+        if (err) throw err;
+        res.json({
+          message: "Login successful",
+          token,
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            name: profile?.name || profile?.organisation_name || "",
+            profile: profile,
+          },
+        });
+      }
+    );
+  } catch (error) {
+    console.error("Error logging in:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -315,17 +327,17 @@ exports.loginUser = async (req, res) => {
  * 1. Return success response (JWT is stateless, so no server-side action needed)
  */
 exports.logoutUser = async (req, res) => {
-	try {
-		// JWT is stateless, so we don't need to invalidate it server-side
-		// Client should remove the token from storage
-		res.json({ message: "Logged out successfully" });
-	} catch (error) {
-		console.error("Error logging out:", error);
-		res.status(500).json({
-			message: "Server error",
-			error: error.message,
-		});
-	}
+  try {
+    // JWT is stateless, so we don't need to invalidate it server-side
+    // Client should remove the token from storage
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Error logging out:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 /**
@@ -346,32 +358,30 @@ exports.logoutUser = async (req, res) => {
  * 4. Return success message (with token for testing)
  */
 exports.requestPasswordReset = async (req, res) => {
-	try {
-		const { email } = req.body;
-		const user = await User.findOne({ email });
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
 
-		if (!user) {
-			return res
-				.status(404)
-				.json({ error: true, message: "User not found" });
-		}
+    if (!user) {
+      return res.status(404).json({ error: true, message: "User not found" });
+    }
 
-		// Generate random token
-		const token = crypto.randomBytes(32).toString("hex");
+    // Generate random token
+    const token = crypto.randomBytes(32).toString("hex");
 
-		// Store token and expiration in user document
-		user.resetPasswordToken = token;
-		user.resetPasswordExpires = Date.now() + 3600000;
-		await user.save();
+    // Store token and expiration in user document
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000;
+    await user.save();
 
-		// Send password reset email
-		await sendResetEmail(email, token);
+    // Send password reset email
+    await sendResetEmail(email, token);
 
-		res.json({ success: true, message: "Reset email send" });
-	} catch (error) {
-		console.error("Password reset request error:", error);
-		res.status(500).json({ error: true, message: "Server error" });
-	}
+    res.json({ success: true, message: "Reset email send" });
+  } catch (error) {
+    console.error("Password reset request error:", error);
+    res.status(500).json({ error: true, message: "Server error" });
+  }
 };
 
 /**
@@ -396,35 +406,35 @@ exports.requestPasswordReset = async (req, res) => {
  * 6. Return success message
  */
 exports.resetPassword = async (req, res) => {
-	try {
-		const { token } = req.params;
-		const { newPassword } = req.body;
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
 
-		// Find user with valid token
-		const user = await User.findOne({
-			resetPasswordToken: token,
-			resetPasswordExpires: { $gt: Date.now() },
-		});
+    // Find user with valid token
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
 
-		if (!user) {
-			return res
-				.status(400)
-				.json({ error: true, message: "Invalid or expired token" });
-		}
+    if (!user) {
+      return res
+        .status(400)
+        .json({ error: true, message: "Invalid or expired token" });
+    }
 
-		// Hash new password
-		const salt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash(newPassword, salt);
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-		// update new password and clear reset token fields
-		user.password = hashedPassword;
-		user.resetPasswordToken = undefined;
-		user.resetPasswordExpires = undefined;
-		await user.save();
+    // update new password and clear reset token fields
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
 
-		res.json({ success: true, message: "Password has been reset" });
-	} catch (error) {
-		console.error("Password reset error:", error);
-		res.status(500).json({ error: true, message: "Server error" });
-	}
+    res.json({ success: true, message: "Password has been reset" });
+  } catch (error) {
+    console.error("Password reset error:", error);
+    res.status(500).json({ error: true, message: "Server error" });
+  }
 };

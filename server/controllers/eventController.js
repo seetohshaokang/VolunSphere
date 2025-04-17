@@ -799,7 +799,7 @@ exports.deleteEvent = async (req, res) => {
     }
 
     // Delete all registrations for this event
-    await EventRegistration.deleteMany({ event_id: id });
+    await EventRegistration.deleteMany({ user_id: userId });
 
     // Delete all reports related to this event
     await Report.deleteMany({ reported_type: "Event", reported_id: id });
@@ -1109,7 +1109,8 @@ exports.checkSignupStatus = async (req, res) => {
     if (registration) {
       if (
         registration.status === "confirmed" ||
-        registration.status === "pending"
+        registration.status === "pending" ||
+        registration.status === "attended"
       ) {
         response.isSignedUp = true;
       } else if (registration.status === "removed_by_organizer") {
@@ -1217,7 +1218,7 @@ exports.getRecommendedEvents = async (req, res) => {
 
     // Get events already registered for
     const registrations = await EventRegistration.find({
-      volunteer_id: volunteer._id,
+      user_id: userId,
     });
     const registeredEventIds = registrations.map((reg) => reg.event_id);
 
@@ -1372,7 +1373,7 @@ exports.getEventVolunteers = async (req, res) => {
             check_in_time: registration.check_in_time,
             check_out_time: registration.check_out_time,
             feedback: registration.feedback,
-            volunteer_id: volunteer
+            volunteer_data: volunteer
               ? {
                   _id: volunteer._id,
                   name: volunteer.name,
