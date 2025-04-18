@@ -23,6 +23,7 @@ import {
   FileDown,
   Search,
   Check,
+  Flag,
 } from "lucide-react";
 import Api from "@/helpers/Api";
 import ContentHeader from "@/components/ContentHeader";
@@ -33,8 +34,19 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+
+// Add custom focus styles for search inputs
+const customInputStyles = `
+  .search-input:focus {
+    border-width: 2px;
+    border-color: rgb(59 130 246); /* Tailwind blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+`;
 
 const EventVolunteersPage = () => {
   const { eventId } = useParams();
@@ -53,6 +65,12 @@ const EventVolunteersPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [volunteersPerPage] = useState(15);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [isReporting, setIsReporting] = useState(false);
+  const [volunteerToReport, setVolunteerToReport] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
     if (eventId) {
@@ -339,8 +357,90 @@ const EventVolunteersPage = () => {
     setSearchQuery(e.target.value);
   };
 
+  const handleReportClick = (volunteer) => {
+    setVolunteerToReport(volunteer);
+    setReportReason("");
+    setReportDetails("");
+    setShowReportModal(true);
+  };
+
+  const submitReport = async () => {
+    if (!reportReason) {
+      setError("Please provide a reason for reporting this volunteer.");
+      return;
+    }
+
+    setIsReporting(true);
+
+    try {
+      // Look for the correct ID path within the volunteer data structure
+      // First try to get the user ID associated with the volunteer
+      const volunteerId =
+        volunteerToReport.volunteer_data?.user_id ||
+        volunteerToReport.volunteer_data?._id;
+
+      if (!volunteerId) {
+        console.error("Could not determine volunteer ID", volunteerToReport);
+        setError("Could not identify volunteer. Please try again later.");
+        setIsReporting(false);
+        return;
+      }
+
+      console.log("Reporting volunteer:", {
+        reported_type: "Volunteer",
+        reported_id: volunteerId,
+        event_id: eventId,
+        reason: reportReason,
+        details: reportDetails || "",
+      });
+
+      // Add a helper method to Api.js if you haven't already
+      const response = await fetch(`${Api.SERVER_PREFIX}/reports`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          reported_type: "Volunteer",
+          reported_id: volunteerId,
+          event_id: eventId,
+          reason: reportReason,
+          details: reportDetails || "",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccessMessage(
+          "Volunteer reported successfully. Our team will review your report."
+        );
+        setShowReportModal(false);
+        setReportReason("");
+        setReportDetails("");
+
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setSuccessMessage(null);
+        }, 3000);
+      } else {
+        console.error("Error response:", data);
+        setError(data.message || "Failed to submit report. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error reporting volunteer:", error);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto p-4 md:p-6">
+      {/* Add style tag for custom search input styles */}
+      <style>{customInputStyles}</style>
+
       <ContentHeader
         title={`Registered Volunteers - ${eventName}`}
       />
@@ -384,6 +484,12 @@ const EventVolunteersPage = () => {
             </Alert>
           )}
 
+          {successMessage && (
+            <Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Search Bar */}
           <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -391,7 +497,7 @@ const EventVolunteersPage = () => {
               placeholder="Search by name or phone number..."
               value={searchQuery}
               onChange={handleSearchChange}
-              className="pl-10"
+              className="pl-10 search-input transition-all duration-200"
             />
           </div>
 
@@ -533,6 +639,17 @@ const EventVolunteersPage = () => {
                               >
                                 <UserX className="h-4 w-4" />
                               </Button>
+
+                              {/* Report button */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleReportClick(registration)}
+                                className="text-red-500 hover:bg-red-50"
+                                title="Report volunteer"
+                              >
+                                <Flag className="h-4 w-4" />
+                              </Button>
                             </>
                           )}
                         </div>
@@ -606,6 +723,112 @@ const EventVolunteersPage = () => {
                   </>
                 ) : (
                   "Remove Volunteer"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Report Volunteer Modal */}
+      {volunteerToReport && (
+        <Dialog
+          open={showReportModal}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowReportModal(false);
+              setError(null);
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Flag className="h-5 w-5 text-red-500 mr-2" />
+                Report Volunteer
+              </DialogTitle>
+              <DialogDescription>
+                Report {volunteerToReport.volunteer_data?.name || "volunteer"}{" "}
+                for inappropriate behavior or policy violations. Our admin team
+                will review your report and take appropriate action.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4">
+              <div className="mb-4">
+                <label
+                  htmlFor="reportReason"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Reason for reporting *
+                </label>
+                <select
+                  id="reportReason"
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select a reason</option>
+                  <option value="No-show without notification">
+                    No-show without notification
+                  </option>
+                  <option value="Inappropriate behavior">
+                    Inappropriate behavior
+                  </option>
+                  <option value="Violation of event rules">
+                    Violation of event rules
+                  </option>
+                  <option value="Misrepresentation of skills">
+                    Misrepresentation of skills
+                  </option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label
+                  htmlFor="reportDetails"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Additional details
+                </label>
+                <Textarea
+                  id="reportDetails"
+                  placeholder="Please provide any additional details that might help us understand the issue"
+                  value={reportDetails}
+                  onChange={(e) => setReportDetails(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              {error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowReportModal(false)}
+                disabled={isReporting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={submitReport}
+                disabled={isReporting}
+              >
+                {isReporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Report"
                 )}
               </Button>
             </DialogFooter>

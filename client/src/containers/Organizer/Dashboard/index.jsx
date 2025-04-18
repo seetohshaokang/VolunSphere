@@ -29,6 +29,16 @@ import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import EventCard from "../../../components/EventCard";
 
+// Add custom focus styles for search inputs
+const customInputStyles = `
+  .search-input:focus {
+    border-width: 2px;
+    border-color: rgb(59 130 246); /* Tailwind blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+`;
+
 function OrganizerDashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -329,7 +339,10 @@ function OrganizerDashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto p-4 md:p-6">
+      {/* Add style tag for custom search input styles */}
+      <style>{customInputStyles}</style>
+
       <ContentHeader
         title="Organizer Dashboard"
         links={[]}
@@ -415,7 +428,7 @@ function OrganizerDashboard() {
                   value={inputSearchTerm}
                   onChange={handleSearchInputChange}
                   onKeyDown={handleKeyDown}
-                  className="pl-10"
+                  className="pl-10 search-input transition-all duration-200"
                 />
               </div>
 
@@ -565,7 +578,6 @@ function OrganizerDashboard() {
               <Button 
                 variant="outline"
                 onClick={handleGoToProfile}
-                className="border-primary text-primary hover:bg-primary/10"
               >
                 Go to Profile
               </Button>

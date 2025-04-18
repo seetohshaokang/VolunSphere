@@ -164,8 +164,10 @@ const NricUploader = ({ profile, onUploadSuccess, setError, setSuccess }) => {
 							</div>
 							{nricFile && (
 								<Button
+									variant="outline"
 									onClick={handleNricUpload}
 									disabled={uploadingNric}
+									className="hover:border-gray-500 hover:shadow-md transition-all duration-200"
 								>
 									{uploadingNric ? (
 										<>

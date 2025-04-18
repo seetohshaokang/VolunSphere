@@ -9,6 +9,17 @@ import FilterControls from "../../../components/FilterControls";
 import ResultsHeader from "../../../components/ResultsHeader";
 import Api from "../../../helpers/Api";
 
+// Add custom focus styles for search inputs
+const customInputStyles = `
+	.search-input:focus {
+		border-width: 2px;
+		border-color: rgb(59 130 246); /* Tailwind blue-500 */
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+		border-right: none;
+		outline: none;
+	}
+`;
+
 function Home() {
 	// State management
 	const [events, setEvents] = useState([]);
@@ -233,6 +244,9 @@ function Home() {
 
 	return (
 		<div className="min-h-screen flex flex-col">
+			{/* Add style tag for custom search input styles */}
+			<style>{customInputStyles}</style>
+			
 			<div className="mb-4">
 				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
 					<h1 className="text-2xl font-bold mb-2 sm:mb-0 flex items-center">
@@ -253,11 +267,12 @@ function Home() {
 							value={searchTerm}
 							onChange={handleSearchInputChange}
 							onKeyDown={handleKeyDown}
-							className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12"
+							className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-12 search-input transition-all duration-200"
 						/>
 						<Button
-							className="rounded-l-none h-12 border border-input"
+							variant="outline"
 							onClick={handleSearchSubmit}
+							className="rounded-l-none h-12"
 						>
 							<Search className="h-5 w-5 mr-2" />
 							Search

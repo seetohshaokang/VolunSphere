@@ -23,6 +23,16 @@ import DocumentUploader from "../../../components/DocumentUploader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 
+// Add custom focus styles for inputs
+const customInputStyles = `
+	.custom-input:focus {
+		border-width: 2px;
+		border-color: rgb(59 130 246); /* Tailwind blue-500 */
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+		outline: none;
+	}
+`;
+
 function OrganizerProfile() {
 	const { user, refreshProfile } = useAuth();
 	const navigate = useNavigate();
@@ -247,6 +257,9 @@ function OrganizerProfile() {
 
 	return (
 		<div className="min-h-screen">
+			{/* Add style tag for custom input styles */}
+			<style>{customInputStyles}</style>
+
 			{/* Main content container with width constraints matching main page */}
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
 				<ContentHeader
@@ -443,7 +456,7 @@ function OrganizerProfile() {
 															onChange={
 																handleFileChange
 															}
-															className="hidden"
+															className="hidden custom-input"
 														/>
 													</div>
 													<p className="text-xs text-muted-foreground mt-1">
@@ -465,6 +478,7 @@ function OrganizerProfile() {
 												value={profile.firstName}
 												onChange={handleChange}
 												required
+												className="custom-input"
 											/>
 										</div>
 
@@ -478,6 +492,7 @@ function OrganizerProfile() {
 												onChange={handleChange}
 												required
 												disabled
+												className="custom-input"
 											/>
 											<p className="text-sm text-muted-foreground">
 												Email cannot be changed
@@ -493,6 +508,7 @@ function OrganizerProfile() {
 												name="phone"
 												value={profile.phone}
 												onChange={handleChange}
+												className="custom-input"
 											/>
 										</div>
 
@@ -505,6 +521,7 @@ function OrganizerProfile() {
 												name="address"
 												value={profile.address}
 												onChange={handleChange}
+												className="custom-input"
 											/>
 										</div>
 
@@ -518,6 +535,7 @@ function OrganizerProfile() {
 												value={profile.bio}
 												onChange={handleChange}
 												rows={4}
+												className="custom-input"
 											/>
 										</div>
 										<div className="space-y-2">
@@ -531,6 +549,7 @@ function OrganizerProfile() {
 												placeholder="https://yourorganization.com"
 												value={profile.website}
 												onChange={handleChange}
+												className="custom-input"
 											/>
 										</div>
 

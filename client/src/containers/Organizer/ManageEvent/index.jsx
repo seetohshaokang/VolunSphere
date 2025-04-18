@@ -43,6 +43,25 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
+// Add custom focus styles for inputs
+const customInputStyles = `
+  .custom-input:focus {
+    border-width: 2px;
+    border-color: rgb(59 130 246); /* Tailwind blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    outline: none;
+  }
+  
+  input[type="date"], input[type="time"] {
+    cursor: pointer !important;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    cursor: pointer !important;
+  }
+`;
+
 const DAYS_OF_WEEK = [
   { value: 0, label: "Sunday" },
   { value: 1, label: "Monday" },
@@ -404,7 +423,10 @@ function OrganizerManageEvent() {
   }
 
   return (
-    <>
+    <div className="container mx-auto py-6 px-4">
+      {/* Add style tag for custom input styles */}
+      <style>{customInputStyles}</style>
+      
       <ContentHeader
         title={isEditMode ? "Edit Event" : "Create New Event"}
         links={[]}
@@ -474,6 +496,7 @@ function OrganizerManageEvent() {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    className="custom-input"
                   />
                 </div>
 
@@ -490,6 +513,7 @@ function OrganizerManageEvent() {
                     value={formData.description}
                     onChange={handleChange}
                     required
+                    className="custom-input"
                   />
                 </div>
 
@@ -581,7 +605,8 @@ function OrganizerManageEvent() {
                           type="date"
                           value={formData.recurrence_start_date}
                           onChange={handleChange}
-                          required
+                          required={formData.is_recurring}
+                          className="custom-input cursor-pointer"
                         />
                       </div>
                       <div className="space-y-2">
@@ -592,7 +617,8 @@ function OrganizerManageEvent() {
                           type="date"
                           value={formData.recurrence_end_date}
                           onChange={handleChange}
-                          required
+                          required={formData.is_recurring}
+                          className="custom-input cursor-pointer"
                         />
                       </div>
                     </div>
@@ -609,6 +635,7 @@ function OrganizerManageEvent() {
                           value={formData.recurrence_time_start}
                           onChange={handleChange}
                           required
+                          className="custom-input cursor-pointer"
                         />
                       </div>
                       <div className="space-y-2">
@@ -620,6 +647,7 @@ function OrganizerManageEvent() {
                           value={formData.recurrence_time_end}
                           onChange={handleChange}
                           required
+                          className="custom-input cursor-pointer"
                         />
                       </div>
                     </div>
@@ -636,6 +664,7 @@ function OrganizerManageEvent() {
                         value={formData.date}
                         onChange={handleChange}
                         required
+                        className="custom-input cursor-pointer"
                       />
                     </div>
 
@@ -649,6 +678,7 @@ function OrganizerManageEvent() {
                           value={formData.start_time}
                           onChange={handleChange}
                           required
+                          className="custom-input cursor-pointer"
                         />
                       </div>
                       <div className="space-y-2">
@@ -660,6 +690,7 @@ function OrganizerManageEvent() {
                           value={formData.end_time}
                           onChange={handleChange}
                           required
+                          className="custom-input cursor-pointer"
                         />
                       </div>
                     </div>
@@ -675,6 +706,7 @@ function OrganizerManageEvent() {
                     value={formData.location}
                     onChange={handleChange}
                     required
+                    className="custom-input"
                   />
                 </div>
 
@@ -722,6 +754,7 @@ function OrganizerManageEvent() {
                     value={formData.max_volunteers}
                     onChange={handleChange}
                     required
+                    className="custom-input"
                   />
                 </div>
 
@@ -935,7 +968,7 @@ function OrganizerManageEvent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
 

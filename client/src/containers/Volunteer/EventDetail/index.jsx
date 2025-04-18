@@ -1147,7 +1147,6 @@ function EventDetail() {
 						<Button 
 							variant="outline"
 							onClick={handleGoToProfile}
-							className="border-primary text-primary hover:bg-primary/10"
 						>
 							Go to Profile
 						</Button>
