@@ -61,6 +61,12 @@ function EventDetail() {
 	const [reportDetails, setReportDetails] = useState("");
 	const [isReporting, setIsReporting] = useState(false);
 
+	// Add these state variables near the top of your component with other useState declarations
+	const [showOrganizerProfileModal, setShowOrganizerProfileModal] =
+		useState(false);
+	const [organizerData, setOrganizerData] = useState(null);
+	const [isLoadingOrganizer, setIsLoadingOrganizer] = useState(false);
+
 	// Update timestamp after fetching event details
 	useEffect(() => {
 		if (event) {
@@ -574,6 +580,63 @@ function EventDetail() {
 		}
 	};
 
+	// Update the handleViewOrganizerProfile function
+	const handleViewOrganizerProfile = async () => {
+		try {
+			// The organiser_id is the direct reference to the organiser document
+			const organizerId = event.organiser_id;
+
+			console.log("Fetching organizer with ID:", organizerId);
+
+			if (!organizerId) {
+				console.warn("No organizer ID available in event data");
+				// Fallback to event data
+				setOrganizerData({
+					name: event.contact_person || "Organization",
+					email: event.contact_email || "Not provided",
+					phone: "Not provided",
+					description: "Not provided",
+				});
+				setShowOrganizerProfileModal(true);
+				return;
+			}
+
+			setIsLoadingOrganizer(true);
+
+			// Fetch the organizer data using the correct ID
+			const response = await Api.getOrganizerProfile(organizerId);
+
+			if (response.ok) {
+				const data = await response.json();
+				console.log("Organizer data:", data);
+				setOrganizerData(data);
+			} else {
+				console.error("Failed to fetch organizer profile");
+				// Fallback to the event data
+				setOrganizerData({
+					name: event.contact_person || "Organization",
+					email: event.contact_email || "Not provided",
+					phone: "Not provided",
+					description: "Not provided",
+				});
+			}
+
+			setShowOrganizerProfileModal(true);
+		} catch (err) {
+			console.error("Error fetching organizer profile:", err);
+			// Fallback to using event data
+			setOrganizerData({
+				name: event.contact_person || "Organization",
+				email: event.contact_email || "Not provided",
+				phone: "Not provided",
+				description: "Not provided",
+			});
+			setShowOrganizerProfileModal(true);
+		} finally {
+			setIsLoadingOrganizer(false);
+		}
+	};
+
 	const isEventFull =
 		event &&
 		event.max_volunteers > 0 &&
@@ -648,9 +711,13 @@ function EventDetail() {
 					</h1>
 					<div className="flex items-center mb-2">
 						<div className="w-6 h-6 bg-gray-200 rounded-full mr-2"></div>
-						<span className="text-gray-600">
-							{event.organiser_name || "Organization"}
-						</span>
+						<button
+							onClick={handleViewOrganizerProfile}
+							className="text-blue-600 hover:text-blue-800 hover:underline text-left cursor-pointer"
+							type="button"
+						>
+							{event.contact_person || "Organization"}
+						</button>
 					</div>
 
 					<div className="mt-2 flex gap-2">
@@ -1253,6 +1320,129 @@ function EventDetail() {
 							disabled={isReporting}
 						>
 							{isReporting ? "Submitting..." : "Submit Report"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Organizer Profile Modal */}
+			<Dialog
+				open={showOrganizerProfileModal}
+				onOpenChange={setShowOrganizerProfileModal}
+			>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>Organizer Profile</DialogTitle>
+						<DialogDescription>
+							Information about the event organizer
+						</DialogDescription>
+					</DialogHeader>
+
+					{isLoadingOrganizer ? (
+						<div className="py-8 flex justify-center">
+							<div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+						</div>
+					) : (
+						<div className="py-4">
+							<div className="flex flex-col space-y-4">
+								<div>
+									<h3 className="text-lg font-medium">
+										Organization Information
+									</h3>
+									<div className="mt-2 grid grid-cols-2 gap-2">
+										<span className="text-gray-600">
+											Name:
+										</span>
+										<span className="font-medium">
+											{organizerData?.name ||
+												event.contact_person ||
+												"Not provided"}
+										</span>
+
+										<span className="text-gray-600">
+											Contact:
+										</span>
+										<span className="font-medium">
+											{organizerData?.phone ||
+												"Not provided"}
+										</span>
+
+										<span className="text-gray-600">
+											Email:
+										</span>
+										<span className="font-medium">
+											{organizerData?.email ||
+												event.contact_email ||
+												"Not provided"}
+										</span>
+
+										{organizerData?.website && (
+											<>
+												<span className="text-gray-600">
+													Website:
+												</span>
+												<a
+													href={organizerData.website}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-blue-600 hover:underline"
+												>
+													{organizerData.website}
+												</a>
+											</>
+										)}
+
+										{organizerData?.address && (
+											<>
+												<span className="text-gray-600">
+													Address:
+												</span>
+												<span className="font-medium">
+													{organizerData.address}
+												</span>
+											</>
+										)}
+									</div>
+								</div>
+
+								{organizerData?.description && (
+									<div>
+										<h3 className="text-lg font-medium">
+											About
+										</h3>
+										<p className="mt-2 text-gray-700 whitespace-pre-line">
+											{organizerData.description}
+										</p>
+									</div>
+								)}
+
+								{event.causes && event.causes.length > 0 && (
+									<div>
+										<h3 className="text-lg font-medium">
+											Focus Areas
+										</h3>
+										<div className="mt-2 flex flex-wrap gap-1">
+											{event.causes.map((cause, i) => (
+												<span
+													key={i}
+													className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+												>
+													{cause}
+												</span>
+											))}
+										</div>
+									</div>
+								)}
+							</div>
+						</div>
+					)}
+
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setShowOrganizerProfileModal(false)}
+						>
+							Close
 						</Button>
 					</DialogFooter>
 				</DialogContent>
