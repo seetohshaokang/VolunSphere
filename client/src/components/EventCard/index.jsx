@@ -294,7 +294,7 @@ function EventCard({ event, isOrganizerView = false }) {
 				)}
 
 				<Button
-					className="w-full"
+					className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold border border-blue-100"
 					onClick={(e) => {
 						e.stopPropagation(); // Prevent card click from triggering
 						if (isOrganizerView) {

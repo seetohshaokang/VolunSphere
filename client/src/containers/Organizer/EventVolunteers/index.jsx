@@ -40,7 +40,7 @@ import {
 
 // Add custom focus styles for search inputs
 const customInputStyles = `
-  .search-input:focus {
+  .search-input:focus, .custom-textarea:focus {
     border-width: 2px;
     border-color: rgb(59 130 246); /* Tailwind blue-500 */
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
@@ -721,6 +721,7 @@ const EventVolunteersPage = () => {
                   value={removalReason}
                   onChange={(e) => setRemovalReason(e.target.value)}
                   rows={3}
+                  className="custom-textarea"
                 />
               </div>
             </div>
@@ -822,6 +823,7 @@ const EventVolunteersPage = () => {
                   value={reportDetails}
                   onChange={(e) => setReportDetails(e.target.value)}
                   rows={3}
+                  className="custom-textarea"
                 />
               </div>
 
@@ -841,9 +843,10 @@ const EventVolunteersPage = () => {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
+                variant="outline"
                 onClick={submitReport}
                 disabled={isReporting}
+                className="bg-red-500 hover:bg-red-600 text-white hover:text-white"
               >
                 {isReporting ? (
                   <>

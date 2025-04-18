@@ -69,7 +69,7 @@ export default function CertificateVerification() {
 		);
 	}
 
-	const certificateUrl = `http://localhost:8000${certificate.pdf_path}`;
+	const certificateUrl = `http://localhost:8000/certificates/${certificate.certificate_id}.pdf`;
 	const downloadUrl = `http://localhost:8000/api/certificates/download/${certificate.certificate_id}`;
 
 	return (
@@ -168,7 +168,10 @@ export default function CertificateVerification() {
 						<ExternalLink className="h-4 w-4 mr-2" />
 						View Certificate
 					</Button>
-					<Button onClick={() => window.open(downloadUrl, "_blank")}>
+					<Button 
+						onClick={() => window.open(downloadUrl, "_blank")}
+						variant="outline"
+					>
 						<Download className="h-4 w-4 mr-2" />
 						Download Certificate
 					</Button>

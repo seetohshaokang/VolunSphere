@@ -946,57 +946,23 @@ function VolunteerProfile() {
 																		variant="outline"
 																		size="sm"
 																		className="px-3 py-2 border border-gray-300 rounded-md flex items-center justify-center bg-blue-50 text-blue-700 hover:bg-blue-100"
-																		onClick={() => {
-																			const certificateBtn =
-																				document.createElement(
-																					"button"
-																				);
-																			certificateBtn.onclick =
-																				() => {
-																					const generatedBtn =
-																						document.querySelector(
-																							`[data-event-id="${eventId}"]`
-																						);
-																					if (
-																						generatedBtn
-																					)
-																						generatedBtn.click();
-																				};
-																			certificateBtn.click();
+																		onClick={async () => {
+																			try {
+																				const response = await Api.generateCertificate(eventId);
+																				if (response.ok) {
+																					const data = await response.json();
+																					setCertificateData(data.data);
+																					setCertificateModalOpen(true);
+																				}
+																			} catch (error) {
+																				console.error("Error generating certificate:", error);
+																			}
 																		}}
 																	>
 																		<Award className="h-4 w-4 mr-2" />
 																		View
 																		Certificate
 																	</Button>
-																)}
-
-																{/* Hidden button that the click handler above will trigger */}
-																{status ===
-																	"completed" && (
-																	<div className="hidden">
-																		<CertificateButton
-																			eventId={
-																				eventId
-																			}
-																			eventName={
-																				eventName
-																			}
-																			data-event-id={
-																				eventId
-																			}
-																			onGenerated={(
-																				data
-																			) => {
-																				setCertificateData(
-																					data
-																				);
-																				setCertificateModalOpen(
-																					true
-																				);
-																			}}
-																		/>
-																	</div>
 																)}
 															</div>
 														</TableCell>
