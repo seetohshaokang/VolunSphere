@@ -214,9 +214,6 @@ const AdminEvents = () => {
                                     Date
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Location
-                                </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Status
                                 </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -242,15 +239,12 @@ const AdminEvents = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {event.organiser_id?.organisation_name || 'Unknown'}
+                                            {event.organiser_id?.name || 'Unknown'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {event.is_recurring
                                                 ? `${formatDate(event.recurrence_start_date)} - ${formatDate(event.recurrence_end_date)}`
                                                 : formatDate(event.start_datetime)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {event.location}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {getStatusBadge(event.status)}
@@ -293,8 +287,8 @@ const AdminEvents = () => {
                             onClick={() => handlePageChange(pagination.page - 1)}
                             disabled={pagination.page === 1}
                             className={`px-4 py-2 border rounded ${pagination.page === 1
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'
                                 }`}
                         >
                             Previous
@@ -303,8 +297,8 @@ const AdminEvents = () => {
                             onClick={() => handlePageChange(pagination.page + 1)}
                             disabled={pagination.page === pagination.pages}
                             className={`px-4 py-2 border rounded ${pagination.page === pagination.pages
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'
                                 }`}
                         >
                             Next
