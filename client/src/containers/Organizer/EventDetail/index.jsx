@@ -145,6 +145,7 @@ function OrganizerEventDetail() {
           date: dateString,
           specificDates: formattedStartDate ? [formattedStartDate] : [],
           location: eventData.location || "Location not specified",
+          locationUrl: eventData.locationUrl,
           category:
             eventData.causes && eventData.causes.length > 0
               ? eventData.causes[0]
@@ -165,15 +166,15 @@ function OrganizerEventDetail() {
           // For single events
           startTime: eventData.start_datetime
             ? new Date(eventData.start_datetime).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : "",
           endTime: eventData.end_datetime
             ? new Date(eventData.end_datetime).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : "",
         };
 
@@ -359,6 +360,7 @@ function OrganizerEventDetail() {
         name: editedEvent.title,
         description: editedEvent.description,
         location: editedEvent.location,
+        locationUrl: editedEvent.locationUrl,
         cause: editedEvent.category,
         max_volunteers: editedEvent.totalSlots,
         status: editedEvent.status,
@@ -476,8 +478,8 @@ function OrganizerEventDetail() {
                 event.status === "active"
                   ? "bg-green-100 text-green-800"
                   : event.status === "draft"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : "bg-gray-100 text-gray-800"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-gray-100 text-gray-800"
               }
             >
               {event.status.toUpperCase()}
@@ -749,6 +751,19 @@ function OrganizerEventDetail() {
                   <div>
                     <h3 className="text-sm font-semibold mb-1">Location</h3>
                     <p className="text-gray-700">{event.location}</p>
+                    {event.locationUrl && (
+                      <div className="location-url">
+                        <a
+                          href={event.locationUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          <MapPinIcon className="h-4 w-4 mr-1" />
+                          View on Google Maps
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-start">
