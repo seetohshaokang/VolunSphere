@@ -35,4 +35,4 @@ const certificateSchema = new Schema({
 	skills_demonstrated: [String],
 });
 
-model.exports = mongoose.model("Certificate", certificateSchema);
+module.exports = mongoose.model("Certificate", certificateSchema);
