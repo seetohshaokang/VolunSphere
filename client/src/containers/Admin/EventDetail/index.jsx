@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import Api from "../../../helpers/Api";
+import { MapPinIcon } from "lucide-react"
 
 const AdminEventDetail = () => {
     const { id } = useParams();
@@ -188,6 +189,19 @@ const AdminEventDetail = () => {
                         <div>
                             <p className="text-gray-600">Location:</p>
                             <p className="font-medium">{event.location}</p>
+                            {event.locationUrl && (
+                                <div className="location-url">
+                                    <a
+                                        href={event.locationUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                                    >
+                                        <MapPinIcon className="h-4 w-4 mr-1" />
+                                        View on Google Maps
+                                    </a>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <p className="text-gray-600">Event Type:</p>

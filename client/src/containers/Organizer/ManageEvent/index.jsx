@@ -28,6 +28,7 @@ import {
   FileText,
   XCircle,
   RepeatIcon,
+  MapPinIcon
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -42,6 +43,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import GoogleMaps from "../../../components/GoogleMaps";
 
 // Add custom focus styles for inputs
 const customInputStyles = `
@@ -77,11 +79,13 @@ function OrganizerManageEvent() {
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
   const fileInputRef = useRef(null);
+  const [showGoogleMaps, setShowGoogleMaps] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     location: "",
+    locationUrl: "",
     cause: "",
     max_volunteers: 10,
     status: "active",
@@ -108,6 +112,19 @@ function OrganizerManageEvent() {
   const [error, setError] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleLocationData = (locationData) => {
+    if (locationData && locationData.length > 0) {
+      const selectedLocation = locationData[0];
+      console.log(selectedLocation)
+      setFormData({
+        ...formData,
+        location: selectedLocation.address || selectedLocation.name,
+        locationUrl: selectedLocation.locationUrl
+      });
+    }
+  };
+
 
   useEffect(() => {
     if (isEditMode) {
@@ -159,13 +176,13 @@ function OrganizerManageEvent() {
               recurrence_days: eventData.recurrence_days || [1],
               recurrence_start_date: eventData.recurrence_start_date
                 ? new Date(eventData.recurrence_start_date)
-                    .toISOString()
-                    .split("T")[0]
+                  .toISOString()
+                  .split("T")[0]
                 : "",
               recurrence_end_date: eventData.recurrence_end_date
                 ? new Date(eventData.recurrence_end_date)
-                    .toISOString()
-                    .split("T")[0]
+                  .toISOString()
+                  .split("T")[0]
                 : "",
               recurrence_time_start:
                 eventData.recurrence_time?.start || "09:00",
@@ -181,6 +198,7 @@ function OrganizerManageEvent() {
             start_time: startTime,
             end_time: endTime,
             location: eventData.location || "",
+            locationUrl: eventData.locationUrl || "",
             cause:
               eventData.causes && eventData.causes.length > 0
                 ? eventData.causes[0]
@@ -468,10 +486,10 @@ function OrganizerManageEvent() {
                             formData.status === "active"
                               ? "bg-green-500 hover:bg-green-600 text-white"
                               : formData.status === "draft"
-                              ? "bg-amber-500 hover:bg-amber-600 text-white"
-                              : formData.status === "cancelled"
-                              ? "bg-red-500 hover:bg-red-600 text-white"
-                              : "bg-gray-500 hover:bg-gray-600 text-white"
+                                ? "bg-amber-500 hover:bg-amber-600 text-white"
+                                : formData.status === "cancelled"
+                                  ? "bg-red-500 hover:bg-red-600 text-white"
+                                  : "bg-gray-500 hover:bg-gray-600 text-white"
                           }
                         >
                           {formData.status.toUpperCase()}
@@ -565,34 +583,34 @@ function OrganizerManageEvent() {
                     {/* Only show days selection for weekly or custom patterns */}
                     {(formData.recurrence_pattern === "weekly" ||
                       formData.recurrence_pattern === "custom") && (
-                      <div className="space-y-2">
-                        <Label>Recurring Days</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
-                          {DAYS_OF_WEEK.map((day) => (
-                            <div
-                              key={day.value}
-                              className="flex items-center gap-2"
-                            >
-                              <Checkbox
-                                id={`day-${day.value}`}
-                                checked={formData.recurrence_days.includes(
-                                  day.value
-                                )}
-                                onCheckedChange={(checked) =>
-                                  handleDayToggle(day.value, checked)
-                                }
-                              />
-                              <Label
-                                htmlFor={`day-${day.value}`}
-                                className="text-sm font-normal cursor-pointer"
+                        <div className="space-y-2">
+                          <Label>Recurring Days</Label>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1">
+                            {DAYS_OF_WEEK.map((day) => (
+                              <div
+                                key={day.value}
+                                className="flex items-center gap-2"
                               >
-                                {day.label}
-                              </Label>
-                            </div>
-                          ))}
+                                <Checkbox
+                                  id={`day-${day.value}`}
+                                  checked={formData.recurrence_days.includes(
+                                    day.value
+                                  )}
+                                  onCheckedChange={(checked) =>
+                                    handleDayToggle(day.value, checked)
+                                  }
+                                />
+                                <Label
+                                  htmlFor={`day-${day.value}`}
+                                  className="text-sm font-normal cursor-pointer"
+                                >
+                                  {day.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -699,17 +717,37 @@ function OrganizerManageEvent() {
 
                 <div className="space-y-2">
                   <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    name="location"
-                    placeholder="Event location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    required
-                    className="custom-input"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="location"
+                      name="location"
+                      placeholder="Click to select location from map"
+                      value={formData.location}
+                      onChange={handleChange}
+                      onClick={() => setShowGoogleMaps(true)}
+                      required
+                      className="cursor-pointer pr-10"
+                    />
+                    <MapPinIcon
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+                      onClick={() => setShowGoogleMaps(true)}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Click on the input or map icon to select a location</p>
                 </div>
-
+                {formData.locationUrl && (
+                  <div className="location-url">
+                    <a
+                      href={formData.locationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      <MapPinIcon className="h-4 w-4 mr-1" />
+                      View on Google Maps
+                    </a>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="cause">Category</Label>
                   <Select
@@ -968,7 +1006,12 @@ function OrganizerManageEvent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      <GoogleMaps
+        trigger={showGoogleMaps}
+        setTrigger={setShowGoogleMaps}
+        extractData={handleLocationData}
+      />
+    </>
   );
 }
 
