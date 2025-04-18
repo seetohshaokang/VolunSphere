@@ -3,24 +3,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  AlertTriangle,
-  CalendarIcon,
-  ClockIcon,
-  Flag,
-  Home,
-  MapPinIcon,
-  RepeatIcon,
-  ShieldAlert,
+	AlertTriangle,
+	CalendarIcon,
+	ClockIcon,
+	Flag,
+	Home,
+	MapPinIcon,
+	RepeatIcon,
+	ShieldAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -865,7 +865,7 @@ function EventDetail() {
                         className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
                       >
                         <MapPinIcon className="h-4 w-4 mr-1" />
-                        View on Google Maps
+                        View on OpenStreeMap
                       </a>
                     </div>
                   )}

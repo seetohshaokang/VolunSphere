@@ -35,7 +35,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
-import GoogleMaps from "../../../components/GoogleMaps";
+import LeafletMap from "../../../components/LeafletMap";
 import Api from "../../../helpers/Api";
 
 // Add custom focus styles for inputs
@@ -781,7 +781,7 @@ function OrganizerManageEvent() {
 										<Input
 											id="location"
 											name="location"
-											placeholder="Click to select location from map"
+											placeholder="Click to select location from OpenStreetMap"
 											value={formData.location}
 											onChange={handleChange}
 											onClick={() =>
@@ -811,7 +811,7 @@ function OrganizerManageEvent() {
 											className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
 										>
 											<MapPinIcon className="h-4 w-4 mr-1" />
-											View on Google Maps
+											View on OpenStreetMap
 										</a>
 									</div>
 								)}
@@ -1104,8 +1104,8 @@ function OrganizerManageEvent() {
 						>
 							Cancel
 						</Button>
-						<Button 
-							variant="outline" 
+						<Button
+							variant="outline"
 							onClick={handleDelete}
 							className="bg-red-500 hover:bg-red-600 text-white hover:text-white"
 						>
@@ -1114,7 +1114,7 @@ function OrganizerManageEvent() {
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
-			<GoogleMaps
+			<LeafletMap
 				trigger={showGoogleMaps}
 				setTrigger={setShowGoogleMaps}
 				extractData={handleLocationData}

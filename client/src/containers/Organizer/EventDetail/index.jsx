@@ -2,6 +2,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,28 +23,19 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   AlertCircle,
   CalendarIcon,
+  ClockIcon,
+  Home,
   MapPinIcon,
   PencilIcon,
-  ClockIcon,
   RepeatIcon,
-  UsersIcon,
   Trash,
   Users,
-  Home,
+  UsersIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
-import EventVolunteersModal from "@/components/EventVolunteersModal.jsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 // Map of numeric day values to weekday names
 const DAYS_OF_WEEK = {
@@ -751,7 +750,7 @@ function OrganizerEventDetail() {
                           className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
                         >
                           <MapPinIcon className="h-4 w-4 mr-1" />
-                          View on Google Maps
+                          View on Open Street Maps
                         </a>
                       </div>
                     )}
