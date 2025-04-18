@@ -798,6 +798,7 @@ function VolunteerProfile() {
 									<TableHeader>
 										<TableRow>
 											<TableHead>Event</TableHead>
+											<TableHead>Organizer</TableHead>
 											<TableHead>Date</TableHead>
 											<TableHead>Status</TableHead>
 											<TableHead className="text-left">
@@ -813,6 +814,12 @@ function VolunteerProfile() {
 												event.name ||
 												event.event?.name ||
 												"Unnamed Event";
+
+											const organizerName =
+												event.organizer?.name ||
+												event.organiser?.name ||
+												event.organization_name ||
+												"Unknown Organiser";
 
 											const eventDate =
 												event.start_datetime ||
@@ -834,6 +841,11 @@ function VolunteerProfile() {
 												<TableRow key={eventId}>
 													<TableCell className="font-medium">
 														{eventName}
+													</TableCell>
+													<TableCell>
+														<div className="flex items-center gap-2">
+															{organizerName}
+														</div>
 													</TableCell>
 													<TableCell>
 														{eventDate
