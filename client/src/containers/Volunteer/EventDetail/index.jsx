@@ -855,6 +855,19 @@ function EventDetail() {
                 <div>
                   <h5 className="font-semibold text-gray-700 mb-1">Location</h5>
                   <p className="text-gray-800">{event.location}</p>
+                  {event.locationUrl && (
+                    <div className="location-url">
+                      <a
+                        href={event.locationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        <MapPinIcon className="h-4 w-4 mr-1" />
+                        View on Google Maps
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
 

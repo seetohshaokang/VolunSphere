@@ -1,4 +1,5 @@
 // src/routes/PublicRoutes.jsx
+import CertificateVerification from "@/components/CertificateVerification";
 import MainLayout from "@/components/MainLayout";
 import ResetPassword from "@/containers/Auth/ResetPassword";
 import { Route } from "react-router-dom";
@@ -25,6 +26,11 @@ export const PublicRoutes = (
 		/>
 		<Route path="/forgot-password" element={<ForgotPassword />} />
 		<Route path="/reset-password/:token" element={<ResetPassword />} />
+
+		<Route
+			path="/certificates/verify/:certificateId"
+			element={<CertificateVerification />}
+		/>
 
 		{/* Public Routes in MainLayout */}
 		<Route element={<MainLayout />}>

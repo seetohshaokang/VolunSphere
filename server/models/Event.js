@@ -23,6 +23,11 @@ const eventSchema = new Schema({
     required: true,
     trim: true,
   },
+  locationUrl: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   causes: [
     {
       type: String,

@@ -1,5 +1,5 @@
-import { Toaster } from "react-hot-toast";
 import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "sonner";
 import { AuthProvider } from "./contexts/AuthContext";
 import AppRoutes from "./routes/AppRoutes";
 

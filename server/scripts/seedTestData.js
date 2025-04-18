@@ -2,6 +2,8 @@
 require("dotenv").config({ path: "./.env.server" });
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const fs = require("fs");
+const path = require("path");
 const User = require("../models/User");
 const Volunteer = require("../models/Volunteer");
 const Organiser = require("../models/Organiser");
@@ -35,6 +37,68 @@ async function seedTestData() {
 		await Admin.deleteMany({});
 		console.log("✅ Existing test data cleared");
 
+		// Create upload directories if they don't exist
+		const nricUploadDir = path.join(__dirname, "../public/uploads/nric");
+		const organizerDocsDir = path.join(
+			__dirname,
+			"../public/uploads/organizer_docs"
+		);
+
+		if (!fs.existsSync(nricUploadDir)) {
+			fs.mkdirSync(nricUploadDir, { recursive: true });
+			console.log(`✅ Created directory: ${nricUploadDir}`);
+		}
+		if (!fs.existsSync(organizerDocsDir)) {
+			fs.mkdirSync(organizerDocsDir, { recursive: true });
+			console.log(`✅ Created directory: ${organizerDocsDir}`);
+		}
+
+		// Copy sample documents (ensure these files exist in sample-docs folder)
+		const sampleNricPath = path.join(
+			__dirname,
+			"sample-docs/sample-nric.jpg"
+		);
+		const sampleCertPath = path.join(
+			__dirname,
+			"sample-docs/sample-certificate.jpg"
+		);
+
+		// Generate unique filenames
+		const nricFilename = `nric-${Date.now()}-${Math.floor(
+			Math.random() * 100000000
+		)}.jpg`;
+		const certFilename = `cert-${Date.now()}-${Math.floor(
+			Math.random() * 100000000
+		)}.jpg`;
+
+		// Destination paths
+		const nricDestPath = path.join(nricUploadDir, nricFilename);
+		const certDestPath = path.join(organizerDocsDir, certFilename);
+
+		// Copy files if they exist, otherwise use fallback approach
+		let nricFileExists = false;
+		let certFileExists = false;
+
+		if (fs.existsSync(sampleNricPath)) {
+			fs.copyFileSync(sampleNricPath, nricDestPath);
+			console.log(`✅ Copied sample NRIC to ${nricDestPath}`);
+			nricFileExists = true;
+		} else {
+			console.log(
+				`⚠️ Sample NRIC not found at ${sampleNricPath}, will use placeholder data`
+			);
+		}
+
+		if (fs.existsSync(sampleCertPath)) {
+			fs.copyFileSync(sampleCertPath, certDestPath);
+			console.log(`✅ Copied sample certificate to ${certDestPath}`);
+			certFileExists = true;
+		} else {
+			console.log(
+				`⚠️ Sample certificate not found at ${sampleCertPath}, will use placeholder data`
+			);
+		}
+
 		// Hash password
 		const salt = await bcrypt.genSalt(10);
 		const hashedPassword = await bcrypt.hash("password", salt);
@@ -52,7 +116,7 @@ async function seedTestData() {
 		const savedVolunteerUser = await volunteerUser.save();
 		console.log(`✅ Created volunteer user: ${savedVolunteerUser.email}`);
 
-		// Create volunteer profile (without NRIC image)
+		// Create volunteer profile with verified NRIC
 		const volunteer = new Volunteer({
 			user_id: savedVolunteerUser._id,
 			name: "Test Volunteer",
@@ -63,12 +127,21 @@ async function seedTestData() {
 			profile_picture_url: null,
 			skills: ["Education", "Healthcare", "Environment"],
 			preferred_causes: ["education", "healthcare", "environment"],
-			// No NRIC image included as requested
+			nric_image: {
+				filename: nricFileExists
+					? nricFilename
+					: "seeded-test-nric.jpg",
+				contentType: "image/jpeg",
+				uploaded_at: new Date(),
+				verified: true,
+				rejection_reason: null,
+				requires_reupload: false,
+			},
 		});
 
 		await volunteer.save();
 		console.log(
-			`✅ Created volunteer profile for: ${savedVolunteerUser.email}`
+			`✅ Created verified volunteer profile for: ${savedVolunteerUser.email}`
 		);
 
 		// Create test organiser user
@@ -84,7 +157,7 @@ async function seedTestData() {
 		const savedOrganiserUser = await organiserUser.save();
 		console.log(`✅ Created organiser user: ${savedOrganiserUser.email}`);
 
-		// Create organiser profile
+		// Create organiser profile with verified certificate
 		const organiser = new Organiser({
 			user_id: savedOrganiserUser._id,
 			name: "Test Organisation",
@@ -94,11 +167,22 @@ async function seedTestData() {
 			profile_picture_url: null,
 			verification_status: "verified",
 			website: "https://testorg.example.com",
+			certification_document: {
+				filename: certFileExists
+					? certFilename
+					: "seeded-test-certificate.jpg",
+				contentType: "image/jpg",
+				uploaded_at: new Date(),
+				verified: true,
+				verified_at: new Date(),
+				verified_by: null,
+				rejection_reason: null,
+			},
 		});
 
 		const savedOrganiser = await organiser.save();
 		console.log(
-			`✅ Created organiser profile for: ${savedOrganiserUser.email}`
+			`✅ Created verified organiser profile for: ${savedOrganiserUser.email}`
 		);
 
 		// Create test admin user
@@ -201,17 +285,67 @@ async function seedTestData() {
 		const createdEvents = await Event.insertMany(events);
 		console.log(`✅ Created ${createdEvents.length} events`);
 
+		// Create past event and register the volunteer for it (for certificate testing)
+		const pastEvent = new Event({
+			organiser_id: savedOrganiser._id,
+			name: "Past Charity Run",
+			description: "A charity run that has already completed.",
+			location: "East Coast Park",
+			causes: ["healthcare"],
+			max_volunteers: 50,
+			registered_count: 1,
+			contact_person: "Test Organiser",
+			contact_email: "testorganiser1@gmail.com",
+			status: "completed",
+			is_recurring: false,
+			start_datetime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+			end_datetime: new Date(
+				Date.now() - 30 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000
+			), // 3 hours after start
+			start_day_of_week: new Date(
+				Date.now() - 30 * 24 * 60 * 60 * 1000
+			).getDay(),
+			created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000), // 60 days ago
+		});
+
+		const savedPastEvent = await pastEvent.save();
+		console.log(
+			`✅ Created past event for certificate testing: "${savedPastEvent.name}"`
+		);
+
 		// Register volunteer for the first event
 		const firstEvent = createdEvents[0];
 
 		const registration = new EventRegistration({
-			user_id: volunteer.user_id, // or savedVolunteerUser._id
+			user_id: volunteer.user_id,
 			event_id: firstEvent._id,
-			status: "confirmed", // Use a value from the enum
+			status: "confirmed",
 			signup_date: new Date(),
 		});
 
 		await registration.save();
+
+		// Register volunteer for the past event with completed status
+		const pastRegistration = new EventRegistration({
+			user_id: volunteer.user_id,
+			event_id: savedPastEvent._id,
+			status: "confirmed",
+			signup_date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000), // 45 days ago
+			attendance_status: "attended",
+			check_in_time: new Date(savedPastEvent.start_datetime),
+			check_out_time: new Date(savedPastEvent.end_datetime),
+			feedback: {
+				from_organiser: {
+					comment: "Great volunteer, very helpful!",
+					rating: 5,
+					submitted_at: new Date(
+						Date.now() - 29 * 24 * 60 * 60 * 1000
+					), // 29 days ago
+				},
+			},
+		});
+
+		await pastRegistration.save();
 
 		// Update event registration count
 		await Event.findByIdAndUpdate(firstEvent._id, {
@@ -221,12 +355,19 @@ async function seedTestData() {
 		console.log(
 			`✅ Registered test volunteer for "${firstEvent.name}" event`
 		);
+		console.log(
+			`✅ Registered test volunteer for past event "${savedPastEvent.name}" with attendance`
+		);
 
 		console.log("🎉 Seeding complete!");
 		console.log("\nTest Account Information:");
 		console.log("------------------------");
-		console.log("Volunteer: testvolunteer1@gmail.com (password: password)");
-		console.log("Organiser: testorganiser1@gmail.com (password: password)");
+		console.log(
+			"Volunteer: testvolunteer1@gmail.com (password: password) [VERIFIED]"
+		);
+		console.log(
+			"Organiser: testorganiser1@gmail.com (password: password) [VERIFIED]"
+		);
 		console.log("Admin: admin@volunsphere.com (password: password)");
 		console.log("------------------------");
 

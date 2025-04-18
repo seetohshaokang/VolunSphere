@@ -801,7 +801,30 @@ const Api = {
     });
   },
 
-  // Add this method to your Api.js file
+  generateCertificate(eventId) {
+    return fetch(`${SERVER_PREFIX}/certificates/generate/${eventId}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  },
+
+  getVolunteerCertificates() {
+    return fetch(`${SERVER_PREFIX}/certificates/volunteer`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  },
+
+  verifyCertificate(certificateId) {
+    return fetch(`${SERVER_PREFIX}/certificates/verify/${certificateId}`, {
+      method: "GET",
+    });
+  },
+
   getOrganizerProfile: async (organizerId) => {
     // Make sure organizerId is a string, not an object
     const id = typeof organizerId === "object" ? organizerId._id : organizerId;

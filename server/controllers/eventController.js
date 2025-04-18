@@ -185,29 +185,30 @@ exports.createEvent = async (req, res) => {
 				.json({ message: "Organiser profile not found" });
 		}
 
-		// Extract event data from request
-		const {
-			name,
-			description,
-			location,
-			causes,
-			max_volunteers,
-			is_recurring,
-			contact_person,
-			contact_email,
-			status = "active",
-			// For non-recurring events
-			start_date,
-			end_date,
-			start_time,
-			end_time,
-			// For recurring events
-			recurrence_pattern,
-			recurrence_days,
-			recurrence_start_date,
-			recurrence_end_date,
-			recurrence_time,
-		} = req.body;
+    // Extract event data from request
+    const {
+      name,
+      description,
+      location,
+      locationUrl,
+      causes,
+      max_volunteers,
+      is_recurring,
+      contact_person,
+      contact_email,
+      status = "active",
+      // For non-recurring events
+      start_date,
+      end_date,
+      start_time,
+      end_time,
+      // For recurring events
+      recurrence_pattern,
+      recurrence_days,
+      recurrence_start_date,
+      recurrence_end_date,
+      recurrence_time,
+    } = req.body;
 
 		console.log("Processing event data. is_recurring:", is_recurring);
 		console.log("Event type is:", typeof is_recurring, is_recurring);
@@ -262,22 +263,23 @@ exports.createEvent = async (req, res) => {
 			processedCauses = causes ? [causes] : [];
 		}
 
-		// Create event object with common fields
-		const newEvent = new Event({
-			organiser_id: organiser._id,
-			name,
-			description,
-			location,
-			causes: processedCauses,
-			max_volunteers: max_volunteers ? parseInt(max_volunteers, 10) : 0,
-			registered_count: 0,
-			contact_person: contact_person || organiser.name,
-			contact_email: contact_email || user.email,
-			status,
-			is_recurring: isEventRecurring,
-			image_url,
-			created_at: new Date(),
-		});
+    // Create event object with common fields
+    const newEvent = new Event({
+      organiser_id: organiser._id,
+      name,
+      description,
+      location,
+      locationUrl,
+      causes: processedCauses,
+      max_volunteers: max_volunteers ? parseInt(max_volunteers, 10) : 0,
+      registered_count: 0,
+      contact_person: contact_person || organiser.name,
+      contact_email: contact_email || user.email,
+      status,
+      is_recurring: isEventRecurring,
+      image_url,
+      created_at: new Date(),
+    });
 
 		// Set specific fields based on event type
 		if (isEventRecurring) {
@@ -666,18 +668,19 @@ exports.updateEvent = async (req, res) => {
 			});
 		}
 
-		// Extract update fields from request
-		const updateFields = {};
-		const allowedFields = [
-			"name",
-			"description",
-			"location",
-			"causes",
-			"contact_person",
-			"contact_email",
-			"status",
-			"requirements",
-		];
+    // Extract update fields from request
+    const updateFields = {};
+    const allowedFields = [
+      "name",
+      "description",
+      "location",
+      "locationUrl",
+      "causes",
+      "contact_person",
+      "contact_email",
+      "status",
+      "requirements",
+    ];
 
 		allowedFields.forEach((field) => {
 			if (req.body[field] !== undefined) {
