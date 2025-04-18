@@ -178,7 +178,11 @@ const DocumentUploader = ({
                 </p>
               </div>
               {documentFile && (
-                <Button onClick={handleUpload} disabled={uploading}>
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={uploading}
+                  variant="outline"
+                >
                   {uploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -249,7 +253,11 @@ const DocumentUploader = ({
                 </p>
               </div>
               {documentFile && (
-                <Button onClick={handleUpload} disabled={uploading}>
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={uploading}
+                  variant="outline"
+                >
                   {uploading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1139,12 +1139,15 @@ function EventDetail() {
 					</DialogHeader>
 					<DialogFooter className="sm:justify-between">
 						<Button
-							variant="destructive"
+							variant="outline"
 							onClick={() => setShowVerificationModal(false)}
 						>
 							Cancel
 						</Button>
-						<Button onClick={handleGoToProfile}>
+						<Button 
+							variant="outline"
+							onClick={handleGoToProfile}
+						>
 							Go to Profile
 						</Button>
 					</DialogFooter>
