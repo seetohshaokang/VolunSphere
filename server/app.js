@@ -55,6 +55,10 @@ app.use("/uploads", (req, res, next) => {
 	res.header("Access-Control-Allow-Origin", "*"); // Allow any origin to access images
 	res.header("Access-Control-Allow-Methods", "GET");
 	res.header("Access-Control-Allow-Headers", "Content-Type");
+	res.header(
+		"Content-Security-Policy",
+		"frame-ancestors 'self' http://localhost:5173"
+	);
 	next();
 });
 

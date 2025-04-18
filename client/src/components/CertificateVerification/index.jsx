@@ -69,7 +69,7 @@ export default function CertificateVerification() {
 		);
 	}
 
-	const certificateUrl = `http://localhost:8000/certificates/${certificate.certificate_id}.pdf`;
+	const certificateUrl = `http://localhost:8000${certificate.pdf_path}`;
 	const downloadUrl = `http://localhost:8000/api/certificates/download/${certificate.certificate_id}`;
 
 	return (
