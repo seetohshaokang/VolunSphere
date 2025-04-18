@@ -79,7 +79,8 @@ class CertificateService {
 				).toLocaleDateString(),
 				hoursContributed,
 				skills,
-				qrCodeDataUrl
+				qrCodeDataUrl,
+				event.location || "No location specified"
 			);
 
 			// Save certificate record to database
@@ -114,13 +115,16 @@ class CertificateService {
 		eventDate,
 		hours,
 		skills,
-		qrCodeDataUrl
+		qrCodeDataUrl,
+		location = "No location specified" // Add default location parameter
 	) {
 		return new Promise((resolve, reject) => {
 			try {
+				// Create a landscape-oriented PDF
 				const doc = new PDFDocument({
 					size: "A4",
-					margin: 50,
+					layout: "landscape", // Change to landscape orientation
+					margin: 40,
 					info: {
 						Title: "Volunteer Participation Certificate",
 						Author: "VolunSphere",
@@ -130,86 +134,154 @@ class CertificateService {
 				const stream = fs.createWriteStream(filePath);
 				doc.pipe(stream);
 
-				// Add logo
+				// Set up dimensions for landscape
+				const pageWidth = doc.page.width;
+				const pageHeight = doc.page.height;
+
+				// Add decorative border
+				doc.rect(30, 30, pageWidth - 60, pageHeight - 60)
+					.lineWidth(1.5)
+					.strokeColor("#3b82f6")
+					.stroke();
+
+				// Add logo (left side)
 				if (fs.existsSync(this.logoPath)) {
-					doc.image(this.logoPath, 50, 50, { width: 100 });
+					doc.image(this.logoPath, 50, 50, { width: 80 });
 				}
 
-				// Add QR code
-				doc.image(qrCodeDataUrl, 450, 50, { width: 100 });
+				// Add QR code (right side)
+				doc.image(qrCodeDataUrl, pageWidth - 140, 50, { width: 80 });
 
-				// Title
+				// Add header
+				doc.fontSize(28)
+					.font("Helvetica-Bold")
+					.fillColor("#1e293b")
+					.text(
+						"CERTIFICATE OF PARTICIPATION",
+						pageWidth / 2 - 200,
+						60,
+						{
+							width: 400,
+							align: "center",
+						}
+					);
+
+				// Main certificate content with subtle background
+				doc.roundedRect(70, 120, pageWidth - 140, 200, 10)
+					.fillColor("#f8fafc")
+					.fill();
+
+				// Certificate text
+				doc.fontSize(16)
+					.font("Helvetica")
+					.fillColor("#334155")
+					.text("This certifies that", { align: "center" }, 140);
+
+				// Volunteer name (larger and bold)
 				doc.fontSize(24)
 					.font("Helvetica-Bold")
-					.text("CERTIFICATE OF PARTICIPATION", { align: "center" })
-					.moveDown(1);
-
-				// Certificate content
-				doc.fontSize(14)
-					.font("Helvetica")
-					.text("This certifies that", { align: "center" })
+					.fillColor("#0f172a")
+					.text(volunteerName.toUpperCase(), { align: "center" })
 					.moveDown(0.5);
 
-				doc.fontSize(18)
-					.font("Helvetica-Bold")
-					.text(volunteerName, { align: "center" })
-					.moveDown(0.5);
-
-				doc.fontSize(14)
+				// Continuing certificate text
+				doc.fontSize(16)
 					.font("Helvetica")
+					.fillColor("#334155")
 					.text("has successfully participated as a volunteer in", {
 						align: "center",
 					})
 					.moveDown(0.5);
 
-				doc.fontSize(18)
+				// Event name (larger)
+				doc.fontSize(22)
 					.font("Helvetica-Bold")
-					.text(eventName, { align: "center" })
+					.fillColor("#0f172a")
+					.text(eventName.toUpperCase(), { align: "center" })
 					.moveDown(0.5);
 
-				doc.fontSize(14)
+				// Organizer and date
+				doc.fontSize(16)
 					.font("Helvetica")
+					.fillColor("#334155")
 					.text(`organized by ${organizerName} on ${eventDate}`, {
 						align: "center",
-					})
-					.moveDown(1);
+					});
 
-				// Hours and skills
-				if (hours > 0) {
-					doc.text(
-						`Contributing ${hours} hours and demonstrating skills in:`,
-						{ align: "center" }
-					).moveDown(0.5);
-				} else {
-					doc.text("Demonstrating skills in:", {
-						align: "center",
-					}).moveDown(0.5);
-				}
+				// Left section - Skills
+				doc.roundedRect(80, 340, 260, 130, 5)
+					.fillColor("#f0f9ff")
+					.fill();
 
-				doc.fontSize(16)
-					.font("Helvetica-Oblique")
-					.text(skills.join(", ") || "Volunteering", {
-						align: "center",
-					})
-					.moveDown(2);
+				doc.fontSize(14)
+					.font("Helvetica-Bold")
+					.fillColor("#0f172a")
+					.text("SKILLS DEMONSTRATED:", 100, 360);
+
+				// Add skills as bullet points
+				doc.fontSize(12).font("Helvetica").fillColor("#334155");
+
+				let yPosition = 390;
+				skills.forEach((skill) => {
+					doc.text(`• ${skill}`, 110, yPosition);
+					yPosition += 20;
+				});
+
+				// Right section - Event Details
+				doc.roundedRect(pageWidth - 340, 340, 260, 130, 5)
+					.fillColor("#f0f9ff")
+					.fill();
+
+				doc.fontSize(14)
+					.font("Helvetica-Bold")
+					.fillColor("#0f172a")
+					.text("EVENT DETAILS:", pageWidth - 320, 360);
+
+				// Add event details
+				doc.fontSize(12)
+					.font("Helvetica")
+					.fillColor("#334155")
+					.text(`Location: ${location}`, pageWidth - 320, 390)
+					.text(
+						`Duration: ${
+							hours > 0 ? `${hours} hours` : "Not recorded"
+						}`,
+						pageWidth - 320,
+						410
+					)
+					.text(
+						`Cause: ${skills[0] || "Volunteering"}`,
+						pageWidth - 320,
+						430
+					);
 
 				// Signature lines
 				doc.fontSize(12)
 					.font("Helvetica")
+					.fillColor("#0f172a")
 					.text("_________________________", 100, 500)
-					.text("_________________________", 350, 500)
-					.moveDown(0.5);
+					.text("_________________________", pageWidth - 320, 500)
+					.moveDown(0.2);
 
-				doc.text(organizerName, 100, 520)
-					.text("Digital Signature", 350, 520)
-					.moveDown(0.5);
+				doc.text(organizerName, 100, 515)
+					.text("Digital Signature", pageWidth - 320, 515)
+					.moveDown(0.2);
 
-				doc.fontSize(10).text("Event Organizer", 100, 535).moveDown(3);
+				doc.fontSize(10).text("Event Organizer", 100, 530);
 
 				// Certificate ID and verification info
 				doc.fontSize(10)
-					.text(`Certificate ID: ${certificateId}`, 100, 600)
-					.text("Verify at: voluntsphere.com/verify", 350, 600);
+					.fillColor("#64748b")
+					.text(
+						`Certificate ID: ${certificateId}`,
+						80,
+						pageHeight - 60
+					)
+					.text(
+						`Verify at: voluntsphere.com/verify`,
+						pageWidth - 300,
+						pageHeight - 60
+					);
 
 				doc.end();
 

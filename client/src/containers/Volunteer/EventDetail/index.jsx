@@ -18,6 +18,7 @@ import {
 	ClockIcon,
 	Flag,
 	Home,
+	MapPin,
 	RepeatIcon,
 	ShieldAlert,
 } from "lucide-react";
@@ -864,30 +865,34 @@ function EventDetail() {
 					</Card>
 				</div>
 
-        {/* Sidebar with registration */}
-        <div className="lg:col-span-1">
-          <Card className="sticky top-6">
-            <CardContent className="p-5">
-              <div className="flex mb-5">
-                <div className="text-2xl mr-3">📍</div>
-                <div>
-                  <h5 className="font-semibold text-gray-700 mb-1">Location</h5>
-                  <p className="text-gray-800">{event.location}</p>
-                  {event.locationUrl && (
-                      <div className="location-url">
-                        <a
-                          href={event.locationUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          <MapPinIcon className="h-4 w-4 mr-1" />
-                          View on Google Maps
-                        </a>
-                      </div>
-                    )}
-                </div>
-              </div>
+				{/* Sidebar with registration */}
+				<div className="lg:col-span-1">
+					<Card className="sticky top-6">
+						<CardContent className="p-5">
+							<div className="flex mb-5">
+								<div className="text-2xl mr-3">📍</div>
+								<div>
+									<h5 className="font-semibold text-gray-700 mb-1">
+										Location
+									</h5>
+									<p className="text-gray-800">
+										{event.location}
+									</p>
+									{event.locationUrl && (
+										<div className="location-url">
+											<a
+												href={event.locationUrl}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+											>
+												<MapPin className="h-4 w-4 mr-1" />
+												View on Google Maps
+											</a>
+										</div>
+									)}
+								</div>
+							</div>
 
 							<div className="flex mb-6">
 								<div className="text-2xl mr-3">🗓️</div>
@@ -1153,10 +1158,7 @@ function EventDetail() {
 						>
 							Cancel
 						</Button>
-						<Button 
-							variant="outline"
-							onClick={handleGoToProfile}
-						>
+						<Button variant="outline" onClick={handleGoToProfile}>
 							Go to Profile
 						</Button>
 					</DialogFooter>
