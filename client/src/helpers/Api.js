@@ -800,6 +800,22 @@ const Api = {
       }),
     });
   },
+
+  // Add this method to your Api.js file
+  getOrganizerProfile: async (organizerId) => {
+    // Make sure organizerId is a string, not an object
+    const id = typeof organizerId === "object" ? organizerId._id : organizerId;
+
+    // Use the correct URL structure
+    return fetch(`${Api.SERVER_PREFIX}/api/organizers/${id}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  },
 };
 
 export default Api;
