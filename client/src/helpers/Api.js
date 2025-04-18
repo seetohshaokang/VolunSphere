@@ -191,7 +191,7 @@ const Api = {
   },
 
   // Report an event
-  reportEvent(eventId, reason) {
+  reportEvent(eventId, reason, details) {
     return fetch(`${SERVER_PREFIX}/events/${eventId}/reports`, {
       headers: {
         Accept: "application/json",
@@ -199,7 +199,7 @@ const Api = {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       method: "POST",
-      body: JSON.stringify({ reason }),
+      body: JSON.stringify({ reason, details }),
     });
   },
 
@@ -779,6 +779,25 @@ const Api = {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
+    });
+  },
+
+  // Add this method to the Api object
+  reportVolunteer(volunteerId, eventId, reason, details) {
+    return fetch(`${SERVER_PREFIX}/reports`, {
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      method: "POST",
+      body: JSON.stringify({
+        reported_type: "Volunteer",
+        reported_id: volunteerId,
+        event_id: eventId,
+        reason,
+        details: details || "",
+      }),
     });
   },
 };

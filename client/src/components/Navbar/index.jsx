@@ -72,6 +72,21 @@ function Navbar() {
 		}
 	};
 
+	const getProfilePath = () => {
+		if (!user) return "/profile";
+
+		switch (user.role) {
+			case "admin":
+				return "/admin/profile";
+			case "organiser":
+				return "/organizer/profile";
+			case "volunteer":
+				return "/volunteer/profile";
+			default:
+				return "/profile";
+		}
+	};
+
 	return (
 		// The support backdrop keeps the navbar at the top of the screen as u scroll and the content blurs out behind it
 		<header className="sticky top-0 z-50 w-full border-b bg-[#c9ebff] backdrop-blur supports-[backdrop-filter]:bg-[#c9ebff]/60">
@@ -128,7 +143,7 @@ function Navbar() {
 									<DropdownMenuSeparator className="bg-gray-200" />
 									<DropdownMenuItem asChild>
 										<Link
-											to="/profile"
+											to={getProfilePath()}
 											className="cursor-pointer flex items-center w-full px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
 										>
 											Profile
@@ -149,7 +164,7 @@ function Navbar() {
 								<Button variant="outline" onClick={handleLogin}>
 									Log In
 								</Button>
-								<Button onClick={handleSignup}>Sign Up</Button>
+								<Button variant="outline" onClick={handleSignup}>Sign Up</Button>
 							</div>
 						)}
 					</div>

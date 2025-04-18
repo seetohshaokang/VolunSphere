@@ -18,6 +18,20 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft } from "lucide-react";
 
+// Add custom focus styles for inputs
+const customInputStyles = `
+  .custom-input {
+    transition: all 0.2s ease;
+    border-width: 1px;
+  }
+  
+  .custom-input:focus {
+    border-width: 2px;
+    border-color: rgb(59 130 246); /* Tailwind blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+`;
+
 function RegistrationOrganiser() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -108,6 +122,9 @@ function RegistrationOrganiser() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+      {/* Add style tag for custom input styles */}
+      <style>{customInputStyles}</style>
+      
       {/* Back Button - moved to top left corner with white color */}
       <Button
         variant="ghost"
@@ -119,7 +136,7 @@ function RegistrationOrganiser() {
       </Button>
 
       {/* Organization Description */}
-      <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-start pt-28 items-center text-center">
+      <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-center items-center text-center">
         <h1 className="text-4xl font-bold mb-6 text-white">VolunSphere</h1>
         <p className="text-xl mb-6 text-white">
           Connect your organisation with passionate volunteers
@@ -153,7 +170,7 @@ function RegistrationOrganiser() {
                   placeholder="Company Name"
                   value={formData.companyName}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -166,7 +183,7 @@ function RegistrationOrganiser() {
                   placeholder="name@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -179,7 +196,7 @@ function RegistrationOrganiser() {
                   placeholder="Phone Number"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -191,7 +208,7 @@ function RegistrationOrganiser() {
                   placeholder="Street name, Postal Code"
                   value={formData.address}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -204,7 +221,7 @@ function RegistrationOrganiser() {
                   placeholder="https://yourorganization.com"
                   value={formData.website}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -216,7 +233,7 @@ function RegistrationOrganiser() {
                   placeholder="Tell us about your organization..."
                   value={formData.description}
                   onChange={handleChange}
-                  className="border-gray-300 min-h-[100px]"
+                  className="border-gray-300 min-h-[100px] custom-input"
                 />
               </div>
 
@@ -229,7 +246,7 @@ function RegistrationOrganiser() {
                   placeholder="Create a secure password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -242,7 +259,7 @@ function RegistrationOrganiser() {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -271,12 +288,16 @@ function RegistrationOrganiser() {
                 </Label>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
-              >
-                Sign up
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="text-primary hover:bg-gray-100"
+                >
+                  Sign up
+                </Button>
+              </div>
 
               <p className="text-center mt-6">
                 Already have an account?{" "}
@@ -358,7 +379,7 @@ function RegistrationOrganiser() {
             </p>
           </div>
           <DialogFooter>
-            <Button onClick={() => setShowTermsModal(false)}>Done</Button>
+            <Button variant="outline" onClick={() => setShowTermsModal(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

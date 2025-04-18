@@ -17,6 +17,28 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
+// Add custom focus styles for inputs
+const customInputStyles = `
+  .custom-input {
+    transition: all 0.2s ease;
+    border-width: 1px;
+  }
+  
+  .custom-input:focus {
+    border-width: 2px;
+    border-color: rgb(59 130 246); /* Tailwind blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  }
+  
+  input[type="date"] {
+    cursor: pointer !important;
+  }
+  
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer !important;
+  }
+`;
+
 function RegistrationVolunteer() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -109,6 +131,9 @@ function RegistrationVolunteer() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
+      {/* Add style tag for custom input styles */}
+      <style>{customInputStyles}</style>
+      
       {/* Back Button - moved to top left corner with white color */}
       <Button
         variant="ghost"
@@ -120,7 +145,7 @@ function RegistrationVolunteer() {
       </Button>
 
       {/* Volunteer Description */}
-      <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-start pt-40 items-center text-center">
+      <div className="w-full md:w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 text-white p-10 flex flex-col justify-center items-center text-center">
         <h1 className="text-4xl font-bold mb-6 text-white">VolunSphere</h1>
         <p className="text-xl mb-6 text-white">
           Make a difference in your community
@@ -154,7 +179,7 @@ function RegistrationVolunteer() {
                   placeholder="First Name"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -166,7 +191,7 @@ function RegistrationVolunteer() {
                   placeholder="Last Name"
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -179,7 +204,7 @@ function RegistrationVolunteer() {
                   placeholder="name@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -192,7 +217,7 @@ function RegistrationVolunteer() {
                   placeholder="Phone Number"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -204,7 +229,7 @@ function RegistrationVolunteer() {
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input cursor-pointer"
                 />
               </div>
 
@@ -217,7 +242,7 @@ function RegistrationVolunteer() {
                   placeholder="Create a secure password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -230,7 +255,7 @@ function RegistrationVolunteer() {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="border-gray-300"
+                  className="border-gray-300 custom-input"
                 />
               </div>
 
@@ -259,12 +284,16 @@ function RegistrationVolunteer() {
                 </Label>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
-              >
-                Sign up
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="text-primary hover:bg-gray-100"
+                >
+                  Sign up
+                </Button>
+              </div>
 
               <p className="text-center mt-6">
                 Already have an account?{" "}
@@ -346,7 +375,7 @@ function RegistrationVolunteer() {
             </p>
           </div>
           <DialogFooter>
-            <Button onClick={() => setShowTermsModal(false)}>Done</Button>
+            <Button variant="outline" onClick={() => setShowTermsModal(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

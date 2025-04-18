@@ -931,7 +931,11 @@ function OrganizerEventDetail() {
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button 
+              variant="outline" 
+              onClick={handleDelete}
+              className="bg-red-500 hover:bg-red-600 text-white hover:text-white"
+            >
               Delete Event
             </Button>
           </DialogFooter>
