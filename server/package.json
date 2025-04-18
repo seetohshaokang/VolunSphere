@@ -19,6 +19,7 @@
 		"express-rate-limit": "^7.1.5",
 		"express-session": "^1.17.3",
 		"express-validator": "^7.0.1",
+		"fs-extra": "^11.3.0",
 		"helmet": "^7.1.0",
 		"jsonwebtoken": "^9.0.2",
 		"mongoose": "^8.0.3",
@@ -28,7 +29,10 @@
 		"nodemailer": "^6.10.1",
 		"passport": "^0.7.0",
 		"passport-jwt": "^4.0.1",
-		"passport-local": "^1.0.0"
+		"passport-local": "^1.0.0",
+		"pdfkit": "^0.17.0",
+		"qrcode": "^1.5.4",
+		"uuid": "^11.1.0"
 	},
 	"devDependencies": {
 		"nodemon": "^3.0.2"

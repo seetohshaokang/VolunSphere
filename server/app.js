@@ -83,6 +83,10 @@ app.use(
 	express.static(path.join(__dirname, "public/uploads/organizer_docs"))
 );
 
+app.use(
+	"/certificates",
+	express.static(path.join(__dirname, "public/certificates"))
+);
 
 // Session configuration - required for passport
 app.use(
