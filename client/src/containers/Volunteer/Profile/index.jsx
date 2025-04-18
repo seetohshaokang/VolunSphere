@@ -1,4 +1,6 @@
 // client/src/containers/Volunteer/Profile/index.jsx
+import CertificateButton from "@/components/CertificateButton";
+import CertificatePreviewModal from "@/components/CertificatePreviewModal";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +71,9 @@ function VolunteerProfile() {
 	const [nricFile, setNricFile] = useState(null);
 	const [uploadingNric, setUploadingNric] = useState(false);
 	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
+
+	const [certificateData, setCertificateData] = useState(null);
+	const [certificateModalOpen, setCertificateModalOpen] = useState(false);
 
 	// Format date for input field (YYYY-MM-DD)
 	const formatDateForInput = (dateString) => {
@@ -488,108 +493,6 @@ function VolunteerProfile() {
 						</Alert>
 					)}
 
-<<<<<<< HEAD
-							{!fetchingEvents &&
-							Array.isArray(events) &&
-							events.length > 0 ? (
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>Event</TableHead>
-											<TableHead>Organizer</TableHead>
-											<TableHead>Date</TableHead>
-											<TableHead>Status</TableHead>
-											<TableHead className="text-left">
-												Actions
-											</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{events.map((event, index) => {
-											if (!event) return null;
-
-											const eventName =
-												event.name ||
-												event.event?.name ||
-												"Unnamed Event";
-
-											const organizerName =
-												event.organizer?.name ||
-												event.organiser?.name ||
-												event.organization_name ||
-												"Unknown Organiser";
-
-											const eventDate =
-												event.start_datetime ||
-												event.end_datetime ||
-												event.start_date ||
-												event.event?.start_date ||
-												event.date;
-
-											const eventId =
-												event._id ||
-												event.event?._id ||
-												event.event_id ||
-												`event-${index}`;
-
-											const status =
-												getEventStatus(event);
-
-											return (
-												<TableRow key={eventId}>
-													<TableCell className="font-medium">
-														{eventName}
-													</TableCell>
-													<TableCell>
-														<div className="flex items-center gap-2">
-															{organizerName}
-														</div>
-													</TableCell>
-													<TableCell>
-														{eventDate
-															? new Date(
-																	eventDate
-															  ).toLocaleDateString()
-															: "No date specified"}
-													</TableCell>
-													<TableCell>
-														<Badge
-															variant={getRegistrationStatusVariant(
-																status
-															)}
-														>
-															{formatRegistrationStatus(
-																status
-															)}
-														</Badge>
-													</TableCell>
-													<TableCell>
-														<div className="flex justify-start gap-2">
-															<Button
-																variant="outline"
-																size="sm"
-																className="p-2 h-9 w-9 border border-gray-300 rounded-md flex items-center justify-center"
-																asChild
-															>
-																<Link
-																	to={`/volunteer/events/${eventId}`}
-																>
-																	<Eye className="h-5 w-5" />
-																</Link>
-															</Button>
-														</div>
-													</TableCell>
-												</TableRow>
-											);
-										})}
-									</TableBody>
-								</Table>
-							) : (
-								!fetchingEvents && (
-									<div className="text-center py-6 text-muted-foreground">
-										You haven't registered for any volunteer
-										activities yet.
-=======
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<Card className="md:col-span-1">
 							<CardContent className="p-6 flex flex-col items-center text-center">
@@ -610,24 +513,26 @@ function VolunteerProfile() {
 								<p className="text-sm text-muted-foreground">
 									Volunteer
 								</p>
-								{profile.skills && profile.skills.length > 0 && (
-									<div className="mt-4">
-										<h3 className="text-sm font-semibold mb-2">
-											Skills
-										</h3>
-										<div className="flex flex-wrap gap-1 justify-center">
-											{profile.skills.map((skill, index) => (
-												<Badge
-													key={index}
-													variant="secondary"
-												>
-													{skill}
-												</Badge>
-											))}
+								{profile.skills &&
+									profile.skills.length > 0 && (
+										<div className="mt-4">
+											<h3 className="text-sm font-semibold mb-2">
+												Skills
+											</h3>
+											<div className="flex flex-wrap gap-1 justify-center">
+												{profile.skills.map(
+													(skill, index) => (
+														<Badge
+															key={index}
+															variant="secondary"
+														>
+															{skill}
+														</Badge>
+													)
+												)}
+											</div>
 										</div>
->>>>>>> 0a3695846b79f663eb9cc6c62d8e879185460b66
-									</div>
-								)}
+									)}
 							</CardContent>
 						</Card>
 
@@ -650,7 +555,9 @@ function VolunteerProfile() {
 								{!isEditing ? (
 									<div className="space-y-3">
 										<div className="grid grid-cols-3 gap-4">
-											<span className="font-bold">Name:</span>
+											<span className="font-bold">
+												Name:
+											</span>
 											<span className="col-span-2">
 												{profile.firstName}{" "}
 												{profile.lastName}
@@ -664,7 +571,7 @@ function VolunteerProfile() {
 												{profile.dob
 													? new Date(
 															profile.dob
-												  ).toLocaleDateString()
+													  ).toLocaleDateString()
 													: "Not provided"}
 											</span>
 										</div>
@@ -681,7 +588,8 @@ function VolunteerProfile() {
 												Phone:
 											</span>
 											<span className="col-span-2">
-												{profile.phone || "Not provided"}
+												{profile.phone ||
+													"Not provided"}
 											</span>
 										</div>
 										<div className="grid grid-cols-3 gap-4">
@@ -689,13 +597,17 @@ function VolunteerProfile() {
 												Address:
 											</span>
 											<span className="col-span-2">
-												{profile.address || "Not provided"}
+												{profile.address ||
+													"Not provided"}
 											</span>
 										</div>
 										<div className="grid grid-cols-3 gap-4">
-											<span className="font-bold">Bio:</span>
+											<span className="font-bold">
+												Bio:
+											</span>
 											<span className="col-span-2">
-												{profile.bio || "No bio provided"}
+												{profile.bio ||
+													"No bio provided"}
 											</span>
 										</div>
 									</div>
@@ -757,9 +669,9 @@ function VolunteerProfile() {
 															/>
 														</div>
 														<p className="text-xs text-muted-foreground mt-1">
-															Accepted formats: JPEG,
-															PNG, WebP. Max size:
-															5MB.
+															Accepted formats:
+															JPEG, PNG, WebP. Max
+															size: 5MB.
 														</p>
 													</div>
 												</div>
@@ -806,7 +718,9 @@ function VolunteerProfile() {
 											</div>
 
 											<div className="space-y-2">
-												<Label htmlFor="email">Email</Label>
+												<Label htmlFor="email">
+													Email
+												</Label>
 												<Input
 													id="email"
 													name="email"
@@ -906,7 +820,10 @@ function VolunteerProfile() {
 							</CardHeader>
 							<CardContent>
 								{eventsError && (
-									<Alert variant="destructive" className="mb-4">
+									<Alert
+										variant="destructive"
+										className="mb-4"
+									>
 										<AlertDescription>
 											{eventsError}
 										</AlertDescription>
@@ -929,6 +846,7 @@ function VolunteerProfile() {
 										<TableHeader>
 											<TableRow>
 												<TableHead>Event</TableHead>
+												<TableHead>Organizer</TableHead>
 												<TableHead>Date</TableHead>
 												<TableHead>Status</TableHead>
 												<TableHead className="text-left">
@@ -944,6 +862,12 @@ function VolunteerProfile() {
 													event.name ||
 													event.event?.name ||
 													"Unnamed Event";
+
+												const organizerName =
+													event.organizer?.name ||
+													event.organiser?.name ||
+													event.organization_name ||
+													"Unknown Organiser";
 
 												const eventDate =
 													event.start_datetime ||
@@ -965,6 +889,11 @@ function VolunteerProfile() {
 													<TableRow key={eventId}>
 														<TableCell className="font-medium">
 															{eventName}
+														</TableCell>
+														<TableCell>
+															<div className="flex items-center gap-2">
+																{organizerName}
+															</div>
 														</TableCell>
 														<TableCell>
 															{eventDate
@@ -999,6 +928,28 @@ function VolunteerProfile() {
 																	</Link>
 																</Button>
 															</div>
+															{/* Only show certificate button for completed events */}
+															{status ===
+																"completed" && (
+																<CertificateButton
+																	eventId={
+																		eventId
+																	}
+																	eventName={
+																		eventName
+																	}
+																	onGenerated={(
+																		data
+																	) => {
+																		setCertificateData(
+																			data
+																		);
+																		setCertificateModalOpen(
+																			true
+																		);
+																	}}
+																/>
+															)}
 														</TableCell>
 													</TableRow>
 												);
@@ -1008,8 +959,8 @@ function VolunteerProfile() {
 								) : (
 									!fetchingEvents && (
 										<div className="text-center py-6 text-muted-foreground">
-											You haven't registered for any volunteer
-											activities yet.
+											You haven't registered for any
+											volunteer activities yet.
 										</div>
 									)
 								)}
@@ -1018,6 +969,12 @@ function VolunteerProfile() {
 					</div>
 				</div>
 			</div>
+			{/* Certificate Preview Modal */}
+			<CertificatePreviewModal
+				isOpen={certificateModalOpen}
+				onClose={() => setCertificateModalOpen(false)}
+				certificateData={certificateData}
+			/>
 		</>
 	);
 }
