@@ -97,7 +97,7 @@ class CertificateService {
 
 			return {
 				certificate_id: certificateId,
-				pdf_path: `/${certificateId}.pdf`,
+				pdf_path: `/certificates/${certificateId}.pdf`,
 			};
 		} catch (error) {
 			console.error("Error generating certificate:", error);
