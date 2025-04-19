@@ -119,7 +119,7 @@ async function seedTestData() {
 		// Create volunteer profile with verified NRIC
 		const volunteer = new Volunteer({
 			user_id: savedVolunteerUser._id,
-			name: "Test Volunteer",
+			name: "Daniel Gomez",
 			phone: "91234567",
 			bio: "I love volunteering for green causes.",
 			address: "123 Test Lane",
@@ -160,7 +160,7 @@ async function seedTestData() {
 		// Create organiser profile with verified certificate
 		const organiser = new Organiser({
 			user_id: savedOrganiserUser._id,
-			name: "Test Organisation",
+			name: "Youth Empowerment Network",
 			phone: "98765432",
 			description: "We host educational events.",
 			address: "456 Org Street",
@@ -227,6 +227,8 @@ async function seedTestData() {
 				description:
 					"Join us for a community beach cleanup event. Help keep our beaches clean and protect marine life.",
 				location: "Changi Beach",
+				locationUrl:
+					"https://maps.google.com/?q=Changi+Beach,Singapore",
 				causes: ["environment"],
 				max_volunteers: 20,
 				registered_count: 0,
@@ -245,6 +247,8 @@ async function seedTestData() {
 				description:
 					"Volunteer to read with children and support literacy skills development.",
 				location: "Public Library",
+				locationUrl:
+					"https://maps.google.com/?q=National+Library+Singapore",
 				causes: ["education"],
 				max_volunteers: 10,
 				registered_count: 0,
@@ -268,6 +272,8 @@ async function seedTestData() {
 				description:
 					"Help pack and distribute food packages to families in need in our community.",
 				location: "Central Community Center",
+				locationUrl:
+					"https://maps.google.com/?q=Community+Center+Singapore", // Add this line
 				causes: ["social services"],
 				max_volunteers: 25,
 				registered_count: 0,
@@ -275,9 +281,9 @@ async function seedTestData() {
 				contact_email: "testorganiser1@gmail.com",
 				status: "active",
 				is_recurring: false,
-				start_datetime: new Date("2025-04-10T10:00:00"),
-				end_datetime: new Date("2025-04-10T14:00:00"),
-				start_day_of_week: new Date("2025-04-10").getDay(),
+				start_datetime: new Date("2025-04-20T10:00:00"),
+				end_datetime: new Date("2025-04-20T14:00:00"),
+				start_day_of_week: new Date("2025-04-20").getDay(),
 				created_at: new Date(),
 			},
 		];
@@ -291,6 +297,7 @@ async function seedTestData() {
 			name: "Past Charity Run",
 			description: "A charity run that has already completed.",
 			location: "East Coast Park",
+			locationUrl: "https://maps.google.com/?q=East+Coast+Park+Singapore",
 			causes: ["healthcare"],
 			max_volunteers: 50,
 			registered_count: 1,
@@ -321,6 +328,9 @@ async function seedTestData() {
 			event_id: firstEvent._id,
 			status: "confirmed",
 			signup_date: new Date(),
+			attendance_status: "attended",
+			check_in_time: new Date(firstEvent.start_datetime),
+			check_out_time: new Date(firstEvent.end_datetime),
 		});
 
 		await registration.save();

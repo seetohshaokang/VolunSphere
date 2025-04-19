@@ -18,6 +18,7 @@ import {
   ClockIcon,
   Flag,
   Home,
+  MapPinIcon,
   RepeatIcon,
   ShieldAlert,
 } from "lucide-react";
@@ -1066,9 +1067,9 @@ function EventDetail() {
               Cancel
             </Button>
             <Button
-              variant={isSignedUp ? "destructive" : "default"}
+              variant="outline"
               onClick={isSignedUp ? cancelRegistration : confirmSignup}
-              className={isSignedUp ? "" : "border-2 border-black"}
+              className={isSignedUp ? "" : ""}
             >
               {isSignedUp ? "Confirm Cancellation" : "Confirm Signup"}
             </Button>

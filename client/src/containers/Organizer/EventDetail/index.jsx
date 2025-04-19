@@ -26,7 +26,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import ContentHeader from "../../../components/ContentHeader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import EventVolunteersModal from "@/components/EventVolunteersModal.jsx";
@@ -452,14 +451,6 @@ function OrganizerEventDetail() {
           </Link>
         </Button>
       </div>
-
-      <ContentHeader
-        title={event.title}
-        links={[
-          { to: "/organizer", label: "Home" },
-          { label: event.title, isActive: true },
-        ]}
-      />
 
       {/* Event header with edit button */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6">

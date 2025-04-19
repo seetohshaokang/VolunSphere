@@ -1,5 +1,5 @@
 // src/routes/AdminRoutes.jsx
-import MainLayout from "@/components/MainLayout";
+import AdminLayout from "@/components/AdminLayout";
 import AdminProfile from "@/containers/Admin/Profile";
 import { Route } from "react-router-dom";
 import AdminDashboard from "../containers/Admin/Dashboard";
@@ -17,7 +17,7 @@ export const AdminRoutes = (
 		path="/admin"
 		element={
 			<ProtectedRoute roleRequired="admin">
-				<MainLayout />
+				<AdminLayout />
 			</ProtectedRoute>
 		}
 	>

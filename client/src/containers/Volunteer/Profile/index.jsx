@@ -17,7 +17,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Eye, Loader2 } from "lucide-react";
+import { Award, Edit, Eye, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
@@ -41,6 +41,15 @@ const customInputStyles = `
 	input[type="date"]::-webkit-calendar-picker-indicator {
 		cursor: pointer !important;
 	}
+	
+	@media (max-width: 640px) {
+    .activity-buttons-cell .flex-row {
+      flex-direction: column;
+    }
+    .activity-buttons-cell button {
+      width: 100%;
+    }
+  }
 `;
 
 function VolunteerProfile() {
@@ -914,42 +923,48 @@ function VolunteerProfile() {
 															</Badge>
 														</TableCell>
 														<TableCell>
-															<div className="flex justify-start gap-2">
+															<div className="flex flex-col sm:flex-row gap-2">
 																<Button
 																	variant="outline"
 																	size="sm"
-																	className="p-2 h-9 w-9 border border-gray-300 rounded-md flex items-center justify-center"
+																	className="px-3 py-2 border border-gray-300 rounded-md flex items-center justify-center"
 																	asChild
 																>
 																	<Link
 																		to={`/volunteer/events/${eventId}`}
 																	>
-																		<Eye className="h-5 w-5" />
+																		<Eye className="h-4 w-4 mr-2" />
+																		Event
+																		Details
 																	</Link>
 																</Button>
+
+																{/* Only show certificate button for completed events */}
+																{status ===
+																	"completed" && (
+																	<Button
+																		variant="outline"
+																		size="sm"
+																		className="px-3 py-2 border border-gray-300 rounded-md flex items-center justify-center bg-blue-50 text-blue-700 hover:bg-blue-100"
+																		onClick={async () => {
+																			try {
+																				const response = await Api.generateCertificate(eventId);
+																				if (response.ok) {
+																					const data = await response.json();
+																					setCertificateData(data.data);
+																					setCertificateModalOpen(true);
+																				}
+																			} catch (error) {
+																				console.error("Error generating certificate:", error);
+																			}
+																		}}
+																	>
+																		<Award className="h-4 w-4 mr-2" />
+																		View
+																		Certificate
+																	</Button>
+																)}
 															</div>
-															{/* Only show certificate button for completed events */}
-															{status ===
-																"completed" && (
-																<CertificateButton
-																	eventId={
-																		eventId
-																	}
-																	eventName={
-																		eventName
-																	}
-																	onGenerated={(
-																		data
-																	) => {
-																		setCertificateData(
-																			data
-																		);
-																		setCertificateModalOpen(
-																			true
-																		);
-																	}}
-																/>
-															)}
 														</TableCell>
 													</TableRow>
 												);
