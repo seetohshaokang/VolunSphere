@@ -28,6 +28,14 @@ const eventSchema = new Schema({
     required: true,
     trim: true,
   },
+  latitude: {
+    type: Number,
+    trim: true,
+  },
+  longitude: {
+    type: Number,
+    trim: true,
+  },
   causes: [
     {
       type: String,

@@ -6,6 +6,7 @@ import OrganizerProfile from "../containers/Volunteer/OrganizerProfile";
 import VolunteerProfile from "../containers/Volunteer/Profile";
 import ReviewPage from "../containers/Volunteer/Review";
 import ProtectedRoute from "./ProtectedRoute";
+import EventMapContainer from "../containers/Volunteer/EventMapContainer";
 
 export const VolunteerRoutes = (
 	<>
@@ -51,6 +52,7 @@ export const VolunteerRoutes = (
 					</ProtectedRoute>
 				}
 			/>
+			<Route path="/events/map" element={<EventMapContainer />} />
 			<Route
 				path="/volunteer/events/:eventId"
 				element={

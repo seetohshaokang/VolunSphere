@@ -114,6 +114,8 @@ function OrganizerManageEvent() {
 				...formData,
 				location: selectedLocation.address || selectedLocation.name,
 				locationUrl: selectedLocation.locationUrl,
+				latitude: selectedLocation.latitude,
+				longitude: selectedLocation.longitude
 			});
 		}
 	};

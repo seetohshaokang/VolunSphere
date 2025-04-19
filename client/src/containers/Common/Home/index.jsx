@@ -2,8 +2,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 import EventCard from "../../../components/EventCard";
 import FilterControls from "../../../components/FilterControls";
 import ResultsHeader from "../../../components/ResultsHeader";
@@ -21,6 +22,9 @@ const customInputStyles = `
 `;
 
 function Home() {
+	// Get the navigate function
+	const navigate = useNavigate();
+	
 	// State management
 	const [events, setEvents] = useState([]);
 	const [filteredEvents, setFilteredEvents] = useState([]);
@@ -39,6 +43,11 @@ function Home() {
 			max: 1000,
 		},
 	});
+
+	// Navigate to map view
+	const handleMapViewClick = () => {
+		navigate("/events/map");
+	};
 
 	// Fetch all events initially
 	useEffect(() => {
@@ -77,6 +86,9 @@ function Home() {
 			clearInterval(refreshInterval);
 		};
 	}, []);
+
+	// Other existing functions: fetchEvents, handleSearchSubmit, handleInputChange, etc...
+	// (Keeping the rest of your code the same)
 
 	// Fetch events from API
 	const fetchEvents = async (searchQuery = "") => {
@@ -252,6 +264,15 @@ function Home() {
 					<h1 className="text-2xl font-bold mb-2 sm:mb-0 flex items-center">
 						Find Volunteer Opportunities
 					</h1>
+                    
+                    {/* Add the map view button here */}
+                    <Button 
+                        onClick={handleMapViewClick}
+                        className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+                    >
+                        <MapPin className="h-4 w-4" />
+                        <span>View Events on Map</span>
+                    </Button>
 				</div>
 				<div className="h-px bg-border mt-2"></div>
 			</div>

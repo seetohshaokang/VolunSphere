@@ -126,7 +126,9 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
                             setLocation({
                                 name: placeName,
                                 address: formattedAddress,
-                                locationUrl: locationUrl // Direct URL instead of calling the function
+                                locationUrl: locationUrl, // Direct URL instead of calling the function
+                                latitude: lat,
+                                longitude: lng
                             });
     
                             setSelectedPlace({
@@ -274,18 +276,20 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
                                                     const service = new window.google.maps.places.PlacesService(document.createElement('div'));
                                                     const request = {
                                                         placeId: place.place_id,
-                                                        fields: ['name', 'formatted_address']
+                                                        fields: ['name', 'formatted_address', 'geometry']
                                                     };
                                                     
                                                     service.getDetails(request, (placeDetails, status) => {
                                                         if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails) {
                                                             console.log("Place details fetched:", placeDetails);
+                                                            console.log("HEHE", placeDetails.geometry.location.lat());
                                                             const locationUrl = `https://www.google.com/maps/place/?q=place_id:${newPlaceId}`;
                                                             setLocation({
                                                                 address: placeDetails.formatted_address,
                                                                 name: placeDetails.name,
-                                                                locationUrl : locationUrl
-                                                                
+                                                                locationUrl : locationUrl,
+                                                                latitude: placeDetails.geometry.location.lat(),
+                                                                longitude: placeDetails.geometry.location.lng()
                                                             });
                                                             setAutocompleteInput(placeDetails.formatted_address);
                                                         } else {
