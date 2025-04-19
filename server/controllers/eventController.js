@@ -553,7 +553,6 @@ exports.createEvent = async (req, res) => {
 exports.getEventById = async (req, res) => {
 	try {
 		const { id } = req.params;
-
 		// Check if ID is valid
 		if (!mongoose.Types.ObjectId.isValid(id)) {
 			return res.status(400).json({ message: "Invalid event ID" });
@@ -564,7 +563,6 @@ exports.getEventById = async (req, res) => {
 			path: "organiser_id",
 			select: "name description profile_picture_url",
 		});
-
 		if (!event) {
 			return res.status(404).json({ message: "Event not found" });
 		}
@@ -615,7 +613,6 @@ exports.getEventById = async (req, res) => {
 				await Event.findByIdAndUpdate(id, { status: "completed" });
 			}
 		}
-
 		// Return event with verified registration count and dynamic status
 		return res.status(200).json({
 			...event._doc,

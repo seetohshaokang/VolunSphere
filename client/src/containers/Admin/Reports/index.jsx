@@ -6,6 +6,8 @@ const AdminReports = () => {
 	const [reports, setReports] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [userData, setUserData] = useState({}); // Store user data here
+	const [userDataLoading, setUserDataLoading] = useState(false);
 	const [pagination, setPagination] = useState({
 		page: 1,
 		pages: 1,
@@ -23,6 +25,88 @@ const AdminReports = () => {
 	useEffect(() => {
 		fetchReports();
 	}, [filters]);
+
+	// Add a new useEffect to fetch user data when reports change
+	useEffect(() => {
+		console.log("Reports changed, reports length:", reports.length);
+
+		// Skip if no reports
+		if (reports.length === 0) {
+			console.log("No reports to fetch user data for");
+			return;
+		}
+		console.log(reports);
+		const fetchUserData = async () => {
+			console.log("Starting to fetch user data");
+			setUserDataLoading(true);
+			try {
+				// Create a map to store user data by report ID
+				const reportUserMap = {};
+
+				// Process each report
+				for (const report of reports) {
+					reportUserMap[report._id] = {
+						reporter: null,
+						reported: null
+					};
+
+					// Fetch reporter data
+					if (report.reporter_id) {
+						const reporterId = typeof report.reporter_id === 'object' ? report.reporter_id._id : report.reporter_id;
+
+						try {
+							console.log(`Fetching reporter for report ${report._id}, ID: ${reporterId}`);
+							const response = await Api.getUserById(reporterId);
+							if (response.ok) {
+								const userData = await response.json();
+								reportUserMap[report._id].reporter = userData;
+							} else {
+								console.error(`Failed to fetch reporter ${reporterId}`);
+							}
+						} catch (err) {
+							console.error(`Error fetching reporter ${reporterId}:`, err);
+						}
+					}
+					// Fetch reported entity data
+					// Inside your fetchUserData function
+					if (report.reported_id) {
+						const reportedId = report.reported_id; // It's already a string
+						try {
+							console.log(`Fetching reported entity with ID: ${reportedId}, type: ${report.reported_type}`);
+
+							if (report.reported_type === "Event") {
+								const response = await Api.getEvent(reportedId);
+								console.log("eventid", reportedId);
+								if (response.ok) {
+									const eventData = await response.json();
+									reportUserMap[report._id].reported = eventData;
+								}
+							} else if (report.reported_type === "Volunteer" || report.reported_type === "Organiser") {
+								const response = await Api.getUserById(reportedId);
+
+								if (response.ok) {
+									const userData = await response.json();
+									reportUserMap[report._id].reported = userData;
+								}
+							}
+						} catch (err) {
+							console.error(`Error fetching reported entity ${reportedId}:`, err);
+						}
+					}
+				}
+
+				console.log("All user data fetched by report ID:", reportUserMap);
+				setUserData(reportUserMap);
+				console.log(reportUserMap);
+			} catch (err) {
+				console.error("Error in fetchUserData:", err);
+			} finally {
+				setUserDataLoading(false);
+			}
+		};
+
+		fetchUserData();
+	}, [reports]);
 
 	const fetchReports = async () => {
 		try {
@@ -51,6 +135,32 @@ const AdminReports = () => {
 			[name]: value,
 			page: 1, // Reset to first page when filter changes
 		}));
+	};
+	const getReportedEntityName = (report) => {
+		if (!report || !userData[report._id]?.reported) {
+			// Fallback to immediate reported_id data if available
+			return report.reported_id?.name ||
+				report.reported_id?.organisation_name ||
+				"Unknown";
+		}
+
+		const reportedData = userData[report._id].reported;
+
+		// Based on reported_type, extract the right property
+		if (report.reported_type === "Event") {
+			return reportedData.name || "Unknown Event";
+		} else if (report.reported_type === "Volunteer") {
+			return reportedData.profile?.name ||
+				reportedData.user?.email ||
+				"Unknown Volunteer";
+		} else if (report.reported_type === "Organiser") {
+			return reportedData.name ||
+				reportedData.profile?.name ||
+				reportedData.user?.email ||
+				"Unknown Organiser";
+		}
+
+		return "Unknown";
 	};
 
 	const handlePageChange = (newPage) => {
@@ -209,6 +319,13 @@ const AdminReports = () => {
 				</div>
 			)}
 
+			{/* User Data Loading Indicator */}
+			{!loading && userDataLoading && (
+				<div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
+					<p>Loading user data...</p>
+				</div>
+			)}
+
 			{/* Reports Table */}
 			{!loading && !error && (
 				<div className="bg-white rounded-lg shadow overflow-x-auto">
@@ -263,14 +380,16 @@ const AdminReports = () => {
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div>
 												<div className="text-sm font-medium text-gray-900">
-													{report.reporter_id
-														?.email || "Unknown"}
+													{userData[report._id]?.reporter?.user?.email ||
+														userData[report._id]?.reporter?.email ||
+														"Unknown"}
 												</div>
 												<div className="text-sm text-gray-500">
 													{report.reporter_role}
 												</div>
 											</div>
 										</td>
+
 										<td className="px-6 py-4 whitespace-nowrap">
 											<div>
 												<div className="text-sm font-medium text-gray-900">
@@ -278,19 +397,16 @@ const AdminReports = () => {
 														report.reported_type
 													)}
 												</div>
-												<div className="text-sm text-gray-500">
-													{report.reported_id?.name ||
-														report.reported_id
-															?.organisation_name ||
-														"Unknown"}
+												<div className="text-sm text-gray-500 truncate max-w-[150px]"
+													title={getReportedEntityName(report)}>
+													{getReportedEntityName(report)}
 												</div>
 											</div>
 										</td>
-										<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-											{report.reason.substring(0, 30)}
-											{report.reason.length > 30
-												? "..."
-												: ""}
+										<td className="px-6 py-4 whitespace-nowrap">
+											<div className="text-sm text-gray-500 truncate overflow-hidden whitespace-nowrap max-w-[100px]" title={report.reason}>
+												{report.reason}
+											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											{getStatusBadge(report.status)}
@@ -345,11 +461,10 @@ const AdminReports = () => {
 								handlePageChange(pagination.page - 1)
 							}
 							disabled={pagination.page === 1}
-							className={`px-4 py-2 border rounded ${
-								pagination.page === 1
-									? "bg-gray-100 text-gray-400 cursor-not-allowed"
-									: "bg-white text-gray-700 hover:bg-gray-50"
-							}`}
+							className={`px-4 py-2 border rounded ${pagination.page === 1
+								? "bg-gray-100 text-gray-400 cursor-not-allowed"
+								: "bg-white text-gray-700 hover:bg-gray-50"
+								}`}
 						>
 							Previous
 						</button>
@@ -358,11 +473,10 @@ const AdminReports = () => {
 								handlePageChange(pagination.page + 1)
 							}
 							disabled={pagination.page === pagination.pages}
-							className={`px-4 py-2 border rounded ${
-								pagination.page === pagination.pages
-									? "bg-gray-100 text-gray-400 cursor-not-allowed"
-									: "bg-white text-gray-700 hover:bg-gray-50"
-							}`}
+							className={`px-4 py-2 border rounded ${pagination.page === pagination.pages
+								? "bg-gray-100 text-gray-400 cursor-not-allowed"
+								: "bg-white text-gray-700 hover:bg-gray-50"
+								}`}
 						>
 							Next
 						</button>

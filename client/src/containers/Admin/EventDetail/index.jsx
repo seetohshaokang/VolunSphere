@@ -97,9 +97,6 @@ const AdminEventDetail = () => {
 			// Close modal
 			setShowStatusModal(false);
 			setStatusReason("");
-
-			// Show success message
-			alert("Event status updated successfully");
 		} catch (err) {
 			console.error("Error updating event status:", err);
 			toast.error(`Error: ${err.message}`);

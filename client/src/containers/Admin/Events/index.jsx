@@ -296,20 +296,22 @@ const AdminEvents = () => {
 													)}
 											</div>
 										</td>
+
 										<td className="px-6 py-4 whitespace-nowrap">
-											{event.organiser_id?.name ||
-												"Unknown"}
+											<div className="max-w-[150px] truncate" title={event.contact_person || "Unknown"}>
+												{event.contact_person || "Unknown"}
+											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											{event.is_recurring
 												? `${formatDate(
-														event.recurrence_start_date
-												  )} - ${formatDate(
-														event.recurrence_end_date
-												  )}`
+													event.recurrence_start_date
+												)} - ${formatDate(
+													event.recurrence_end_date
+												)}`
 												: formatDate(
-														event.start_datetime
-												  )}
+													event.start_datetime
+												)}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											{getStatusBadge(event.status)}
@@ -369,11 +371,10 @@ const AdminEvents = () => {
 								handlePageChange(pagination.page - 1)
 							}
 							disabled={pagination.page === 1}
-							className={`px-4 py-2 border rounded ${
-								pagination.page === 1
+							className={`px-4 py-2 border rounded ${pagination.page === 1
 									? "bg-gray-100 text-gray-400 cursor-not-allowed"
 									: "bg-white text-gray-700 hover:bg-gray-50"
-							}`}
+								}`}
 						>
 							Previous
 						</button>
@@ -382,11 +383,10 @@ const AdminEvents = () => {
 								handlePageChange(pagination.page + 1)
 							}
 							disabled={pagination.page === pagination.pages}
-							className={`px-4 py-2 border rounded ${
-								pagination.page === pagination.pages
+							className={`px-4 py-2 border rounded ${pagination.page === pagination.pages
 									? "bg-gray-100 text-gray-400 cursor-not-allowed"
 									: "bg-white text-gray-700 hover:bg-gray-50"
-							}`}
+								}`}
 						>
 							Next
 						</button>

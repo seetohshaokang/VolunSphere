@@ -452,8 +452,8 @@ exports.updateUserStatus = async (req, res) => {
         status === "suspended"
           ? "suspension"
           : status === "active"
-          ? "activation"
-          : "deactivation",
+            ? "activation"
+            : "deactivation",
       target_type: user.role,
       target_id: profile._id,
       reason: reason || `User ${status} by admin`,
@@ -759,8 +759,7 @@ exports.getReports = async (req, res) => {
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate("reporter_id", "email")
-      .populate("reported_id")
+      .populate("reporter_id")
       .populate("event_id");
 
     // Step 6: Count total matching reports for pagination metadata
@@ -817,19 +816,21 @@ exports.getReportById = async (req, res) => {
     }
 
     const { id } = req.params;
-
+    console.log("what id is this", id);
     // Step 2: Validate report ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid report ID" });
     }
 
+    const rawReport = await Report.findById(id).lean();
+    console.log("raw report:", rawReport);
     // Step 3: Fetch report with populated references
     const report = await Report.findById(id)
-      .populate("reporter_id", "email")
-      .populate("reported_id")
+      .populate("reporter_id")
       .populate("event_id")
-      .populate("resolved_by");
-
+      .populate("resolved_by")
+      
+      console.log(report);
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
     }
@@ -849,7 +850,7 @@ exports.getReportById = async (req, res) => {
  * Update report status
  *
  * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
+ * @param {Object} req.user - Authenhticated user information
  * @param {string} req.user.id - Admin user ID
  * @param {Object} req.params - URL parameters
  * @param {string} req.params.id - Report ID
