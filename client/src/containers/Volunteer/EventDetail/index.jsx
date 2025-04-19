@@ -29,7 +29,6 @@ import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import { getEventImageUrl } from "../../../helpers/eventHelper";
 
-// Map of numeric day values to weekday names
 const DAYS_OF_WEEK = {
   0: "Sunday",
   1: "Monday",
@@ -55,48 +54,35 @@ function EventDetail() {
   const [successMessage, setSuccessMessage] = useState(null);
   const [imageTimestamp, setImageTimestamp] = useState(Date.now());
   const [isLoading, setIsLoading] = useState(false);
-
-  // New state for report functionality
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [isReporting, setIsReporting] = useState(false);
-
-  // Add these state variables near the top of your component with other useState declarations
   const [showOrganizerProfileModal, setShowOrganizerProfileModal] =
     useState(false);
   const [organizerData, setOrganizerData] = useState(null);
   const [isLoadingOrganizer, setIsLoadingOrganizer] = useState(false);
 
-  // Update timestamp after fetching event details
   useEffect(() => {
     if (event) {
       setImageTimestamp(Date.now());
     }
   }, [event]);
 
-  // Reset the signup status when user changes or logs out
   useEffect(() => {
     fetchEventDetails();
-    // Only fetch details when eventId changes, not when user changes
-    // User changes are handled in a separate effect
   }, [eventId]);
 
-  // Separate useEffect for handling authentication changes
   useEffect(() => {
-    // If user is null (logged out), always reset signup status
     if (!user) {
       setIsSignedUp(false);
       setWasRemoved(false);
     } else if (event) {
-      // Only check signup status if user is logged in and event is loaded
       checkSignupStatus();
     }
   }, [user, event]);
 
-  // Update the useEffect dependencies to properly trigger signup status check
   useEffect(() => {
-    // Only check signup status if user is logged in and event is loaded
     if (user && event) {
       console.log(
         "Checking signup status for user:",
@@ -106,9 +92,8 @@ function EventDetail() {
       );
       checkSignupStatus();
     }
-  }, [user, event, eventId]); // Include eventId in the dependency array
+  }, [user, event, eventId]);
 
-  // Fetch event details with better error handling and signup status check
   const fetchEventDetails = async () => {
     setLoading(true);
     setError(null);
@@ -116,11 +101,9 @@ function EventDetail() {
     try {
       console.log("Fetching event details for event:", eventId);
 
-      // Using the Api helper to fetch event
       const response = await Api.getEvent(eventId);
 
       if (!response.ok) {
-        // Handle non-200 responses
         if (response.status === 404) {
           throw new Error("Event not found");
         } else {
@@ -133,7 +116,6 @@ function EventDetail() {
       console.log("Event data fetched successfully:", eventData.name);
       setEvent(eventData);
 
-      // After event is loaded and if user is logged in, check signup status
       if (user) {
         await checkSignupStatus();
       }
@@ -147,9 +129,7 @@ function EventDetail() {
     }
   };
 
-  // Enhance checkSignupStatus to better handle the response
   const checkSignupStatus = async () => {
-    // Do nothing if user is not logged in or no event
     if (!user || !event) {
       setIsSignedUp(false);
       setWasRemoved(false);
@@ -165,7 +145,6 @@ function EventDetail() {
         const data = await response.json();
         console.log("Signup status data:", data);
 
-        // Update state based on response
         setIsSignedUp(!!data.isSignedUp);
         setWasRemoved(!!data.wasRemoved);
         setRemovalReason(data.removalReason || "");
@@ -176,56 +155,48 @@ function EventDetail() {
           "Error response from signup status check:",
           response.status
         );
-        // If there's an error, assume not signed up
         setIsSignedUp(false);
         setWasRemoved(false);
       }
     } catch (err) {
       console.error("Error checking signup status:", err);
-      // Non-critical error, assume not signed up
       setIsSignedUp(false);
       setWasRemoved(false);
     }
   };
 
-  // Add this function to check if the volunteer is verified
   const checkVerificationStatus = async () => {
     try {
       const response = await Api.getUserProfile();
       if (response.ok) {
         const data = await response.json();
-        // For volunteers, we need to check the nric_image.verified property
         if (
           data.profile &&
           data.profile.nric_image &&
           data.profile.nric_image.verified
         ) {
-          return true; // Volunteer is verified
+          return true; 
         } else {
-          return false; // Volunteer is not verified
+          return false;
         }
       }
-      return false; // Default to not verified if API call fails
+      return false;
     } catch (err) {
       console.error("Error checking verification status:", err);
-      return false; // Default to not verified on error
+      return false;
     }
   };
 
-  // Update handleSignupClick to check verification status first
   const handleSignupClick = async () => {
     if (!user) {
-      // Redirect to login if not logged in
       navigate("/login", { state: { from: `/events/${eventId}` } });
       return;
     }
 
-    // Don't allow signup if previously removed
     if (wasRemoved) {
       return;
     }
-
-    // Check if event is at capacity before showing confirmation modal
+    
     if (
       event.max_volunteers > 0 &&
       (event.registered_count || 0) >= event.max_volunteers
@@ -236,15 +207,13 @@ function EventDetail() {
       return;
     }
 
-    // Check verification status before proceeding
     const isVerified = await checkVerificationStatus();
     if (!isVerified) {
-      // Show verification modal instead of confirmation modal
       setShowVerificationModal(true);
       return;
     }
 
-    // If volunteer is verified, show confirmation modal
+    // If volunteer is verified, show modal
     setShowConfirmModal(true);
   };
 
@@ -253,13 +222,11 @@ function EventDetail() {
     return Math.max(0, event.max_volunteers - (event.registered_count || 0));
   };
 
-  // Add handler for the verification modal's "Go to Profile" button
   const handleGoToProfile = () => {
     setShowVerificationModal(false);
     navigate("/profile");
   };
 
-  // Update the confirmSignup function to handle verification error
   const confirmSignup = async () => {
     setIsLoading(true);
 
@@ -272,27 +239,19 @@ function EventDetail() {
 
       if (response.ok) {
         setSuccessMessage("You have successfully signed up for this event.");
-
-        // Update state to reflect signup
         setIsSignedUp(true);
-
-        // Refresh event details to get updated volunteer count
         fetchEventDetails();
 
-        // Hide success message after 3 seconds
         setTimeout(() => {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        // Handle specific error cases
         if (data.message && data.message.includes("already signed up")) {
           setSuccessMessage("You are already signed up for this event.");
-          // Update the state to reflect the user is already signed up
           setIsSignedUp(true);
         } else if (data.message && data.message.includes("recurring event")) {
           setError(data.message || "Cannot sign up for recurring event");
         } else if (data.requiresVerification) {
-          // Show the verification modal instead of a simple error message
           setShowVerificationModal(true);
         } else {
           setError(
@@ -306,16 +265,13 @@ function EventDetail() {
     } finally {
       setIsLoading(false);
       setShowConfirmModal(false);
-      // Re-check signup status to ensure UI is consistent
       checkSignupStatus();
     }
   };
 
-  // Add this function to determine if an event is completed
   const isEventCompleted = () => {
     if (!event) return false;
 
-    // Find the first valid date from all possible date fields
     const dateField =
       event.end_datetime ||
       event.end_date ||
@@ -333,9 +289,7 @@ function EventDetail() {
     return eventDate < now;
   };
 
-  // Helper function to format date strings - improved to handle more date formats
   const formatDateRange = () => {
-    // For events with standard start and end dates
     if (event.start_date && event.end_date) {
       const startDate = new Date(event.start_date);
       const endDate = new Date(event.end_date);
@@ -356,7 +310,6 @@ function EventDetail() {
       }
     }
 
-    // For events with datetime fields (includes time)
     if (event.start_datetime) {
       const startDateTime = new Date(event.start_datetime);
 
@@ -378,14 +331,12 @@ function EventDetail() {
         const endDateTime = new Date(event.end_datetime);
 
         if (startDateTime.toDateString() === endDateTime.toDateString()) {
-          // Same day, show date once with time range
           const endTimeStr = endDateTime.toLocaleTimeString(
             undefined,
             timeOptions
           );
           return `${dateStr}, ${timeStr} - ${endTimeStr}`;
         } else {
-          // Different days, show complete range
           const endDateStr = endDateTime.toLocaleDateString(
             undefined,
             dateOptions
@@ -435,19 +386,12 @@ function EventDetail() {
 
       if (response.ok) {
         setSuccessMessage("Your registration has been cancelled.");
-
-        // Update state to reflect cancellation
         setIsSignedUp(false);
-
-        // Refresh event details to get updated volunteer count
         fetchEventDetails();
-
-        // Hide success message after 3 seconds
         setTimeout(() => {
           setSuccessMessage(null);
         }, 3000);
       } else {
-        // Handle error response
         setError(
           data.message || "Failed to cancel registration. Please try again."
         );
@@ -458,23 +402,19 @@ function EventDetail() {
     } finally {
       setIsLoading(false);
       setShowConfirmModal(false);
-      // Re-check signup status to ensure UI is consistent
       checkSignupStatus();
     }
   };
 
-  // Format recurring days for display
   const formatRecurringDays = (days) => {
     if (!days || days.length === 0) return "No days specified";
 
     return days.map((day) => DAYS_OF_WEEK[day]).join(", ");
   };
 
-  // Format time for display
   const formatTime = (time) => {
     if (!time) return "";
 
-    // If time is in 24-hour format (HH:MM), convert to 12-hour format
     if (time.match(/^\d{1,2}:\d{2}$/)) {
       const [hours, minutes] = time.split(":");
       const hour = parseInt(hours, 10);
@@ -486,20 +426,16 @@ function EventDetail() {
     return time;
   };
 
-  // Calculate filled spots
   const calculateFilledSpots = () => {
     if (!event || !event.max_volunteers) return 0;
     return Math.max(0, event.registered_count || 0);
   };
 
-  // Handle showing the report modal
   const handleReportClick = async () => {
     if (!user) {
-      // Redirect to login if not logged in
       navigate("/login", { state: { from: `/events/${eventId}` } });
       return;
     }
-    // Check verification status before proceeding
     const isVerified = await checkVerificationStatus();
     if (!isVerified) {
       setShowVerificationModal(true);
@@ -508,7 +444,6 @@ function EventDetail() {
     setShowReportModal(true);
   };
 
-  // Handle submitting a report
   const submitReport = async () => {
     if (!reportReason) {
       setError("Please provide a reason for reporting this event.");
@@ -532,7 +467,6 @@ function EventDetail() {
         setReportReason("");
         setReportDetails("");
 
-        // Hide success message after 3 seconds
         setTimeout(() => {
           setSuccessMessage(null);
         }, 3000);
@@ -548,17 +482,14 @@ function EventDetail() {
     }
   };
 
-  // Updated handleViewOrganizerProfile function
   const handleViewOrganizerProfile = async () => {
     try {
       setIsLoadingOrganizer(true);
 
-      // Get organizer ID from the event
       const organizerId = event.organiser_id?._id || event.organiser_id;
 
       if (!organizerId) {
         console.warn("No organizer ID available in event data");
-        // Fallback to event data
         setOrganizerData({
           name: event.contact_person || "Organization",
           email: event.contact_email || "Not provided",
@@ -572,14 +503,12 @@ function EventDetail() {
 
       console.log("Fetching organizer with ID:", organizerId);
 
-      // Use the updated API method
       const response = await Api.getOrganizerProfile(organizerId);
 
       if (response.ok) {
         const data = await response.json();
         console.log("Organizer data:", data);
 
-        // Format the data properly
         setOrganizerData({
           name: data.name || event.contact_person || "Organization",
           email: event.contact_email || "Not provided",
@@ -591,7 +520,6 @@ function EventDetail() {
         });
       } else {
         console.error("Failed to fetch organizer profile");
-        // Fallback to the event data
         setOrganizerData({
           name: event.contact_person || "Organization",
           email: event.contact_email || "Not provided",
@@ -603,7 +531,6 @@ function EventDetail() {
       setShowOrganizerProfileModal(true);
     } catch (err) {
       console.error("Error fetching organizer profile:", err);
-      // Fallback to using event data
       setOrganizerData({
         name: event.contact_person || "Organization",
         email: event.contact_email || "Not provided",
@@ -621,7 +548,6 @@ function EventDetail() {
     event.max_volunteers > 0 &&
     event.registered_count >= event.max_volunteers;
 
-  // Loading state
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -633,7 +559,6 @@ function EventDetail() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -647,7 +572,6 @@ function EventDetail() {
     );
   }
 
-  // No event found state
   if (!event) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -665,7 +589,7 @@ function EventDetail() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Back to Home button */}
+      {/* Back to Home */}
       <div className="flex justify-start mb-6">
         <Button variant="outline" className="flex items-center gap-2" asChild>
           <Link to="/">
@@ -841,7 +765,7 @@ function EventDetail() {
                 </p>
               </div>
 
-              {/* Requirements Section - if available */}
+              {/* Requirements Section */}
               {event.requirements && (
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold mb-2">Requirements</h3>
@@ -1011,10 +935,9 @@ function EventDetail() {
       <Dialog
         open={showConfirmModal}
         onOpenChange={(open) => {
-          // When dialog is closed, check signup status again
           if (!open) {
             setShowConfirmModal(false);
-            checkSignupStatus(); // Re-check signup status when dialog closes
+            checkSignupStatus();
           }
         }}
       >

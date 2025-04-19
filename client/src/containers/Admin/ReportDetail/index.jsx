@@ -9,8 +9,6 @@ const AdminReportDetail = () => {
 	const [report, setReport] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-
-	// State for status update modal
 	const [showStatusModal, setShowStatusModal] = useState(false);
 	const [newStatus, setNewStatus] = useState("");
 	const [adminNotes, setAdminNotes] = useState("");
@@ -34,7 +32,6 @@ const AdminReportDetail = () => {
 			}
 
 			setReport(data.report);
-			// Initialize with current status
 			setNewStatus(data.report.status);
 			setAdminNotes(data.report.admin_notes || "");
 			setResolutionAction(data.report.resolution_action || "none");
@@ -46,13 +43,10 @@ const AdminReportDetail = () => {
 		}
 	};
 
-	// Function to navigate to the reported user's detail page
 	const handleViewUserDetail = () => {
 		if (report.reported_type === "Event") {
-			// If it's an event, navigate to event detail page
 			navigate(`/admin/events/${report.reported_id._id}`);
 		} else {
-			// For Volunteer or Organiser, navigate to user detail page
 			navigate(`/admin/users/${report.reported_id.user_id}`);
 		}
 	};
@@ -72,7 +66,6 @@ const AdminReportDetail = () => {
 				reportType: report.reported_type,
 			});
 
-			// If resolving or dismissing, require admin notes
 			if (
 				(newStatus === "resolved" || newStatus === "dismissed") &&
 				!adminNotes
@@ -80,13 +73,9 @@ const AdminReportDetail = () => {
 				toast.error(
 					"Please provide admin notes for resolving or dismissing a report"
 				);
-				// alert(
-				// 	"Please provide admin notes for resolving or dismissing a report"
-				// );
 				return;
 			}
 
-			// If resolving, validate resolution action
 			if (
 				newStatus === "resolved" &&
 				resolutionAction === "none" &&
@@ -98,20 +87,17 @@ const AdminReportDetail = () => {
 				return;
 			}
 
-			// Prepare data for API call
 			const requestBody = {
 				status: newStatus,
-				admin_notes: adminNotes || "", // Ensure we send an empty string, not undefined
+				admin_notes: adminNotes || "", 
 			};
 
-			// Only add resolution_action when status is resolved
 			if (newStatus === "resolved") {
 				requestBody.resolution_action = resolutionAction;
 			}
 
 			console.log("Sending request body:", requestBody);
 
-			// Make direct fetch request to ensure correct data format
 			const response = await fetch(
 				`${Api.SERVER_PREFIX}/admin/reports/${id}`,
 				{
@@ -127,14 +113,11 @@ const AdminReportDetail = () => {
 				}
 			);
 
-			// Log the raw response status
 			console.log("Response status:", response.status);
 
-			// Try to get the response text first to see raw response
 			const responseText = await response.text();
 			console.log("Raw response text:", responseText);
 
-			// Parse JSON if possible
 			let data;
 			try {
 				data = JSON.parse(responseText);
@@ -154,32 +137,22 @@ const AdminReportDetail = () => {
 					data.message || "Failed to update report status"
 				);
 			}
-
-			// Update local state with new status
 			setReport(data.report);
-
-			// Close modal
 			setShowStatusModal(false);
-
-			// Show success notification
 			toast.success("Report status updated successfully");
-			// alert("Report status updated successfully");
 		} catch (err) {
 			console.error("Error updating report status:", err);
 			toast.error(`Error: ${err.message}`);
-			// alert(`Error: ${err.message}`);
 		} finally {
 			setUpdateLoading(false);
 		}
 	};
 
-	// Function to format date
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleString();
 	};
 
-	// Function to get appropriate status badge
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "pending":
@@ -276,7 +249,6 @@ const AdminReportDetail = () => {
 
 			{/* Report Information */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-				{/* Report Overview */}
 				<div className="bg-white rounded-lg shadow p-6 col-span-2">
 					<h2 className="text-xl font-semibold mb-4">
 						Report Overview
@@ -374,7 +346,7 @@ const AdminReportDetail = () => {
 					)}
 				</div>
 
-				{/* Reporter & Resolution Information */}
+				{/* Reporter Information */}
 				<div className="bg-white rounded-lg shadow p-6">
 					<h2 className="text-xl font-semibold mb-4">
 						Reporter & Resolution
@@ -540,7 +512,7 @@ const AdminReportDetail = () => {
 				)}
 			</div>
 
-			{/* Status Update Modal */}
+			{/* Status Update */}
 			{showStatusModal && (
 				<div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
 					<div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">

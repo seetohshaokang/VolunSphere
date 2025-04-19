@@ -1,4 +1,3 @@
-// client/src/containers/Auth/ForgotPassword/index.jsx
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -84,18 +83,6 @@ const ForgotPassword = () => {
 				</CardHeader>
 
 				<CardContent className="pt-6">
-					{/* {message && (
-						<Alert className="mb-4 border border-green-500 bg-green-100 text-green-700 px-4 py-3 rounded">
-							<AlertDescription>{message}</AlertDescription>
-						</Alert>
-					)}
-
-					{error && (
-						<Alert className="mb-4 border border-red-500 bg-red-100 text-red-700 px-4 py-3 rounded">
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					)} */}
-
 					<form onSubmit={handleSubmit} className="space-y-4">
 						<div className="space-y-2">
 							<Label htmlFor="email" className="text-gray-700">

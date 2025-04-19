@@ -13,7 +13,6 @@ const AdminReports = () => {
 		total: 0,
 	});
 
-	// Filters
 	const [filters, setFilters] = useState({
 		status: "",
 		reported_type: "",
@@ -49,7 +48,7 @@ const AdminReports = () => {
 		setFilters((prev) => ({
 			...prev,
 			[name]: value,
-			page: 1, // Reset to first page when filter changes
+			page: 1,
 		}));
 	};
 
@@ -61,7 +60,6 @@ const AdminReports = () => {
 		}));
 	};
 
-	// Function to get appropriate status badge
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "pending":
@@ -97,7 +95,6 @@ const AdminReports = () => {
 		}
 	};
 
-	// Function to get reported type badge
 	const getReportedTypeBadge = (type) => {
 		switch (type) {
 			case "Volunteer":
@@ -127,7 +124,6 @@ const AdminReports = () => {
 		}
 	};
 
-	// Function to format date
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleString();

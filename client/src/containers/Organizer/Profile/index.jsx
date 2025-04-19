@@ -1,4 +1,3 @@
-// client/src/containers/Organizer/Profile/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +23,7 @@ import DocumentUploader from "../../../components/DocumentUploader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 
-// Add custom focus styles for inputs
+//custom styles
 const customInputStyles = `
 	.custom-input:focus {
 		border-width: 2px;
@@ -45,10 +44,10 @@ function OrganizerProfile() {
 	const [fetchingEvents, setFetchingEvents] = useState(false);
 	const [eventsError, setEventsError] = useState(null);
 	const [profile, setProfile] = useState({
-		firstName: "", // Company name
+		firstName: "",
 		email: "",
 		phone: "",
-		description: "", // Organization description
+		description: "",
 		avatar: null,
 		avatarFile: null,
 		address: "",
@@ -60,7 +59,6 @@ function OrganizerProfile() {
 	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
 	useEffect(() => {
-		// Redirect if not an organizer
 		if (user && user.role !== "organiser") {
 			navigate("/");
 			return;
@@ -88,8 +86,6 @@ function OrganizerProfile() {
 
 			const data = await response.json();
 			console.log("Profile data received:", data);
-
-			// Create a default profile data structure
 			const profileData = {
 				firstName: "",
 				email: data.user.email || "Email not provided",
@@ -102,7 +98,6 @@ function OrganizerProfile() {
 				verification_status: "pending",
 			};
 
-			// For organizer, company name goes into firstName
 			profileData.firstName = data.profile.name || "";
 			profileData.description = data.profile.description || "";
 			profileData.website = data.profile.website || "";
@@ -149,7 +144,6 @@ function OrganizerProfile() {
 				return;
 			}
 
-			// For organizers, just set all events
 			setEvents(eventsData);
 		} catch (err) {
 			setEventsError(`Failed to load organized events: ${err.message}`);
@@ -166,7 +160,6 @@ function OrganizerProfile() {
 	const handleFileChange = (e) => {
 		const file = e.target.files[0];
 		if (file) {
-			// Create a preview URL for display purposes
 			const imageUrl = URL.createObjectURL(file);
 			setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
 		}
@@ -179,11 +172,10 @@ function OrganizerProfile() {
 		setSuccess(null);
 
 		try {
-			// Create FormData for the API call
 			const formData = new FormData();
 			formData.append("name", profile.firstName.trim());
 			formData.append("phone", profile.phone);
-			formData.append("description", profile.description); // Organization description
+			formData.append("description", profile.description);
 			formData.append("address", profile.address);
 			formData.append("website", profile.website);
 
@@ -203,7 +195,6 @@ function OrganizerProfile() {
 			setSuccess("Profile updated successfully!");
 			setIsEditing(false);
 
-			// Update the profile data in the auth context
 			if (typeof refreshProfile === "function") {
 				refreshProfile();
 			}
@@ -217,20 +208,16 @@ function OrganizerProfile() {
 		}
 	};
 
-	// Function to handle avatar URL with potential cache busting
 	const getAvatarUrl = () => {
 		if (!profile.avatar) {
 			return "/src/assets/default-avatar-red.png";
 		}
 
-		// If it's a full URL
 		if (profile.avatar.startsWith("http")) {
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
 
-		// If it's a relative path with a file extension
 		if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
-			// Determine if it's a server-hosted image or a local asset
 			if (
 				profile.avatar.startsWith("/uploads/") ||
 				profile.avatar.includes("profile-")
@@ -241,8 +228,6 @@ function OrganizerProfile() {
 			}
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
-
-		// If it's just a filename (most likely from server)
 		return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
 	};
 
@@ -261,29 +246,16 @@ function OrganizerProfile() {
 
 	return (
 		<div className="min-h-screen">
-			{/* Add style tag for custom input styles */}
 			<style>{customInputStyles}</style>
 
-			{/* Main content container with width constraints matching main page */}
+			{/* Main content container */}
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
 				<ContentHeader
 					title="My Profile"
 					links={[]}
 					className="mt-8 mb-8"
 				/>
-
-				{/* {error && (
-					<Alert variant="destructive" className="mb-6">
-						<AlertDescription>{error}</AlertDescription>
-					</Alert>
-				)}
-
-				{success && (
-					<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
-						<AlertDescription>{success}</AlertDescription>
-					</Alert>
-				)} */}
-
+				
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					<Card className="md:col-span-1">
 						<CardContent className="p-6 flex flex-col items-center text-center">

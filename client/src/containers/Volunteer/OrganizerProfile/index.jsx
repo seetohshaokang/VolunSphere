@@ -1,4 +1,3 @@
-// src/containers/OrganiserProfile/index.jsx
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,63 +36,26 @@ function OrganisationProfile() {
 			setError(null);
 
 			try {
-				// Need to update this with API Calls
-				const mockOrganisation = {
-					_id: id,
-					organisation_name: "The Community Foundation of Singapore",
-					description: "Founded in 2008, the Community Foundation of Singapore (CFS) is the country's only community foundation. We are a registered charity with Institution of a Public Character (IPC) status. We believe in enabling giving that is thoughtful and impactful, working with donors to develop customised giving plans that are aligned to their values and passions.",
-					phone: "+65 6550 9529",
-					profile_picture_url: "/src/assets/default-avatar-red.png",
-					verification_status: "verified",
-					address: "6 Eu Tong Sen Street, #04-88, The Central, Singapore 059817",
-					website: "https://www.cf.org.sg",
-					email: "contactus@cf.org.sg",
-					established: "2008",
-					team_size: "25-50 members",
-					social_media: {
-						facebook: "https://facebook.com/CommunityFoundationofSG",
-						instagram: "https://instagram.com/commfoundationsg"
-					}
-				};
-
-				const mockEvents = [
-					{
-						id: "e1",
-						name: "Healthcare Support Program",
-						date: "Every Tuesday",
-						description: "Weekly health support sessions for elderly",
-						location: "Various Community Centers",
-						registered_count: 12,
-						max_volunteers: 25,
-						status: "active",
-						image_url: "/src/assets/default-event.jpg"
-					},
-					{
-						id: "e2",
-						name: "Annual Fundraising Gala",
-						date: "2025-06-15",
-						description: "Our annual charity gala to raise funds for community programs",
-						location: "Marina Bay Sands Convention Centre",
-						registered_count: 30,
-						max_volunteers: 50,
-						status: "active",
-						image_url: "/src/assets/default-event.jpg"
-					},
-					{
-						id: "e3",
-						name: "Community Care Day",
-						date: "2025-05-10",
-						description: "A day dedicated to providing care packages and services to underprivileged families",
-						location: "Various HDB Estates",
-						registered_count: 18,
-						max_volunteers: 40,
-						status: "active",
-						image_url: "/src/assets/default-event.jpg"
-					}
-				];
-
-				setOrganisation(mockOrganisation);
-				setEvents(mockEvents);
+				const orgResponse = await Api.getOrganizerProfile(id);
+				
+				if (!orgResponse.ok) {
+					const errorData = await orgResponse.json().catch(() => ({}));
+					throw new Error(errorData.message || "Failed to fetch organization");
+				}
+				
+				const orgData = await orgResponse.json();
+				setOrganisation(orgData);
+				
+				const eventsResponse = await Api.getOrganizerEvents(id);
+				
+				if (eventsResponse.ok) {
+					const eventsData = await eventsResponse.json();
+					setEvents(eventsData);
+				} else {
+					console.error("Failed to fetch organization events");
+					setEvents([]);
+				}
+				
 				setLoading(false);
 			} catch (err) {
 				console.error("Error fetching organiser data:", err);
@@ -118,14 +80,18 @@ function OrganisationProfile() {
 
 		setSubmittingReport(true);
 		try {
+			const response = await Api.reportOrganizer(id, reportReason, reportDetails);
 
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.message || "Failed to submit report");
+			}
 
 			setReportSuccess(true);
-			setSubmittingReport(false);
 		} catch (err) {
 			console.error("Error reporting organisation:", err);
 			setError("Failed to submit report. Please try again.");
+		} finally {
 			setSubmittingReport(false);
 		}
 	};

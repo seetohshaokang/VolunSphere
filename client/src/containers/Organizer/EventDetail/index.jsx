@@ -38,7 +38,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Map of numeric day values to weekday names
 const DAYS_OF_WEEK = {
   0: "Sunday",
   1: "Monday",
@@ -71,10 +70,8 @@ function OrganizerEventDetail() {
       setError(null);
 
       try {
-        // Fetch the event data from the API
         const response = await Api.getEvent(eventId);
 
-        // Check for auth issues
         if (response.status === 401) {
           setAuthError(true);
           setLoading(false);
@@ -88,10 +85,8 @@ function OrganizerEventDetail() {
         const eventData = await response.json();
         console.log("Raw event data:", eventData);
 
-        // Store the raw event data for reference
         setRawEventData(eventData);
 
-        // Format dates properly
         let formattedStartDate = "";
         let formattedEndDate = "";
         let recurrenceInfo = null;
@@ -129,14 +124,12 @@ function OrganizerEventDetail() {
           };
         }
 
-        // Format date string
         const dateString = formattedStartDate
           ? formattedEndDate
             ? `${formattedStartDate} - ${formattedEndDate}`
             : formattedStartDate
           : "Date not specified";
 
-        // Transform the API data to match our component's expected format
         const formattedEvent = {
           id: eventData._id || eventData.id,
           title: eventData.name || "Event Name",
@@ -162,7 +155,7 @@ function OrganizerEventDetail() {
           status: eventData.status || "active",
           isRecurring: eventData.is_recurring || false,
           recurrenceInfo: recurrenceInfo,
-          // For single events
+          //Singel Events
           startTime: eventData.start_datetime
             ? new Date(eventData.start_datetime).toLocaleTimeString([], {
               hour: "2-digit",
@@ -190,7 +183,6 @@ function OrganizerEventDetail() {
     fetchEventDetails();
   }, [eventId, user?.email]);
 
-  // Add this after your state declarations
   const fetchUpdatedEvent = async () => {
     try {
       console.log("Fetching fresh event data after volunteer removal");
@@ -204,11 +196,8 @@ function OrganizerEventDetail() {
       console.log("Updated event data:", eventData);
       console.log("Updated registered count:", eventData.registered_count);
 
-      // Store the raw event data for reference
       setRawEventData(eventData);
 
-      // Format dates properly and update the event state
-      // (Reusing the same logic you have in your initial useEffect)
       let formattedStartDate = "";
       let formattedEndDate = "";
       let recurrenceInfo = null;
@@ -225,30 +214,19 @@ function OrganizerEventDetail() {
         ).toLocaleDateString();
       }
 
-      // For recurring events
-      if (eventData.is_recurring) {
-        // Your existing recurring event logic
-        // ...
-      }
-
-      // Format date string
       const dateString = formattedStartDate
         ? formattedEndDate
           ? `${formattedStartDate} - ${formattedEndDate}`
           : formattedStartDate
         : "Date not specified";
 
-      // Transform the API data to match our component's expected format
       const formattedEvent = {
         id: eventData._id || eventData.id,
         title: eventData.name || "Event Name",
-        // Include all other fields as in your original code
-        // ...
         remainingSlots: eventData.max_volunteers
           ? eventData.max_volunteers - (eventData.registered_count || 0)
           : 0,
         totalSlots: eventData.max_volunteers || 0,
-        // ... rest of your event fields
       };
 
       setEvent(formattedEvent);
@@ -266,15 +244,12 @@ function OrganizerEventDetail() {
     return filledSpots;
   };
 
-  // In the parent component, modify the refreshEventData function to completely re-fetch
-  // Simplest refresh function possible
   const refreshEventData = async () => {
     try {
       const response = await Api.getEvent(eventId);
       if (response.ok) {
         const updatedEvent = await response.json();
 
-        // Update the event state with the latest data
         setEvent({
           ...event,
           registered_count: updatedEvent.registered_count,
@@ -299,7 +274,6 @@ function OrganizerEventDetail() {
         throw new Error(errorData.message || "Failed to delete event");
       }
 
-      // Redirect to events list after successful deletion
       navigate("/organizer");
     } catch (err) {
       console.error("Error deleting event:", err);
@@ -310,18 +284,15 @@ function OrganizerEventDetail() {
     }
   };
 
-  // Format recurring days for display
   const formatRecurringDays = (days) => {
     if (!days || days.length === 0) return "No days specified";
 
     return days.map((day) => DAYS_OF_WEEK[day]).join(", ");
   };
 
-  // Format time for display
   const formatTime = (time) => {
     if (!time) return "";
 
-    // If time is in 24-hour format (HH:MM), convert to 12-hour format
     if (time.match(/^\d{1,2}:\d{2}$/)) {
       const [hours, minutes] = time.split(":");
       const hour = parseInt(hours, 10);
@@ -333,7 +304,6 @@ function OrganizerEventDetail() {
     return time;
   };
 
-  // Edit Mode functions
   const toggleEditMode = () => {
     if (isEditing) {
       setEditedEvent(event);
@@ -354,7 +324,6 @@ function OrganizerEventDetail() {
 
   const confirmSaveChanges = async () => {
     try {
-      // Convert the edited data to the format expected by the API
       const apiEventData = {
         name: editedEvent.title,
         description: editedEvent.description,
@@ -366,10 +335,6 @@ function OrganizerEventDetail() {
         contact_person: editedEvent.contactPerson,
         contact_email: editedEvent.contactEmail,
       };
-
-      // In a real implementation, uncomment this to actually update the event
-      // const response = await Api.updateEvent(event.id, apiEventData);
-      // if (!response.ok) throw new Error("Failed to update event");
 
       setEvent(editedEvent);
       setIsEditing(false);
@@ -386,7 +351,6 @@ function OrganizerEventDetail() {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -396,7 +360,6 @@ function OrganizerEventDetail() {
     );
   }
 
-  // Auth error state
   if (authError) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -414,7 +377,6 @@ function OrganizerEventDetail() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -431,7 +393,6 @@ function OrganizerEventDetail() {
     );
   }
 
-  // No event found state
   if (!event) {
     return (
       <Alert variant="destructive" className="my-6">
@@ -452,7 +413,7 @@ function OrganizerEventDetail() {
         </Button>
       </div>
 
-      {/* Event header with edit button */}
+      {/* Event header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-800 mb-2">
@@ -551,7 +512,6 @@ function OrganizerEventDetail() {
       <Card className="mb-6 shadow-sm">
         <CardContent className="p-6">
           {isEditing ? (
-            /* Edit mode */
             <div className="space-y-6">
               <div>
                 <Label htmlFor="title">Event Title</Label>
@@ -717,7 +677,6 @@ function OrganizerEventDetail() {
               </div>
             </div>
           ) : (
-            /* View mode */
             <>
               {/* Banner image */}
               <div className="mb-6">

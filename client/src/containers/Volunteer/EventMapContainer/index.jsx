@@ -24,7 +24,6 @@ const EventMapContainer = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if Google Maps API key is configured
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       console.warn("Google Maps API key is not configured");
@@ -33,7 +32,7 @@ const EventMapContainer = () => {
   }, []);
 
   const handleBackClick = () => {
-    navigate("/"); // Navigate back to home
+    navigate("/");
   };
 
   return (

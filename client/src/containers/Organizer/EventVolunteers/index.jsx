@@ -1,4 +1,3 @@
-// src/containers/Organizer/EventVolunteers/index.jsx
 import ContentHeader from "@/components/ContentHeader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +38,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
 
-// Add custom focus styles for search inputs
+//custom styles
 const customInputStyles = `
   .search-input:focus, .custom-textarea:focus {
     border-width: 2px;
@@ -79,14 +78,11 @@ const EventVolunteersPage = () => {
 
 	useEffect(() => {
 		if (eventId) {
-			// Fetch event details to get the name
 			fetchEventDetails();
-			// Fetch volunteers list
 			fetchVolunteers();
 		}
 	}, [eventId]);
 
-	// Filter volunteers whenever the search query changes
 	useEffect(() => {
 		if (volunteers.length > 0) {
 			filterVolunteers();
@@ -136,7 +132,6 @@ const EventVolunteersPage = () => {
 	const filterVolunteers = () => {
 		let filtered = volunteers;
 
-		// Apply search filtering if there's a search query
 		if (searchQuery.trim()) {
 			const query = searchQuery.toLowerCase().trim();
 			filtered = volunteers.filter((registration) => {
@@ -149,11 +144,9 @@ const EventVolunteersPage = () => {
 			});
 		}
 
-		// Store the total filtered results (needed for pagination)
 		setFilteredVolunteers(filtered);
 	};
 
-	// Add a function to get current page items
 	const getCurrentPageVolunteers = () => {
 		const indexOfLastVolunteer = currentPage * volunteersPerPage;
 		const indexOfFirstVolunteer = indexOfLastVolunteer - volunteersPerPage;
@@ -163,12 +156,10 @@ const EventVolunteersPage = () => {
 		);
 	};
 
-	// Add a function to handle page changes
 	const handlePageChange = (page) => {
 		setCurrentPage(page);
 	};
 
-	// Handle check-in
 	const handleCheckIn = async (registrationId) => {
 		try {
 			console.log(
@@ -195,12 +186,10 @@ const EventVolunteersPage = () => {
 		}
 	};
 
-	// Direct reset of check-in status
 	const handleUndoCheckIn = async (registrationId) => {
 		try {
 			console.log(`Undoing check-in for registration ${registrationId}`);
 
-			// Use the new direct reset method instead of checkOutRegistration
 			const response = await Api.resetCheckInStatus(registrationId);
 
 			if (!response.ok) {
@@ -210,7 +199,6 @@ const EventVolunteersPage = () => {
 
 			console.log("Check-in status successfully reset");
 
-			// Refresh the list after update
 			await fetchVolunteers();
 		} catch (err) {
 			console.error("Error undoing check-in:", err);
@@ -231,13 +219,11 @@ const EventVolunteersPage = () => {
 
 		setIsRemoving(true);
 		try {
-			// Send the request to remove the volunteer
 			const response = await Api.removeEventSignup(eventId, {
 				registrationId: selectedVolunteer._id,
 				reason: removalReason || "Removed by event organizer",
 			});
 
-			// Check if the request was successful
 			if (!response.ok) {
 				const errorData = await response.json();
 				throw new Error(
@@ -247,7 +233,6 @@ const EventVolunteersPage = () => {
 			if (response.ok) {
 				console.log("Volunteer removal successful");
 
-				// Add a verification call to check the current registration count
 				const verifyResponse = await Api.getEvent(eventId);
 				const verifyData = await verifyResponse.json();
 				console.log(
@@ -258,7 +243,6 @@ const EventVolunteersPage = () => {
 
 			setShowRemoveDialog(false);
 
-			// Refresh the volunteers list
 			await fetchVolunteers();
 		} catch (err) {
 			console.error("Error removing volunteer:", err);
@@ -279,7 +263,6 @@ const EventVolunteersPage = () => {
 			setIsExporting(true);
 			console.log("Starting CSV export process");
 
-			// Define the header row - now includes a Checked In column
 			const headers = [
 				"Volunteer Name",
 				"Status",
@@ -289,10 +272,8 @@ const EventVolunteersPage = () => {
 				"Check-in Time",
 			];
 
-			// Format the data for CSV export
 			const rows = volunteers.map((registration) => [
 				registration.volunteer_data?.name || "N/A",
-				// Status
 				registration.status === "removed_by_organizer"
 					? "Removed"
 					: registration.attendance_status === "attended"
@@ -302,9 +283,7 @@ const EventVolunteersPage = () => {
 					: "Registered",
 				registration.volunteer_data?.phone || "N/A",
 				new Date(registration.signup_date).toLocaleDateString(),
-				// Checked in column (Yes/No) - now based on check_in_time
 				registration.check_in_time ? "Yes" : "No",
-				// Check-in time
 				registration.check_in_time
 					? new Date(registration.check_in_time).toLocaleString()
 					: "N/A",
@@ -314,17 +293,14 @@ const EventVolunteersPage = () => {
 			const csvContent = [
 				headers.join(","),
 				...rows.map((row) =>
-					// Handle commas and quotes in data
 					row
 						.map((cell) => {
-							// If cell contains commas, quotes, or newlines, wrap in quotes
 							if (
 								cell &&
 								(cell.includes(",") ||
 									cell.includes('"') ||
 									cell.includes("\n"))
 							) {
-								// Replace double quotes with double double quotes
 								return `"${cell.replace(/"/g, '""')}"`;
 							}
 							return cell;
@@ -333,15 +309,12 @@ const EventVolunteersPage = () => {
 				),
 			].join("\n");
 
-			// Create a blob with the CSV data
 			const blob = new Blob([csvContent], {
 				type: "text/csv;charset=utf-8;",
 			});
 
-			// Create a URL for the blob
 			const url = URL.createObjectURL(blob);
 
-			// Create a link element to download the CSV
 			const link = document.createElement("a");
 			link.href = url;
 			link.setAttribute(
@@ -352,10 +325,8 @@ const EventVolunteersPage = () => {
 			);
 			document.body.appendChild(link);
 
-			// Click the link to download the file
 			link.click();
 
-			// Clean up
 			document.body.removeChild(link);
 			URL.revokeObjectURL(url);
 
@@ -391,8 +362,6 @@ const EventVolunteersPage = () => {
 		setIsReporting(true);
 
 		try {
-			// Look for the correct ID path within the volunteer data structure
-			// First try to get the user ID associated with the volunteer
 			const volunteerId =
 				volunteerToReport.volunteer_data?.user_id ||
 				volunteerToReport.volunteer_data?._id;
@@ -417,7 +386,6 @@ const EventVolunteersPage = () => {
 				details: reportDetails || "",
 			});
 
-			// Add a helper method to Api.js if you haven't already
 			const response = await fetch(`${Api.SERVER_PREFIX}/reports`, {
 				method: "POST",
 				headers: {
@@ -446,7 +414,6 @@ const EventVolunteersPage = () => {
 				setReportReason("");
 				setReportDetails("");
 
-				// Hide success message after 3 seconds
 				setTimeout(() => {
 					setSuccessMessage(null);
 				}, 3000);
@@ -475,7 +442,6 @@ const EventVolunteersPage = () => {
 			return;
 		}
 
-		// Add a detailed console log to see exactly what data we have
 		console.log(
 			"Showing volunteer profile - detailed data:",
 			JSON.stringify(registration, null, 2)
@@ -486,7 +452,6 @@ const EventVolunteersPage = () => {
 
 	return (
 		<div className="container mx-auto p-4 md:p-6">
-			{/* Add style tag for custom search input styles */}
 			<style>{customInputStyles}</style>
 
 			<ContentHeader title={`Registered Volunteers - ${eventName}`} />
@@ -524,20 +489,6 @@ const EventVolunteersPage = () => {
 					<CardTitle>Registered Volunteers</CardTitle>
 				</CardHeader>
 				<CardContent>
-					{/* {error && (
-						<Alert variant="destructive" className="mb-6">
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					)}
-
-					{successMessage && (
-						<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
-							<AlertDescription>
-								{successMessage}
-							</AlertDescription>
-						</Alert>
-					)} */}
-
 					{/* Search Bar */}
 					<div className="relative mb-6">
 						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -588,7 +539,7 @@ const EventVolunteersPage = () => {
 									{getCurrentPageVolunteers().map(
 										(registration) => (
 											<TableRow key={registration._id}>
-												{/* Simplified volunteer cell with just the name */}
+												{/* Simplified volunteer cell */}
 												<TableCell className="font-medium">
 													<button
 														onClick={() =>
@@ -648,7 +599,7 @@ const EventVolunteersPage = () => {
 														registration.signup_date
 													).toLocaleDateString()}
 												</TableCell>
-												{/* Checked In column with tick mark */}
+												{/* Checked In column */}
 												<TableCell className="text-center">
 													{registration.check_in_time ? (
 														<div className="flex justify-center">
@@ -668,7 +619,6 @@ const EventVolunteersPage = () => {
 														{registration.status !==
 															"removed_by_organizer" && (
 															<>
-																{/* Conditionally show either Check In or Undo button */}
 																{registration.check_in_time ? (
 																	<Button
 																		variant="outline"
@@ -710,7 +660,6 @@ const EventVolunteersPage = () => {
 																	</Button>
 																)}
 
-																{/* Remove button */}
 																<Button
 																	variant="outline"
 																	size="sm"
@@ -725,7 +674,6 @@ const EventVolunteersPage = () => {
 																	<UserX className="h-4 w-4" />
 																</Button>
 
-																{/* Report button */}
 																<Button
 																	variant="outline"
 																	size="sm"
@@ -986,11 +934,6 @@ const EventVolunteersPage = () => {
 												"Not provided"}
 										</span>
 
-										{/* 
-                      Note: Based on the data structure, email is not available 
-                      in the current API response for volunteers
-                    */}
-
 										<span className="text-gray-600">
 											Date of Birth:
 										</span>
@@ -1098,7 +1041,6 @@ const EventVolunteersPage = () => {
 
 			{/* Pagination Component */}
 			<div className="mt-4 flex justify-center gap-2">
-				{/* Only show Previous if not on first page and there's more than one page */}
 				{currentPage > 1 && (
 					<Button
 						variant="outline"
@@ -1118,7 +1060,6 @@ const EventVolunteersPage = () => {
 						),
 					}).map((_, index) => {
 						const pageNumber = index + 1;
-						// Show only a limited number of pages
 						if (
 							pageNumber === 1 ||
 							pageNumber ===
@@ -1164,7 +1105,6 @@ const EventVolunteersPage = () => {
 					})}
 				</div>
 
-				{/* Only show Next if not on last page and there's more than one page */}
 				{currentPage <
 					Math.ceil(
 						filteredVolunteers.length / volunteersPerPage
@@ -1178,7 +1118,7 @@ const EventVolunteersPage = () => {
 				)}
 			</div>
 
-			{/* Add a text showing the page information */}
+			{/* Page information Text */}
 			<div className="mt-2 text-center text-sm text-gray-500">
 				Page {currentPage} of{" "}
 				{Math.max(

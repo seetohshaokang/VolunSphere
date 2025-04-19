@@ -1,4 +1,3 @@
-// src/containers/Admin/UserDetail/index.jsx
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -8,12 +7,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { ShieldAlert } from "lucide-react"; // Add ShieldAlert import
+import { ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
-import DocumentViewer from "../../../components/DocumentViewer"; // Import DocumentViewer instead of just NricViewer
+import DocumentViewer from "../../../components/DocumentViewer";
 import Api from "../../../helpers/Api";
 
 const AdminUserDetail = () => {
@@ -22,15 +21,11 @@ const AdminUserDetail = () => {
 	const [userData, setUserData] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-
-	// State for status update modal
 	const [showStatusModal, setShowStatusModal] = useState(false);
 	const [newStatus, setNewStatus] = useState("");
 	const [statusReason, setStatusReason] = useState("");
 	const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 	const [showReasonWarning, setShowReasonWarning] = useState(false);
-
-	// State for document rejection modal (works for both NRIC and certification)
 	const [showRejectionModal, setShowRejectionModal] = useState(false);
 	const [rejectionReason, setRejectionReason] = useState("");
 	const [rejectionLoading, setRejectionLoading] = useState(false);
@@ -38,8 +33,7 @@ const AdminUserDetail = () => {
 		useState(false);
 	const [isRejectionForVolunteer, setIsRejectionForVolunteer] =
 		useState(false);
-
-	const [showVerificationModal, setShowVerificationModal] = useState(false); // Add this state
+	const [showVerificationModal, setShowVerificationModal] = useState(false);
 
 	useEffect(() => {
 		fetchUserData();
@@ -56,7 +50,6 @@ const AdminUserDetail = () => {
 			}
 
 			setUserData(data);
-			// Initialize new status with current status
 			if (data.user) {
 				setNewStatus(data.user.status);
 			}
@@ -94,7 +87,6 @@ const AdminUserDetail = () => {
 				throw new Error(data.message || "Failed to update user status");
 			}
 
-			// Update local state with new status
 			setUserData((prev) => ({
 				...prev,
 				user: {
@@ -103,30 +95,24 @@ const AdminUserDetail = () => {
 				},
 			}));
 
-			// Close modal and reset
 			setShowStatusModal(false);
 			setStatusReason("");
 
-			// Show success notification
-			// alert('User status updated successfully');
 			toast.success("User status update successfully");
 			await fetchUserData();
 		} catch (err) {
 			console.error("Error updating user status:", err);
 			toast.error(`Error: ${err.message}`);
-			// alert(`Error: ${err.message}`);
 		} finally {
 			setStatusUpdateLoading(false);
 		}
 	};
 
-	// Function to format date
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleString();
 	};
 
-	// Function to get appropriate badge for different statuses
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "active":
@@ -156,7 +142,6 @@ const AdminUserDetail = () => {
 		}
 	};
 
-	// Function to open the rejection modal
 	const handleOpenRejectionModal = (isVolunteer = false) => {
 		setRejectionReason("");
 		setShowRejectionReasonWarning(false);
@@ -164,10 +149,8 @@ const AdminUserDetail = () => {
 		setShowRejectionModal(true);
 	};
 
-	// Function to handle NRIC verification approval
 	const handleApproveNRIC = async () => {
 		try {
-			// Store the filename in localStorage for the API to use
 			if (userData?.profile?.nric_image?.filename) {
 				localStorage.setItem(
 					"currentNricFilename",
@@ -181,7 +164,6 @@ const AdminUserDetail = () => {
 				"NRIC verified by admin"
 			);
 
-			// Try to parse the response if possible
 			let data;
 			try {
 				data = await response.json();
@@ -196,12 +178,9 @@ const AdminUserDetail = () => {
 				);
 			}
 
-			// Update local state correctly
 			setUserData((prev) => {
-				// Create a deep copy to ensure we don't modify existing state directly
 				const updatedProfile = { ...prev.profile };
 
-				// Handle case where nric_image might not exist or be null
 				if (!updatedProfile.nric_image) {
 					updatedProfile.nric_image = {
 						filename:
@@ -218,22 +197,16 @@ const AdminUserDetail = () => {
 				};
 			});
 
-			// Clean up after successful operation
 			localStorage.removeItem("currentNricFilename");
 
-			// Notify user of success
-			// alert("NRIC verification approved successfully");
 			toast.success("NRIC verification approved successfully");
 		} catch (err) {
 			console.error("Error updating NRIC verification:", err);
 			toast.error(`Error: ${err.message}`);
-			// alert(`Error: ${err.message}`);
-			// Clean up on error too
 			localStorage.removeItem("currentNricFilename");
 		}
 	};
 
-	// Function to submit the rejection with reason
 	const handleRejectWithReason = async () => {
 		if (!rejectionReason.trim()) {
 			setShowRejectionReasonWarning(true);
@@ -245,7 +218,6 @@ const AdminUserDetail = () => {
 
 		try {
 			if (isRejectionForVolunteer) {
-				// For volunteer NRIC rejection
 				if (userData?.profile?.nric_image?.filename) {
 					localStorage.setItem(
 						"currentNricFilename",
@@ -267,7 +239,6 @@ const AdminUserDetail = () => {
 					);
 				}
 
-				// Update local state - adding requires_reupload flag and rejection reason for consistency
 				setUserData((prev) => {
 					return {
 						...prev,
@@ -283,10 +254,8 @@ const AdminUserDetail = () => {
 					};
 				});
 
-				// Clean up after operation
 				localStorage.removeItem("currentNricFilename");
 			} else {
-				// For organiser certification rejection
 				const response = await Api.updateOrganiserVerification(
 					userData.profile._id,
 					"rejected",
@@ -301,7 +270,6 @@ const AdminUserDetail = () => {
 					);
 				}
 
-				// Update local state
 				setUserData((prev) => ({
 					...prev,
 					profile: {
@@ -311,29 +279,20 @@ const AdminUserDetail = () => {
 				}));
 			}
 
-			// Close modal and show success notification
 			setShowRejectionModal(false);
 			toast.success(
 				`${isRejectionForVolunteer ? "NRIC" : "Organization"} `
 			);
-			// alert(
-			// 	`${
-			// 		isRejectionForVolunteer ? "NRIC" : "Organization"
-			// 	} verification rejected successfully`
-			// );
 		} catch (err) {
 			console.error("Error updating verification status:", err);
 			toast.error(`Error: ${err.message}`);
-			// alert(`Error: ${err.message}`);
 		} finally {
 			setRejectionLoading(false);
 		}
 	};
 
-	// Function to handle organization verification approval
 	const handleApproveOrganization = async () => {
 		try {
-			// Check if organizer has a certification document before allowing approval
 			if (
 				!userData.profile?.certification_document ||
 				!userData.profile?.certification_document?.filename
@@ -358,7 +317,6 @@ const AdminUserDetail = () => {
 				);
 			}
 
-			// Update local state
 			setUserData((prev) => ({
 				...prev,
 				profile: {
@@ -367,15 +325,12 @@ const AdminUserDetail = () => {
 				},
 			}));
 			toast.success("Organization verification approved successfully");
-			// alert("Organization verification approved successfully");
 		} catch (err) {
 			console.error("Error updating organization verification:", err);
 			toast.error(`Error: ${err.message}`);
-			// alert(`Error: ${err.message}`);
 		}
 	};
 
-	// Modify the confirmSignup function to handle verification error
 	const confirmSignup = async () => {
 		setIsLoading(true);
 
@@ -391,18 +346,12 @@ const AdminUserDetail = () => {
 					"You have successfully signed up for this event."
 				);
 
-				// Update state to reflect signup
 				setIsSignedUp(true);
-
-				// Refresh event details to get updated volunteer count
 				fetchEventDetails();
-
-				// Hide success message after 3 seconds
 				setTimeout(() => {
 					setSuccessMessage(null);
 				}, 3000);
 			} else {
-				// Handle specific error cases
 				if (
 					data.message &&
 					data.message.includes("already signed up")
@@ -410,7 +359,6 @@ const AdminUserDetail = () => {
 					setSuccessMessage(
 						"You are already signed up for this event."
 					);
-					// Update the state to reflect the user is already signed up
 					setIsSignedUp(true);
 				} else if (
 					data.message &&
@@ -420,7 +368,6 @@ const AdminUserDetail = () => {
 						data.message || "Cannot sign up for recurring event"
 					);
 				} else if (data.requiresVerification) {
-					// Show the verification modal instead of a simple error message
 					setShowVerificationModal(true);
 				} else {
 					setError(
@@ -435,12 +382,10 @@ const AdminUserDetail = () => {
 		} finally {
 			setIsLoading(false);
 			setShowConfirmModal(false);
-			// Re-check signup status to ensure UI is consistent
 			checkSignupStatus();
 		}
 	};
 
-	// Add a handler for the verification modal's "Go to Profile" button
 	const handleGoToProfile = () => {
 		setShowVerificationModal(false);
 		navigate("/profile");
@@ -601,7 +546,7 @@ const AdminUserDetail = () => {
 									)}
 							</div>
 
-							{/* NRIC Image Viewer Section */}
+							{/* NRIC Image Viewer */}
 							<div className="mt-4">
 								<p className="text-gray-600 mb-2">
 									NRIC Image:
@@ -771,7 +716,7 @@ const AdminUserDetail = () => {
 			<div className="bg-white rounded-lg border p-6 mb-8">
 				<h2 className="text-xl font-semibold mb-4">Activity</h2>
 
-				{/* Events (for organisers) */}
+				{/* Events for organiser */}
 				{user.role === "organiser" && (
 					<div className="mb-6">
 						<h3 className="text-lg font-medium mb-3">
@@ -875,7 +820,7 @@ const AdminUserDetail = () => {
 					</div>
 				)}
 
-				{/* Registrations (for volunteers) */}
+				{/* Registrations for volunteer */}
 				{user.role === "volunteer" && (
 					<div className="mb-6">
 						<h3 className="text-lg font-medium mb-3">
@@ -1127,7 +1072,7 @@ const AdminUserDetail = () => {
 				</div>
 			</div>
 
-			{/* Status Update Modal */}
+			{/* Status Update */}
 			{showStatusModal && (
 				<div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
 					<div className="relative mx-auto p-6 border w-full max-w-md shadow-lg rounded-md bg-white">
@@ -1220,7 +1165,7 @@ const AdminUserDetail = () => {
 				</div>
 			)}
 
-			{/* Verification Rejection Reason Modal */}
+			{/* Verification Rejection Reason */}
 			{showRejectionModal && (
 				<div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
 					<div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -1288,7 +1233,7 @@ const AdminUserDetail = () => {
 				</div>
 			)}
 
-			{/* Verification Required Modal */}
+			{/* Verification Required */}
 			<Dialog
 				open={showVerificationModal}
 				onOpenChange={setShowVerificationModal}

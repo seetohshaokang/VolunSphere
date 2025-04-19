@@ -23,7 +23,7 @@ import DocumentUploader from "../../../components/DocumentUploader";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 
-// Add custom focus styles for inputs
+//custom styles
 const customInputStyles = `
   .custom-input:focus {
     border-width: 2px;
@@ -72,7 +72,6 @@ function Profile() {
 	const [uploadingNric, setUploadingNric] = useState(false);
 	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
-	// Format date for input field (YYYY-MM-DD)
 	const formatDateForInput = (dateString) => {
 		if (!dateString) return "";
 		const date = new Date(dateString);
@@ -101,9 +100,8 @@ function Profile() {
 			}
 
 			const data = await response.json();
-			console.log("Profile data received:", data); // Add this for debugging
+			console.log("Profile data received:", data);
 
-			// Create a default profile data structure
 			const profileData = {
 				firstName: "",
 				lastName: "",
@@ -117,7 +115,6 @@ function Profile() {
 				verification_status: "pending",
 			};
 
-			// Handle role-specific data mapping
 			if (data.user.role === "volunteer") {
 				// For volunteer, parse the name
 				let fullName = data.profile.name || "";
@@ -138,9 +135,8 @@ function Profile() {
 				profileData.preferred_causes =
 					data.profile.preferred_causes || [];
 			} else if (data.user.role === "organiser") {
-				// For organizer, company name goes into firstName
 				profileData.firstName = data.profile.name || "";
-				profileData.bio = data.profile.description || ""; // Use description field for organizers
+				profileData.bio = data.profile.description || "";
 				profileData.website = data.profile.website || "";
 				profileData.certification_document =
 					data.profile.certification_document || null;
@@ -187,32 +183,27 @@ function Profile() {
 			}
 
 			if (user.role === "volunteer") {
-				// For volunteers, enhance each event with registration status
 				const enhancedEvents = eventsData
 					.map((event) => {
 						if (!event) return null;
 
-						// Determine if this is a volunteer registration or event
 						const eventObj = event.event || event;
 						const status = eventObj?.status || "active";
 
-						// For volunteer registrations, get the registration status
 						const registrationStatus =
 							event.registration_status ||
 							event.status ||
 							"registered";
 
-						// Enhance the event object with registration_status for display
 						return {
 							...event,
 							registration_status: registrationStatus,
 						};
 					})
-					.filter(Boolean); // Remove any null values
+					.filter(Boolean);
 
 				setEvents(enhancedEvents);
 			} else {
-				// For organizers, just set all events
 				setEvents(eventsData);
 			}
 		} catch (err) {
@@ -232,7 +223,6 @@ function Profile() {
 	const handleFileChange = (e) => {
 		const file = e.target.files[0];
 		if (file) {
-			// Create a preview URL for display purposes
 			const imageUrl = URL.createObjectURL(file);
 			setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
 		}
@@ -245,7 +235,6 @@ function Profile() {
 		setSuccess(null);
 
 		try {
-			// Create FormData for the API call
 			const formData = new FormData();
 			formData.append(
 				"name",
@@ -280,7 +269,6 @@ function Profile() {
 			setSuccess("Profile updated successfully!");
 			setIsEditing(false);
 
-			// Update the profile data in the auth context
 			if (typeof refreshProfile === "function") {
 				refreshProfile();
 			}
@@ -308,7 +296,6 @@ function Profile() {
 		setSuccess(null);
 
 		try {
-			// Create Form Data for the API call
 			const formData = new FormData();
 			formData.append("nric_image", nricFile);
 
@@ -321,7 +308,6 @@ function Profile() {
 						"NRIC uploaded successfully. It will be verified by an adminstrator."
 				);
 				setNricFile(null);
-				// Refresh profile data to show updated NRIC status
 				fetchUserProfile();
 			} else {
 				const errorData = await response.json();
@@ -347,7 +333,6 @@ function Profile() {
 		);
 	}
 
-	// Function to handle avatar URL with potential cache busting
 	const getAvatarUrl = () => {
 		if (!profile.avatar) {
 			return user?.role === "organiser"
@@ -355,14 +340,11 @@ function Profile() {
 				: "/src/assets/default-avatar-blue.png";
 		}
 
-		// If it's a full URL
 		if (profile.avatar.startsWith("http")) {
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
 
-		// If it's a relative path with a file extension
 		if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
-			// Determine if it's a server-hosted image or a local asset
 			if (
 				profile.avatar.startsWith("/uploads/") ||
 				profile.avatar.includes("profile-")
@@ -374,39 +356,35 @@ function Profile() {
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
 
-		// If it's just a filename (most likely from server)
 		return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
 	};
 
-	// Helper function to determine registration status badge variant
 	const getRegistrationStatusVariant = (status) => {
 		switch (status?.toLowerCase()) {
 			case "registered":
-				return "default"; // Blue badge
+				return "default";
 			case "confirmed":
-				return "default"; // Blue badge
+				return "default";
 			case "completed":
-				return "success"; // Green badge
+				return "success"; 
 			case "cancelled":
-				return "destructive"; // Red badge
+				return "destructive"; 
 			case "not_attended":
-				return "outline"; // Outline badge
+				return "outline"; 
 			case "attended":
-				return "success"; // Green badge
+				return "success"; 
 			case "pending":
-				return "outline"; // Outline badge
+				return "outline"; 
 			case "removed_by_organizer":
-				return "destructive"; // Red badge
+				return "destructive";
 			default:
-				return "outline"; // Default fallback
+				return "outline";
 		}
 	};
 
-	// Helper function to format registration status for display
 	const formatRegistrationStatus = (status) => {
 		if (!status) return "REGISTERED";
 
-		// Check if the event is completed based on date
 		if (
 			status.toLowerCase() === "confirmed" ||
 			status.toLowerCase() === "registered"
@@ -414,13 +392,11 @@ function Profile() {
 			const eventDate = new Date();
 			const now = new Date();
 
-			// If event date is in the past, mark as COMPLETED
 			if (eventDate < now) {
 				return "COMPLETED";
 			}
 		}
 
-		// Override specific status values for cleaner display
 		switch (status.toLowerCase()) {
 			case "confirmed":
 				return "REGISTERED";
@@ -431,16 +407,13 @@ function Profile() {
 			case "removed_by_organizer":
 				return "REMOVED";
 			default:
-				// Replace underscores with spaces and capitalize
 				return status.replace(/_/g, " ").toUpperCase();
 		}
 	};
 
-	// Helper function to determine if an event is completed based on date
 	const isEventCompleted = (event) => {
 		if (!event) return false;
 
-		// Find the first valid date from all the possible date fields
 		const dateField =
 			event.end_datetime ||
 			event.start_datetime ||
@@ -464,15 +437,12 @@ function Profile() {
 		return eventDate < now;
 	};
 
-	// Helper function to get event status for display
 	const getEventStatus = (event) => {
-		// First check registration status if available
 		if (event.registration_status) {
 			if (
 				event.registration_status.toLowerCase() === "confirmed" ||
 				event.registration_status.toLowerCase() === "registered"
 			) {
-				// Check if event is completed based on date
 				if (isEventCompleted(event)) {
 					return "completed";
 				}
@@ -481,7 +451,6 @@ function Profile() {
 			return event.registration_status;
 		}
 
-		// If no registration status, derive from event status and date
 		if (isEventCompleted(event)) {
 			return "completed";
 		}
@@ -491,11 +460,10 @@ function Profile() {
 
 	return (
 		<div className="min-h-screen flex flex-col">
-			{/* Add style tag for custom input styles */}
 			<style>{customInputStyles}</style>
 
 			<div className="min-h-screen">
-				{/* Main content container with width constraints matching main page */}
+				{/* Main content container */}
 				<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
 					<ContentHeader
 						title="My Profile"
@@ -505,18 +473,6 @@ function Profile() {
 						]}
 						className="mt-8 mb-8"
 					/>
-
-					{/* {error && (
-						<Alert variant="destructive" className="mb-6">
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					)}
-
-					{success && (
-						<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
-							<AlertDescription>{success}</AlertDescription>
-						</Alert>
-					)} */}
 
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<Card className="md:col-span-1">
@@ -606,7 +562,6 @@ function Profile() {
 												</div>
 											</>
 										) : (
-											// For organiser
 											<div className="grid grid-cols-3 gap-4">
 												<span className="font-bold">
 													Company Name:
@@ -796,7 +751,6 @@ function Profile() {
 															className="custom-input"
 														/>
 													</div>
-													{/* Date of Birth only for volunteers */}
 													<div className="space-y-2">
 														<Label htmlFor="dob">
 															Date of Birth
@@ -814,7 +768,6 @@ function Profile() {
 													</div>
 												</>
 											) : (
-												// For organiser
 												<div className="space-y-2">
 													<Label htmlFor="firstName">
 														Company Name
