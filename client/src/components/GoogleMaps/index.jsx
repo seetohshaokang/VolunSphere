@@ -8,35 +8,41 @@ import {
     useMap
 } from "@vis.gl/react-google-maps";
 import PlacesAutocomplete from "../PlacesAutocomplete";
-import "./GoogleMaps.css"
+import "./GoogleMaps.css";
 
-// Fix 1: Use ONLY useMap() in the MapHandler component
+// MapHandler component to manage map interactions
 const MapHandler = ({ place, onCoordinatesChange }) => {
     const map = useMap();
+    // Track the last processed place to prevent loops
+    const lastProcessedPlace = useRef(null);
 
     useEffect(() => {
-        if (place && map && place.geometry) {
-            const location = new google.maps.LatLng(
-                place.geometry.location.lat(),
-                place.geometry.location.lng()
-            );
-
-            // Use smooth animation for better UX
-            map.panTo(location);
-            map.setZoom(15);
-
-            // Make sure draggable is enabled after pan
-            setTimeout(() => {
-                if (map.get('draggable') !== true) {
-                    map.setOptions({ draggable: true });
-                }
-            }, 500);
-
-            if (onCoordinatesChange) {
-                onCoordinatesChange(location);
-            }
+        if (!place || !map || !place.geometry || 
+            (lastProcessedPlace.current && lastProcessedPlace.current.place_id === place.place_id)) {
+            return;
         }
-    }, [place]);
+        
+        // Remember this place so we don't process it again
+        lastProcessedPlace.current = place;
+        
+        const location = new google.maps.LatLng(
+            place.geometry.location.lat(),
+            place.geometry.location.lng()
+        );
+
+        map.panTo(location);
+        map.setZoom(15);
+
+        setTimeout(() => {
+            if (map.get('draggable') !== true) {
+                map.setOptions({ draggable: true });
+            }
+        }, 500);
+
+        if (onCoordinatesChange) {
+            onCoordinatesChange(location);
+        }
+    }, [place, map, onCoordinatesChange]);
 
     return null;
 };
@@ -49,19 +55,22 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
     const [selectedCoordinates, setSelectedCoordinates] = useState(null);
     const [location, setLocation] = useState(null);
     const [mapInstance, setMapInstance] = useState(null);
-    const autocompleteRef = useRef(null);
     const [autocompleteInput, setAutocompleteInput] = useState('');
+    
+    // Create a single PlacesService instance reference
+    const placesServiceRef = useRef(null);
+    // Track already processed places
+    const processedPlaceIds = useRef(new Set());
 
-    useEffect(() => {
-        if (selectedPlace && selectedPlace.place_id) {
-            console.log("Selected place in GoogleMaps:", selectedPlace); // ADD THIS
-            setPlaceId(selectedPlace.place_id);
+    // Initialize PlacesService once when needed
+    const getPlacesService = () => {
+        if (!placesServiceRef.current) {
+            placesServiceRef.current = new google.maps.places.PlacesService(
+                document.createElement('div')
+            );
         }
-    }, [selectedPlace]);
-
-    useEffect(() => {
-        console.log("Place ID has been set to:", placeId); // ADD THIS
-    }, [placeId]);
+        return placesServiceRef.current;
+    };
 
     // Don't render anything if trigger is false
     if (!trigger) return null;
@@ -107,47 +116,44 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
         geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             if (status === "OK" && results[0]) {
                 const result = results[0];
-                // Get the new placeId
-                const newPlaceId = e.detail.placeId;
-                const placesService = new google.maps.places.PlacesService(document.createElement('div'));
-    
-                placesService.getDetails(
-                    { placeId: newPlaceId }, // Use the new placeId, not e.detail.placeId
-                    (placeDetails, status) => {
-                        if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails) {
-                            const placeName = placeDetails.name;
-                            const formattedAddress = placeDetails.formatted_address;
-                            console.log(formattedAddress)
-                            // Generate URL with the NEW placeId
-                            const locationUrl = `https://www.google.com/maps/place/?q=place_id:${newPlaceId}`;
-                            
-                            // Save everything together
-                            setPlaceId(newPlaceId);
-                            setLocation({
-                                name: placeName,
-                                address: formattedAddress,
-                                locationUrl: locationUrl, // Direct URL instead of calling the function
-                                latitude: lat,
-                                longitude: lng
-                            });
-    
-                            setSelectedPlace({
-                                place_id: newPlaceId,
-                                geometry: {
-                                    location: {
-                                        lat: () => lat,
-                                        lng: () => lng
-                                    }
-                                }
-                            });
-    
-                            setAutocompleteInput(formattedAddress);
-                        } else {
-                            console.error("Failed to fetch place details:", status);
-                            alert("Could not get detailed place information.");
+                // Get the new placeId from results
+                const newPlaceId = result.place_id || e.detail.placeId;
+                
+                // If we've already processed this place, don't do it again
+                if (processedPlaceIds.current.has(newPlaceId)) {
+                    console.log("Skipping already processed place:", newPlaceId);
+                    return;
+                }
+                processedPlaceIds.current.add(newPlaceId);
+                
+                // Set all data from this single request
+                const locationUrl = `https://www.google.com/maps/place/?q=place_id:${newPlaceId}`;
+                const formattedAddress = result.formatted_address;
+                const placeName = result.name || formattedAddress.split(',')[0];
+                
+                console.log("Setting location from map click:", formattedAddress);
+                
+                // Update all state in one place
+                setPlaceId(newPlaceId);
+                setLocation({
+                    name: placeName,
+                    address: formattedAddress,
+                    locationUrl: locationUrl,
+                    latitude: lat,
+                    longitude: lng
+                });
+                
+                setSelectedPlace({
+                    place_id: newPlaceId,
+                    geometry: {
+                        location: {
+                            lat: () => lat,
+                            lng: () => lng
                         }
                     }
-                );
+                });
+                
+                setAutocompleteInput(formattedAddress);
             } else {
                 console.error("Geocoder failed due to:", status);
                 alert("Could not get address for this location.");
@@ -163,54 +169,55 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
 
     const handlePlaceSelect = (place) => {
         console.log("Place selected:", place);
+        
+        if (!place || !place.place_id) {
+            console.log("Invalid place selection, missing place_id");
+            return;
+        }
+        
+        // If we've already processed this place, don't do it again
+        if (processedPlaceIds.current.has(place.place_id)) {
+            console.log("Skipping already processed place:", place.place_id);
+            return;
+        }
+        processedPlaceIds.current.add(place.place_id);
+        
+        // Set selected place and place ID in one go
         setSelectedPlace(place);
+        setPlaceId(place.place_id);
 
-        // Immediately set the placeId
-        if (place && place.place_id) {
-            setPlaceId(place.place_id);
+        // Get all location details in a single request
+        const service = getPlacesService();
+        service.getDetails(
+            {
+                placeId: place.place_id,
+                fields: ['name', 'formatted_address', 'geometry']
+            },
+            (placeDetails, status) => {
+                if (status === "OK" && placeDetails) {
+                    console.log("Place details:", placeDetails);
 
-            // Get location details and populate the right panel
-            const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-            service.getDetails(
-                {
-                    placeId: place.place_id,
-                    fields: ['name', 'formatted_address']
-                },
-                (placeDetails, status) => {
-                    if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails) {
-                        console.log("Place details:", placeDetails);
+                    // Update all location state at once
+                    const locationUrl = `https://www.google.com/maps/place/?q=place_id:${place.place_id}`;
+                    
+                    setLocation({
+                        name: placeDetails.name || place.name,
+                        address: placeDetails.formatted_address,
+                        locationUrl: locationUrl,
+                        latitude: placeDetails.geometry?.location.lat(),
+                        longitude: placeDetails.geometry?.location.lng()
+                    });
 
-                        // Update location state with name and address
-                        setLocation({
-                            name: placeDetails.name || place.name,
-                            address: placeDetails.formatted_address
-                        });
-
-                        // Set autocomplete input value
-                        setAutocompleteInput(placeDetails.formatted_address);
+                    // Set autocomplete input value
+                    setAutocompleteInput(placeDetails.formatted_address);
+                    
+                    // Set coordinates if available
+                    if (placeDetails.geometry?.location) {
+                        setSelectedCoordinates(placeDetails.geometry.location);
                     }
                 }
-            );
-        }
-    };
-
-    const addLocation = () => {
-        if (!placeId) return;
-
-        const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-        const request = {
-            placeId: placeId,
-            fields: ['name', 'formatted_address']
-        };
-
-        service.getDetails(request, (place, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && place != null) {
-                setLocation({
-                    address: place.formatted_address,
-                    name: place.name
-                });
             }
-        });
+        );
     };
 
     const handleData = () => {
@@ -218,9 +225,10 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
             extractData([location]);
             setLocation(null);
             setTrigger(false);
+            // Reset state for next use
+            processedPlaceIds.current.clear();
         }
     };
-
 
     const handleCoordinatesChange = (coordinates) => {
         setSelectedCoordinates(coordinates);
@@ -252,6 +260,7 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
                             maxZoom={20}
                             onClick={handleMapClick}
                             gestureHandling="cooperative"
+                            onLoad={handleMapLoad}
                         >
                             {selectedCoordinates && (
                                 <AdvancedMarker
@@ -263,42 +272,7 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
                                 <div className="autocomplete-control" style={{ display: 'grid' }}>
                                     <PlacesAutocomplete
                                         value={autocompleteInput}
-                                        onPlaceSelect={(place) => {
-                                            console.log("Place selected from autocomplete:", place);
-                                            setSelectedPlace(place);
-                                            // Call addLocation immediately when a place is selected
-                                            if (place && place.place_id) {
-                                                const newPlaceId = place.place_id;
-                                                setPlaceId(newPlaceId);
-
-                                                // Use setTimeout to ensure placeId state is updated
-                                                setTimeout(() => {
-                                                    const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-                                                    const request = {
-                                                        placeId: place.place_id,
-                                                        fields: ['name', 'formatted_address', 'geometry']
-                                                    };
-                                                    
-                                                    service.getDetails(request, (placeDetails, status) => {
-                                                        if (status === google.maps.places.PlacesServiceStatus.OK && placeDetails) {
-                                                            console.log("Place details fetched:", placeDetails);
-                                                            console.log("HEHE", placeDetails.geometry.location.lat());
-                                                            const locationUrl = `https://www.google.com/maps/place/?q=place_id:${newPlaceId}`;
-                                                            setLocation({
-                                                                address: placeDetails.formatted_address,
-                                                                name: placeDetails.name,
-                                                                locationUrl : locationUrl,
-                                                                latitude: placeDetails.geometry.location.lat(),
-                                                                longitude: placeDetails.geometry.location.lng()
-                                                            });
-                                                            setAutocompleteInput(placeDetails.formatted_address);
-                                                        } else {
-                                                            console.error("Failed to get place details:", status);
-                                                        }
-                                                    });
-                                                }, 0);
-                                            }
-                                        }}
+                                        onPlaceSelect={handlePlaceSelect}
                                     />
                                 </div>
                             </MapControl>
@@ -310,7 +284,7 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
                     </div>
                 </APIProvider>
 
-                {/* Rest of your component... */}
+                {/* Location display and controls */}
                 <div className="list_header">
                     <h4>
                         1. Type in your desired location or click on the map
