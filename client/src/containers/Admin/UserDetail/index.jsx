@@ -432,11 +432,6 @@ const AdminUserDetail = () => {
     <>
       <ContentHeader
         title="User Details"
-        links={[
-          { to: "/admin", label: "Dashboard" },
-          { to: "/admin/users", label: "Users" },
-          { label: profile?.name || profile?.organisation_name || user.email, isActive: true },
-        ]}
       />
 
       <div className="flex justify-end mb-6">
@@ -795,36 +790,36 @@ const AdminUserDetail = () => {
       {/* Status Update Modal */}
       {showStatusModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
-          <div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 text-center">Update User Status</h3>
-              <div className="mt-4 px-2">
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">
+          <div className="relative mx-auto p-6 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 text-center mb-4">Update User Status</h3>
+              <div className="mt-4">
+                <div className="mb-5">
+                  <label className="block text-gray-700 text-base font-medium mb-2">
                     Current Status: {getStatusBadge(userData.user.status)}
                   </label>
                   <select
-                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    className="shadow border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline cursor-pointer"
                     value={newStatus}
                     onChange={e => setNewStatus(e.target.value)}
                   >
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="active" className="cursor-pointer py-2">Active</option>
+                    <option value="suspended" className="cursor-pointer py-2">Suspended</option>
+                    <option value="inactive" className="cursor-pointer py-2">Inactive</option>
                   </select>
                 </div>
-                <div className="mb-4">
-                  <label className="block text-gray-700 text-sm font-bold mb-2">
+                <div className="mb-6">
+                  <label className="block text-gray-700 text-base font-medium mb-2">
                     Reason for Status Change
                   </label>
                   <textarea
-                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    className="shadow border rounded-md w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline cursor-text"
                     value={statusReason}
                     onChange={(e) => {
                       setStatusReason(e.target.value);
                       if (e.target.value.trim()) setShowReasonWarning(false);
                     }}
-                    rows="3"
+                    rows="4"
                     placeholder="Provide a reason for this status change"
                   ></textarea>
 
@@ -835,14 +830,14 @@ const AdminUserDetail = () => {
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => setShowStatusModal(false)}
-                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-md focus:outline-none focus:shadow-outline cursor-pointer"
                     disabled={statusUpdateLoading}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleStatusUpdate}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-center focus:outline-none focus:shadow-outline"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md focus:outline-none focus:shadow-outline cursor-pointer"
                     disabled={statusUpdateLoading || !newStatus || newStatus === userData.user.status}
                   >
                     {statusUpdateLoading ? 'Updating...' : 'Update Status'}
@@ -868,7 +863,7 @@ const AdminUserDetail = () => {
                     Rejection Reason
                   </label>
                   <textarea
-                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline cursor-text"
                     value={rejectionReason}
                     onChange={(e) => {
                       setRejectionReason(e.target.value);

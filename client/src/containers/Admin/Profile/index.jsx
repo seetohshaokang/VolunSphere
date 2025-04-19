@@ -190,11 +190,6 @@ function AdminProfile() {
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
 				<ContentHeader
 					title="Admin Profile"
-					links={[
-						{ to: "/admin", label: "Dashboard" },
-						{ label: "Profile", isActive: true },
-					]}
-					className="mt-8 mb-8"
 				/>
 
 				{error && (
@@ -412,8 +407,8 @@ function AdminProfile() {
 											</Button>
 											<Button
 												type="submit"
+												variant="outline"
 												disabled={loading}
-												className="border-2 border-black"
 											>
 												{loading ? (
 													<>
@@ -467,7 +462,7 @@ function AdminProfile() {
 									<Button variant="outline" className="mr-2">
 										Security Settings
 									</Button>
-									<Button>Admin Dashboard</Button>
+									<Button variant="outline">Admin Dashboard</Button>
 								</div>
 							</div>
 						</CardContent>
