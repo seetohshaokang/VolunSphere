@@ -191,7 +191,7 @@ const AdminEvents = () => {
 							id="search"
 							name="search"
 							type="text"
-							placeholder="Search by name or location..."
+							placeholder="Search by name"
 							value={filters.search}
 							onChange={handleFilterChange}
 							className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
