@@ -1,5 +1,4 @@
 // src/containers/Auth/EditPassword/index.jsx
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -12,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
 function EditPassword() {
@@ -34,6 +34,9 @@ function EditPassword() {
 		} else {
 			try {
 				// Simulating successful password reset
+				toast.success(
+					"Password reset successful. You can now log in with your new password."
+				);
 				setMessage(
 					"Password reset successful. You can now log in with your new password."
 				);
@@ -45,6 +48,9 @@ function EditPassword() {
 				}, 3000);
 			} catch (err) {
 				console.error("Error submitting password reset:", err);
+				toast.error(
+					"Failed to reset password. Please verify your email and current password."
+				);
 				setError(
 					"Failed to reset password. Please verify your email and current password."
 				);
@@ -66,7 +72,7 @@ function EditPassword() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{message && (
+					{/* {message && (
 						<Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
 							<AlertDescription>{message}</AlertDescription>
 						</Alert>
@@ -75,7 +81,7 @@ function EditPassword() {
 						<Alert variant="destructive" className="mb-4">
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
-					)}
+					)} */}
 
 					<form onSubmit={handleSubmit} className="space-y-4">
 						<div className="space-y-2">

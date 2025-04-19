@@ -1,5 +1,4 @@
 // client/src/containers/Admin/Profile/index.jsx
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -125,6 +125,8 @@ function AdminProfile() {
 				throw new Error("Failed to update profile");
 			}
 
+			toast.success("Profile updated successfully!");
+
 			setImageTimestamp(Date.now());
 			setSuccess("Profile updated successfully!");
 			setIsEditing(false);
@@ -136,6 +138,7 @@ function AdminProfile() {
 
 			fetchUserProfile();
 		} catch (err) {
+			toast.error("Failed to update proifle. Please try again.");
 			setError("Failed to update profile. Please try again.");
 		} finally {
 			setLoading(false);
@@ -188,11 +191,9 @@ function AdminProfile() {
 		<div className="min-h-screen">
 			{/* Main content container with width constraints matching main page */}
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
-				<ContentHeader
-					title="Admin Profile"
-				/>
+				<ContentHeader title="Admin Profile" />
 
-				{error && (
+				{/* {error && (
 					<Alert variant="destructive" className="mb-6">
 						<AlertDescription>{error}</AlertDescription>
 					</Alert>
@@ -202,7 +203,7 @@ function AdminProfile() {
 					<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
 						<AlertDescription>{success}</AlertDescription>
 					</Alert>
-				)}
+				)} */}
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					<Card className="md:col-span-1">
@@ -462,7 +463,9 @@ function AdminProfile() {
 									<Button variant="outline" className="mr-2">
 										Security Settings
 									</Button>
-									<Button variant="outline">Admin Dashboard</Button>
+									<Button variant="outline">
+										Admin Dashboard
+									</Button>
 								</div>
 							</div>
 						</CardContent>

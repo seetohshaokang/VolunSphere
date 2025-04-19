@@ -9,395 +9,468 @@ import { Calendar, Loader2, MapPin, Star, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
+import ReviewForm from "../../../components/ReviewForm";
 import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
-import ReviewForm from "../../../components/ReviewForm";
 
 function ReviewPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [target, setTarget] = useState(null);
-  const [reviews, setReviews] = useState([]);
-  const [userReview, setUserReview] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isEditingReview, setIsEditingReview] = useState(false);
-  // Assume the type is always 'event' for simplicity in this implementation
-  const type = 'event';
+	const { id } = useParams();
+	const navigate = useNavigate();
+	const { user } = useAuth();
+	const [target, setTarget] = useState(null);
+	const [reviews, setReviews] = useState([]);
+	const [userReview, setUserReview] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const [isEditingReview, setIsEditingReview] = useState(false);
+	// Assume the type is always 'event' for simplicity in this implementation
+	const type = "event";
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+	useEffect(() => {
+		const fetchData = async () => {
+			setLoading(true);
+			setError(null);
 
-      try {
-        // Fetch event details
-        const eventResponse = await Api.getEvent(id);
-        const eventData = await eventResponse.json();
-        setTarget(eventData);
+			try {
+				// Fetch event details
+				const eventResponse = await Api.getEvent(id);
+				const eventData = await eventResponse.json();
+				setTarget(eventData);
 
-        // Fetch reviews for the event
-        const reviewsResponse = await Api.getEventReviews(id);
-        const reviewsData = await reviewsResponse.json();
-        
-        // If user is logged in, check if they already have a review
-        if (user) {
-          const userHasReview = reviewsData.find(
-            (review) => review.reviewer_id === user.id
-          );
-          
-          if (userHasReview) {
-            setUserReview(userHasReview);
-            // Filter out user's review from the list of other reviews
-            setReviews(reviewsData.filter(
-              (review) => review.reviewer_id !== user.id
-            ));
-          } else {
-            setReviews(reviewsData);
-          }
-        } else {
-          setReviews(reviewsData);
-        }
-      } catch (err) {
-        console.error(`Error fetching ${type} data:`, err);
-        setError(`Failed to load ${type} details. Please try again later.`);
-      } finally {
-        setLoading(false);
-      }
-    };
+				// Fetch reviews for the event
+				const reviewsResponse = await Api.getEventReviews(id);
+				const reviewsData = await reviewsResponse.json();
 
-    fetchData();
-  }, [id, type, user]);
+				// If user is logged in, check if they already have a review
+				if (user) {
+					const userHasReview = reviewsData.find(
+						(review) => review.reviewer_id === user.id
+					);
 
-  const handleSubmitReview = async (newReview) => {
-    try {
-      // Prepare the review data for the API
-      const reviewData = {
-        rating: newReview.rating,
-        comment: newReview.comment,
-      };
-      
-      let response;
-      
-      if (userReview) {
-        // If editing an existing review
-        response = await Api.updateEventReview(id, userReview.id, reviewData);
-      } else {
-        // If creating a new review
-        response = await Api.createEventReview(id, reviewData);
-      }
-      
-      const responseData = await response.json();
-      
-      // Update the UI with the submitted review
-      const completeReview = {
-        id: responseData.id || userReview?.id || `new-${Date.now()}`,
-        reviewer: newReview.reviewer,
-        reviewer_id: user.id,
-        rating: newReview.rating,
-        comment: newReview.comment,
-        date: new Date().toISOString(),
-        avatar: user.avatar || null,
-      };
+					if (userHasReview) {
+						setUserReview(userHasReview);
+						// Filter out user's review from the list of other reviews
+						setReviews(
+							reviewsData.filter(
+								(review) => review.reviewer_id !== user.id
+							)
+						);
+					} else {
+						setReviews(reviewsData);
+					}
+				} else {
+					setReviews(reviewsData);
+				}
+			} catch (err) {
+				console.error(`Error fetching ${type} data:`, err);
+				setError(
+					`Failed to load ${type} details. Please try again later.`
+				);
+			} finally {
+				setLoading(false);
+			}
+		};
 
-      setUserReview(completeReview);
-      setIsEditingReview(false);
+		fetchData();
+	}, [id, type, user]);
 
-      // Redirect back to event page after a short delay
-      const entityUrl = `/events/${id}`;
-      setTimeout(() => {
-        navigate(entityUrl);
-      }, 2000);
-    } catch (err) {
-      console.error("Error submitting review:", err);
-      setError("Failed to submit your review. Please try again.");
-    }
-  };
+	const handleSubmitReview = async (newReview) => {
+		try {
+			// Prepare the review data for the API
+			const reviewData = {
+				rating: newReview.rating,
+				comment: newReview.comment,
+			};
 
-  const calculateAverageRating = () => {
-    if (!reviews.length && !userReview) return 0;
+			let response;
 
-    const allReviews = userReview ? [...reviews, userReview] : reviews;
-    const sum = allReviews.reduce((acc, review) => acc + review.rating, 0);
-    return (sum / allReviews.length).toFixed(1);
-  };
+			if (userReview) {
+				// If editing an existing review
+				response = await Api.updateEventReview(
+					id,
+					userReview.id,
+					reviewData
+				);
+			} else {
+				// If creating a new review
+				response = await Api.createEventReview(id, reviewData);
+			}
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <span className="ml-4 text-lg">Loading details...</span>
-      </div>
-    );
-  }
+			const responseData = await response.json();
 
-  if (error) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
+			// Update the UI with the submitted review
+			const completeReview = {
+				id: responseData.id || userReview?.id || `new-${Date.now()}`,
+				reviewer: newReview.reviewer,
+				reviewer_id: user.id,
+				rating: newReview.rating,
+				comment: newReview.comment,
+				date: new Date().toISOString(),
+				avatar: user.avatar || null,
+			};
 
-  if (!target) {
-    return (
-      <Alert variant="destructive" className="my-6">
-        <AlertDescription>
-          {type === "event" ? "Event" : "Organiser"} not found.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+			setUserReview(completeReview);
+			setIsEditingReview(false);
 
-  const entityName = type === "event" ? target.name : target.organisation_name;
-  const entityUrl = type === "event" ? `/events/${id}` : `/organisers/${id}`;
+			// Redirect back to event page after a short delay
+			const entityUrl = `/events/${id}`;
+			setTimeout(() => {
+				navigate(entityUrl);
+			}, 2000);
+		} catch (err) {
+			console.error("Error submitting review:", err);
+			setError("Failed to submit your review. Please try again.");
+		}
+	};
 
-  const breadcrumbLinks = [
-    { to: "/", label: "Home" },
-    {
-      to: type === "event" ? "/events" : "/organisers",
-      label: type === "event" ? "Events" : "Organisers",
-    },
-    { to: entityUrl, label: entityName },
-    { label: "Review", isActive: true },
-  ];
+	const calculateAverageRating = () => {
+		if (!reviews.length && !userReview) return 0;
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Removed the first ContentHeader that was causing the error */}
-          
-          <ContentHeader
-            title={`Review ${type === "event" ? "Event" : "Organiser"}`}
-            links={breadcrumbLinks}
-          />
+		const allReviews = userReview ? [...reviews, userReview] : reviews;
+		const sum = allReviews.reduce((acc, review) => acc + review.rating, 0);
+		return (sum / allReviews.length).toFixed(1);
+	};
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div className="lg:col-span-1">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center mb-6">
-                    {type === "event" ? (
-                      <img
-                        src={target.image_url}
-                        alt={target.name}
-                        className="w-full h-48 object-cover rounded-md mb-4"
-                      />
-                    ) : (
-                      <Avatar className="h-32 w-32 mb-4">
-                        <AvatarImage
-                          src={target.profile_picture_url}
-                          alt={target.organisation_name}
-                        />
-                        <AvatarFallback>
-                          {target.organisation_name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+	if (loading) {
+		return (
+			<div className="flex justify-center items-center h-64">
+				<Loader2 className="h-10 w-10 animate-spin text-primary" />
+				<span className="ml-4 text-lg">Loading details...</span>
+			</div>
+		);
+	}
 
-                    <h2 className="text-xl font-bold">
-                      {type === "event"
-                        ? target.name
-                        : target.organisation_name}
-                    </h2>
+	if (error) {
+		return (
+			<Alert variant="destructive" className="my-6">
+				<AlertDescription>{error}</AlertDescription>
+			</Alert>
+		);
+	}
 
-                    {type === "event" && (
-                      <div className="mt-4 space-y-2 text-left">
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-gray-700">
-                            {target.organiser_name}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-gray-700">{target.start_date}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-gray-700">
-                            {target.location}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+	if (!target) {
+		return (
+			<Alert variant="destructive" className="my-6">
+				<AlertDescription>
+					{type === "event" ? "Event" : "Organiser"} not found.
+				</AlertDescription>
+			</Alert>
+		);
+	}
 
-                    {type === "organiser" && (
-                      <div className="mt-4 text-left">
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-gray-700">
-                            {target.address}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+	const entityName =
+		type === "event" ? target.name : target.organisation_name;
+	const entityUrl = type === "event" ? `/events/${id}` : `/organisers/${id}`;
 
-                    <div className="mt-6 border-t border-gray-200 pt-4">
-                      <p className="text-gray-600 text-sm mb-2">
-                        Average Rating
-                      </p>
-                      <div className="flex items-center justify-center">
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <span className="ml-1 font-bold text-lg">
-                          {calculateAverageRating()}
-                        </span>
-                        <span className="ml-1 text-gray-500">/ 5</span>
-                        <span className="ml-2 text-sm text-gray-500">
-                          ({userReview ? reviews.length + 1 : reviews.length}{" "}
-                          {reviews.length + (userReview ? 1 : 0) === 1
-                            ? "review"
-                            : "reviews"}
-                          )
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+	const breadcrumbLinks = [
+		{ to: "/", label: "Home" },
+		{
+			to: type === "event" ? "/events" : "/organisers",
+			label: type === "event" ? "Events" : "Organisers",
+		},
+		{ to: entityUrl, label: entityName },
+		{ label: "Review", isActive: true },
+	];
 
-                  <div className="mt-4">
-                    <Button asChild variant="outline" className="w-full">
-                      <Link to={entityUrl}>
-                        Back to {type === "event" ? "Event" : "Organiser"}{" "}
-                        Details
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+	return (
+		<div className="min-h-screen flex flex-col">
+			<Navbar />
+			<main className="flex-1">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+					{/* Removed the first ContentHeader that was causing the error */}
 
-            <div className="lg:col-span-2">
-              {!userReview || isEditingReview ? (
-                <ReviewForm
-                  type={type}
-                  targetId={id}
-                  targetName={
-                    type === "event" ? target.name : target.organisation_name
-                  }
-                  onSubmitSuccess={handleSubmitReview}
-                  onCancel={
-                    isEditingReview ? () => setIsEditingReview(false) : null
-                  }
-                  existingReview={isEditingReview ? userReview : null}
-                />
-              ) : (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="border-b pb-4 mb-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-start">
-                          <Avatar className="h-10 w-10 mr-3">
-                            <AvatarImage
-                              src={
-                                user.avatar ||
-                                "/src/assets/default-avatar-blue.png"
-                              }
-                              alt={userReview.reviewer}
-                            />
-                            <AvatarFallback>
-                              {userReview.reviewer.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <h3 className="font-semibold">
-                              {userReview.reviewer}
-                            </h3>
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, index) => (
-                                <Star
-                                  key={index}
-                                  className={`h-4 w-4 ${
-                                    index < userReview.rating
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "text-gray-300"
-                                  }`}
-                                />
-                              ))}
-                              <span className="ml-2 text-sm text-gray-500">
-                                {new Date(
-                                  userReview.date
-                                ).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsEditingReview(true)}
-                        >
-                          Edit
-                        </Button>
-                      </div>
-                      <p className="mt-3 text-gray-700">
-                        {userReview.comment}
-                      </p>
-                    </div>
+					<ContentHeader
+						title={`Review ${
+							type === "event" ? "Event" : "Organiser"
+						}`}
+						links={breadcrumbLinks}
+					/>
 
-                    <h3 className="font-semibold text-lg mb-4">
-                      Other Reviews
-                    </h3>
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+						<div className="lg:col-span-1">
+							<Card>
+								<CardContent className="pt-6">
+									<div className="flex flex-col items-center text-center mb-6">
+										{type === "event" ? (
+											<img
+												src={target.image_url}
+												alt={target.name}
+												className="w-full h-48 object-cover rounded-md mb-4"
+											/>
+										) : (
+											<Avatar className="h-32 w-32 mb-4">
+												<AvatarImage
+													src={
+														target.profile_picture_url
+													}
+													alt={
+														target.organisation_name
+													}
+												/>
+												<AvatarFallback>
+													{target.organisation_name.charAt(
+														0
+													)}
+												</AvatarFallback>
+											</Avatar>
+										)}
 
-                    {reviews.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">
-                        No other reviews yet.
-                      </p>
-                    ) : (
-                      <div className="space-y-6">
-                        {reviews.map((review) => (
-                          <div key={review.id} className="flex items-start">
-                            <Avatar className="h-10 w-10 mr-3">
-                              <AvatarImage
-                                src={
-                                  review.avatar ||
-                                  "/src/assets/default-avatar-blue.png"
-                                }
-                                alt={review.reviewer}
-                              />
-                              <AvatarFallback>
-                                {review.reviewer.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 className="font-semibold">
-                                {review.reviewer}
-                              </h3>
-                              <div className="flex items-center">
-                                {[...Array(5)].map((_, index) => (
-                                  <Star
-                                    key={index}
-                                    className={`h-4 w-4 ${
-                                      index < review.rating
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : "text-gray-300"
-                                    }`}
-                                  />
-                                ))}
-                                <span className="ml-2 text-sm text-gray-500">
-                                  {new Date(review.date).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="mt-2 text-gray-700">
-                                {review.comment}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
-  );
+										<h2 className="text-xl font-bold">
+											{type === "event"
+												? target.name
+												: target.organisation_name}
+										</h2>
+
+										{type === "event" && (
+											<div className="mt-4 space-y-2 text-left">
+												<div className="flex items-center">
+													<User className="h-4 w-4 mr-2 text-gray-500" />
+													<span className="text-gray-700">
+														{target.organiser_name}
+													</span>
+												</div>
+												<div className="flex items-center">
+													<Calendar className="h-4 w-4 mr-2 text-gray-500" />
+													<span className="text-gray-700">
+														{target.start_date}
+													</span>
+												</div>
+												<div className="flex items-center">
+													<MapPin className="h-4 w-4 mr-2 text-gray-500" />
+													<span className="text-gray-700">
+														{target.location}
+													</span>
+												</div>
+											</div>
+										)}
+
+										{type === "organiser" && (
+											<div className="mt-4 text-left">
+												<div className="flex items-center">
+													<MapPin className="h-4 w-4 mr-2 text-gray-500" />
+													<span className="text-gray-700">
+														{target.address}
+													</span>
+												</div>
+											</div>
+										)}
+
+										<div className="mt-6 border-t border-gray-200 pt-4">
+											<p className="text-gray-600 text-sm mb-2">
+												Average Rating
+											</p>
+											<div className="flex items-center justify-center">
+												<Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+												<span className="ml-1 font-bold text-lg">
+													{calculateAverageRating()}
+												</span>
+												<span className="ml-1 text-gray-500">
+													/ 5
+												</span>
+												<span className="ml-2 text-sm text-gray-500">
+													(
+													{userReview
+														? reviews.length + 1
+														: reviews.length}{" "}
+													{reviews.length +
+														(userReview ? 1 : 0) ===
+													1
+														? "review"
+														: "reviews"}
+													)
+												</span>
+											</div>
+										</div>
+									</div>
+
+									<div className="mt-4">
+										<Button
+											asChild
+											variant="outline"
+											className="w-full"
+										>
+											<Link to={entityUrl}>
+												Back to{" "}
+												{type === "event"
+													? "Event"
+													: "Organiser"}{" "}
+												Details
+											</Link>
+										</Button>
+									</div>
+								</CardContent>
+							</Card>
+						</div>
+
+						<div className="lg:col-span-2">
+							{!userReview || isEditingReview ? (
+								<ReviewForm
+									type={type}
+									targetId={id}
+									targetName={
+										type === "event"
+											? target.name
+											: target.organisation_name
+									}
+									onSubmitSuccess={handleSubmitReview}
+									onCancel={
+										isEditingReview
+											? () => setIsEditingReview(false)
+											: null
+									}
+									existingReview={
+										isEditingReview ? userReview : null
+									}
+								/>
+							) : (
+								<Card>
+									<CardContent className="pt-6">
+										<div className="border-b pb-4 mb-4">
+											<div className="flex justify-between items-start">
+												<div className="flex items-start">
+													<Avatar className="h-10 w-10 mr-3">
+														<AvatarImage
+															src={
+																user.avatar ||
+																"/src/assets/default-avatar-blue.png"
+															}
+															alt={
+																userReview.reviewer
+															}
+														/>
+														<AvatarFallback>
+															{userReview.reviewer.charAt(
+																0
+															)}
+														</AvatarFallback>
+													</Avatar>
+													<div>
+														<h3 className="font-semibold">
+															{
+																userReview.reviewer
+															}
+														</h3>
+														<div className="flex items-center">
+															{[...Array(5)].map(
+																(_, index) => (
+																	<Star
+																		key={
+																			index
+																		}
+																		className={`h-4 w-4 ${
+																			index <
+																			userReview.rating
+																				? "fill-yellow-400 text-yellow-400"
+																				: "text-gray-300"
+																		}`}
+																	/>
+																)
+															)}
+															<span className="ml-2 text-sm text-gray-500">
+																{new Date(
+																	userReview.date
+																).toLocaleDateString()}
+															</span>
+														</div>
+													</div>
+												</div>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={() =>
+														setIsEditingReview(true)
+													}
+												>
+													Edit
+												</Button>
+											</div>
+											<p className="mt-3 text-gray-700">
+												{userReview.comment}
+											</p>
+										</div>
+
+										<h3 className="font-semibold text-lg mb-4">
+											Other Reviews
+										</h3>
+
+										{reviews.length === 0 ? (
+											<p className="text-gray-500 text-center py-4">
+												No other reviews yet.
+											</p>
+										) : (
+											<div className="space-y-6">
+												{reviews.map((review) => (
+													<div
+														key={review.id}
+														className="flex items-start"
+													>
+														<Avatar className="h-10 w-10 mr-3">
+															<AvatarImage
+																src={
+																	review.avatar ||
+																	"/src/assets/default-avatar-blue.png"
+																}
+																alt={
+																	review.reviewer
+																}
+															/>
+															<AvatarFallback>
+																{review.reviewer.charAt(
+																	0
+																)}
+															</AvatarFallback>
+														</Avatar>
+														<div>
+															<h3 className="font-semibold">
+																{
+																	review.reviewer
+																}
+															</h3>
+															<div className="flex items-center">
+																{[
+																	...Array(5),
+																].map(
+																	(
+																		_,
+																		index
+																	) => (
+																		<Star
+																			key={
+																				index
+																			}
+																			className={`h-4 w-4 ${
+																				index <
+																				review.rating
+																					? "fill-yellow-400 text-yellow-400"
+																					: "text-gray-300"
+																			}`}
+																		/>
+																	)
+																)}
+																<span className="ml-2 text-sm text-gray-500">
+																	{new Date(
+																		review.date
+																	).toLocaleDateString()}
+																</span>
+															</div>
+															<p className="mt-2 text-gray-700">
+																{review.comment}
+															</p>
+														</div>
+													</div>
+												))}
+											</div>
+										)}
+									</CardContent>
+								</Card>
+							)}
+						</div>
+					</div>
+				</div>
+			</main>
+			<Footer />
+		</div>
+	);
 }
 
 export default ReviewPage;
