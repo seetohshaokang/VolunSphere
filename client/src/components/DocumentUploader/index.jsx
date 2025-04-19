@@ -246,14 +246,14 @@ const DocumentUploader = ({
 							</div>
 
 							{/* Success message right above the file upload container */}
-							{localSuccess && (
+							{/* {localSuccess && (
 								<Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
 									<CheckCircle className="h-4 w-4 text-green-600 mr-2" />
 									<AlertDescription>
 										{localSuccess}
 									</AlertDescription>
 								</Alert>
-							)}
+							)} */}
 
 							<div className="relative">
 								<div className="flex items-center gap-2">

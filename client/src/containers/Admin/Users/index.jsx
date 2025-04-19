@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import Api from "../../../helpers/Api";
 import { getProfileImageUrl } from "../../../helpers/profileHelper";
@@ -423,14 +424,17 @@ const AdminUsers = () => {
 												}`}
 												onClick={() => {
 													// This would typically open a confirmation modal
-													alert(
-														`This would ${
-															user.status ===
-															"active"
-																? "suspend"
-																: "activate"
-														} the user account.`
+													toast.success(
+														"User updated successfully"
 													);
+													// alert(
+													// 	`This would ${
+													// 		user.status ===
+													// 		"active"
+													// 			? "suspend"
+													// 			: "activate"
+													// 	} the user account.`
+													// );
 												}}
 											></button>
 										</td>

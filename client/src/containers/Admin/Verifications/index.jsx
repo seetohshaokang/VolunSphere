@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import Api from "../../../helpers/Api";
 
@@ -98,12 +99,17 @@ const AdminVerifications = () => {
 				total: prev.total - 1,
 			}));
 
-			// Show success notification
-			alert(
+			toast.success(
 				`NRIC verification ${
 					verificationStatus ? "approved" : "rejected"
 				} successfully`
 			);
+			// Show success notification
+			// alert(
+			// 	`NRIC verification ${
+			// 		verificationStatus ? "approved" : "rejected"
+			// 	} successfully`
+			// );
 		} catch (err) {
 			console.error("Error updating verification status:", err);
 			alert(`Error: ${err.message}`);
