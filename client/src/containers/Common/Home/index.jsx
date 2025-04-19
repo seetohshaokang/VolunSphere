@@ -132,7 +132,11 @@ function Home() {
 					start_date: event.start_datetime
 						? event.start_datetime.split("T")[0]
 						: "",
-					location: event.location,
+					location: event.location,	
+					contact_person: event.contact_person,
+					locationUrl: event.locationUrl,
+					latitude: event.latitude,
+					longitude: event.longitude,
 					description: event.description,
 					cause: event.causes?.[0] || "General",
 					max_volunteers: event.max_volunteers,

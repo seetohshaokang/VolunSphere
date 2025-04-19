@@ -680,7 +680,6 @@ function EventDetail() {
             {event.name}
           </h1>
           <div className="flex items-center mb-2">
-            <div className="w-6 h-6 bg-gray-200 rounded-full mr-2"></div>
             <button
               onClick={handleViewOrganizerProfile}
               className="text-blue-600 hover:text-blue-800 hover:underline text-left cursor-pointer"

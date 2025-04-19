@@ -71,13 +71,15 @@ function EventCard({ event, isOrganizerView = false }) {
 
 	// Get organizer name
 	const getOrganizerName = () => {
-		if (event.organiser_name) {
-			return event.organiser_name;
+		console.log(event)
+		console.log(event.contact_person);
+		if (event.contact_person) {
+			return event.contact_person;
 		} else if (
 			typeof event.organiser_id === "object" &&
 			event.organiser_id?.name
 		) {
-			return event.organiser_id.name;
+			return event.contact_person;
 		}
 		return "Event Organizer";
 	};
