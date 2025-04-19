@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CheckCircle, Clock, Loader2 } from "lucide-react";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 const NricUploader = ({ profile, onUploadSuccess, setError, setSuccess }) => {
 	const [nricFile, setNricFile] = useState(null);
@@ -54,6 +55,7 @@ const NricUploader = ({ profile, onUploadSuccess, setError, setSuccess }) => {
 			const data = await response.json();
 
 			if (response.ok) {
+				toast.sucess(data.message || "NRIC uploaded successfully.");
 				if (setSuccess)
 					setSuccess(
 						data.message ||
@@ -66,10 +68,12 @@ const NricUploader = ({ profile, onUploadSuccess, setError, setSuccess }) => {
 					onUploadSuccess();
 				}
 			} else {
+				toast.error(data.message || "Failed to upload NRIC");
 				if (setError) setError(data.message || "Failed to upload NRIC");
 			}
 		} catch (err) {
 			console.error("Error uploading NRIC:", err);
+			toast.error("Failed to upload NRIC. Please try again.");
 			if (setError) setError("Failed to upload NRIC. Please try again.");
 		} finally {
 			setUploadingNric(false);

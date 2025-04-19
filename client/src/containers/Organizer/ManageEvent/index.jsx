@@ -115,7 +115,7 @@ function OrganizerManageEvent() {
 				location: selectedLocation.address || selectedLocation.name,
 				locationUrl: selectedLocation.locationUrl,
 				latitude: selectedLocation.latitude,
-				longitude: selectedLocation.longitude
+				longitude: selectedLocation.longitude,
 			});
 		}
 	};
@@ -1106,8 +1106,8 @@ function OrganizerManageEvent() {
 						>
 							Cancel
 						</Button>
-						<Button 
-							variant="outline" 
+						<Button
+							variant="outline"
 							onClick={handleDelete}
 							className="bg-red-500 hover:bg-red-600 text-white hover:text-white"
 						>

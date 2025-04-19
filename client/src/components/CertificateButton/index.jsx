@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Award, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 import Api from "../../helpers/Api";
 
 export default function CertificateButton({ eventId, eventName, onGenerated }) {

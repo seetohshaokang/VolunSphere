@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { AlertCircle, Edit, Plus, Search, Trash } from "lucide-react";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import ContentHeader from "../../components/ContentHeader";
 import Api from "../../helpers/Api";
@@ -38,6 +39,7 @@ function ListEvents() {
 			setLoading(false);
 		} catch (err) {
 			console.error("Error fetching events:", err);
+			toast.error("Failed to load events. Pleas try again later.");
 			setError("Failed to load events. Please try again later.");
 			setLoading(false);
 		}
@@ -48,9 +50,11 @@ function ListEvents() {
 			try {
 				await Api.deleteEvent(eventId);
 				// Refresh the events list
+				toast.success("Event deleted successfully");
 				fetchEvents();
 			} catch (err) {
 				console.error("Error deleting event:", err);
+				toast.error("Failed to delete event. Please try again");
 				setError("Failed to delete event. Please try again.");
 			}
 		}

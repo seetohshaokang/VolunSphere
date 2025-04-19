@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Api from "../../../helpers/Api";
 
@@ -35,6 +36,7 @@ const ResetPassword = () => {
 		}
 
 		if (newPassword.length < 6) {
+			toast.error("Password must be at least 6 characters long");
 			setError("Password must be at least 6 characters long");
 			return;
 		}
@@ -58,6 +60,7 @@ const ResetPassword = () => {
 				navigate("/login");
 			}, 3000);
 		} catch (err) {
+			toast.error(err.message || "Something went wrong");
 			setError(err.message || "Something went wrong");
 		} finally {
 			setLoading(false);
@@ -98,7 +101,7 @@ const ResetPassword = () => {
 				</CardHeader>
 
 				<CardContent>
-					{message && (
+					{/* {message && (
 						<Alert variant="success" className="mb-4">
 							<AlertDescription>{message}</AlertDescription>
 						</Alert>
@@ -108,7 +111,7 @@ const ResetPassword = () => {
 						<Alert variant="destructive" className="mb-4">
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
-					)}
+					)} */}
 
 					<form onSubmit={handleSubmit}>
 						<div className="mb-4">
