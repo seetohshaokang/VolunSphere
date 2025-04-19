@@ -102,7 +102,8 @@ const AdminEventDetail = () => {
 			alert("Event status updated successfully");
 		} catch (err) {
 			console.error("Error updating event status:", err);
-			alert(`Error: ${err.message}`);
+			toast.error(`Error: ${err.message}`);
+			// alert(`Error: ${err.message}`);
 		} finally {
 			setUpdateLoading(false);
 		}

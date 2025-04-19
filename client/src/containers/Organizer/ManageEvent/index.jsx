@@ -33,6 +33,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ContentHeader from "../../../components/ContentHeader";
 import GoogleMaps from "../../../components/GoogleMaps";
@@ -132,6 +133,7 @@ function OrganizerManageEvent() {
 					// Check if event is completed and redirect if it is
 					if (eventData.status === "completed") {
 						setError("Completed events cannot be edited.");
+						toast.error("Completed events cannot be edited.");
 						setTimeout(() => {
 							navigate(`/organizer/events/${id}`);
 						}, 2000);
