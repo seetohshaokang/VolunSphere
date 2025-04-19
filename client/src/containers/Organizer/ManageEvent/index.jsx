@@ -936,13 +936,13 @@ function OrganizerManageEvent() {
 
 									{isEditMode && (
 										<Button
-											variant="destructive"
+											variant="outline"
 											type="button"
 											onClick={() =>
 												setShowDeleteConfirm(true)
 											}
 											disabled={submitLoading}
-											className="flex items-center gap-1 order-2 sm:order-3 bg-red-600 hover:bg-red-700 text-white"
+											className="flex items-center gap-1 order-2 sm:order-3 bg-red-500 hover:bg-red-600 text-white hover:text-white"
 										>
 											{submitLoading ? (
 												<AlertCircle className="h-4 w-4 animate-spin" />
@@ -1106,7 +1106,11 @@ function OrganizerManageEvent() {
 						>
 							Cancel
 						</Button>
-						<Button variant="destructive" onClick={handleDelete}>
+						<Button 
+							variant="outline" 
+							onClick={handleDelete}
+							className="bg-red-500 hover:bg-red-600 text-white hover:text-white"
+						>
 							Delete
 						</Button>
 					</DialogFooter>

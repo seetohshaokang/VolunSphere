@@ -40,7 +40,7 @@ import {
 
 // Add custom focus styles for search inputs
 const customInputStyles = `
-  .search-input:focus {
+  .search-input:focus, .custom-textarea:focus {
     border-width: 2px;
     border-color: rgb(59 130 246); /* Tailwind blue-500 */
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
@@ -71,6 +71,10 @@ const EventVolunteersPage = () => {
   const [isReporting, setIsReporting] = useState(false);
   const [volunteerToReport, setVolunteerToReport] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [selectedVolunteerForProfile, setSelectedVolunteerForProfile] =
+    useState(null);
+  const [showVolunteerProfileModal, setShowVolunteerProfileModal] =
+    useState(false);
 
   useEffect(() => {
     if (eventId) {
@@ -436,14 +440,27 @@ const EventVolunteersPage = () => {
     }
   };
 
+  const handleViewVolunteerProfile = (registration) => {
+    if (!registration) {
+      setError("Cannot view profile: Registration data is missing");
+      return;
+    }
+
+    // Add a detailed console log to see exactly what data we have
+    console.log(
+      "Showing volunteer profile - detailed data:",
+      JSON.stringify(registration, null, 2)
+    );
+    setSelectedVolunteerForProfile(registration);
+    setShowVolunteerProfileModal(true);
+  };
+
   return (
     <div className="container mx-auto p-4 md:p-6">
       {/* Add style tag for custom search input styles */}
       <style>{customInputStyles}</style>
 
-      <ContentHeader
-        title={`Registered Volunteers - ${eventName}`}
-      />
+      <ContentHeader title={`Registered Volunteers - ${eventName}`} />
 
       <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
         <Button
@@ -536,9 +553,15 @@ const EventVolunteersPage = () => {
                     <TableRow key={registration._id}>
                       {/* Simplified volunteer cell with just the name */}
                       <TableCell className="font-medium">
-                        <span>
+                        <button
+                          onClick={() =>
+                            handleViewVolunteerProfile(registration)
+                          }
+                          className="text-blue-600 hover:text-blue-800 hover:underline text-left cursor-pointer font-medium"
+                          type="button"
+                        >
                           {registration.volunteer_data?.name || "Volunteer"}
-                        </span>
+                        </button>
                       </TableCell>
                       <TableCell>
                         {registration.status === "removed_by_organizer" ? (
@@ -698,6 +721,7 @@ const EventVolunteersPage = () => {
                   value={removalReason}
                   onChange={(e) => setRemovalReason(e.target.value)}
                   rows={3}
+                  className="custom-textarea"
                 />
               </div>
             </div>
@@ -799,6 +823,7 @@ const EventVolunteersPage = () => {
                   value={reportDetails}
                   onChange={(e) => setReportDetails(e.target.value)}
                   rows={3}
+                  className="custom-textarea"
                 />
               </div>
 
@@ -818,9 +843,10 @@ const EventVolunteersPage = () => {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
+                variant="outline"
                 onClick={submitReport}
                 disabled={isReporting}
+                className="bg-red-500 hover:bg-red-600 text-white hover:text-white"
               >
                 {isReporting ? (
                   <>
@@ -830,6 +856,131 @@ const EventVolunteersPage = () => {
                 ) : (
                   "Submit Report"
                 )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Volunteer Profile Modal */}
+      {selectedVolunteerForProfile && (
+        <Dialog
+          open={showVolunteerProfileModal}
+          onOpenChange={setShowVolunteerProfileModal}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Volunteer Profile</DialogTitle>
+              <DialogDescription>
+                Volunteer information and registration details
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4">
+              <div className="flex flex-col space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium">Personal Information</h3>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <span className="text-gray-600">Name:</span>
+                    <span className="font-medium">
+                      {selectedVolunteerForProfile.volunteer_data?.name ||
+                        "Not provided"}
+                    </span>
+
+                    <span className="text-gray-600">Contact:</span>
+                    <span className="font-medium">
+                      {selectedVolunteerForProfile.volunteer_data?.phone ||
+                        "Not provided"}
+                    </span>
+
+                    {/* 
+                      Note: Based on the data structure, email is not available 
+                      in the current API response for volunteers
+                    */}
+
+                    <span className="text-gray-600">Date of Birth:</span>
+                    <span className="font-medium">
+                      {selectedVolunteerForProfile.volunteer_data?.dob
+                        ? new Date(
+                            selectedVolunteerForProfile.volunteer_data.dob
+                          ).toLocaleDateString()
+                        : "Not provided"}
+                    </span>
+
+                    {selectedVolunteerForProfile.volunteer_data?.skills
+                      ?.length > 0 && (
+                      <>
+                        <span className="text-gray-600">Skills:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedVolunteerForProfile.volunteer_data.skills.map(
+                            (skill, i) => (
+                              <span
+                                key={i}
+                                className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                              >
+                                {skill}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium">
+                    Registration Information
+                  </h3>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <span className="text-gray-600">Registration Date:</span>
+                    <span className="font-medium">
+                      {new Date(
+                        selectedVolunteerForProfile.signup_date
+                      ).toLocaleDateString()}
+                    </span>
+
+                    <span className="text-gray-600">Status:</span>
+                    <span className="font-medium">
+                      {selectedVolunteerForProfile.status ===
+                      "removed_by_organizer"
+                        ? "Removed"
+                        : selectedVolunteerForProfile.attendance_status ===
+                          "attended"
+                        ? "Attended"
+                        : "Registered"}
+                    </span>
+
+                    <span className="text-gray-600">Attendance:</span>
+                    <span className="font-medium">
+                      {selectedVolunteerForProfile.attendance_status ===
+                      "attended"
+                        ? "Attended"
+                        : selectedVolunteerForProfile.attendance_status ===
+                          "not_attended"
+                        ? "Not Attended"
+                        : "Pending"}
+                    </span>
+
+                    <span className="text-gray-600">Checked In:</span>
+                    <span className="font-medium">
+                      {selectedVolunteerForProfile.check_in_time
+                        ? new Date(
+                            selectedVolunteerForProfile.check_in_time
+                          ).toLocaleString()
+                        : "Not checked in"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowVolunteerProfileModal(false)}
+              >
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>

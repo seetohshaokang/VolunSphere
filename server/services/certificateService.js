@@ -114,13 +114,16 @@ class CertificateService {
 		eventDate,
 		hours,
 		skills,
-		qrCodeDataUrl
+		qrCodeDataUrl,
+		location = "No location specified"
 	) {
 		return new Promise((resolve, reject) => {
 			try {
+				// Create a landscape-oriented PDF
 				const doc = new PDFDocument({
 					size: "A4",
-					margin: 50,
+					layout: "landscape", // Landscape orientation
+					margin: 40,
 					info: {
 						Title: "Volunteer Participation Certificate",
 						Author: "VolunSphere",
@@ -130,86 +133,152 @@ class CertificateService {
 				const stream = fs.createWriteStream(filePath);
 				doc.pipe(stream);
 
-				// Add logo
+				const pageWidth = doc.page.width;
+				const pageHeight = doc.page.height;
+
+				// Add border to entire certificate
+				doc.rect(50, 50, pageWidth - 100, pageHeight - 100)
+					.lineWidth(2)
+					.stroke("#3b82f6");
+
+				// Add logo (left side)
 				if (fs.existsSync(this.logoPath)) {
-					doc.image(this.logoPath, 50, 50, { width: 100 });
+					doc.image(this.logoPath, 80, 80, { width: 70 });
 				}
 
-				// Add QR code
-				doc.image(qrCodeDataUrl, 450, 50, { width: 100 });
+				// Add QR code (right side)
+				doc.image(qrCodeDataUrl, pageWidth - 150, 80, { width: 70 });
 
-				// Title
-				doc.fontSize(24)
+				// Add header - smaller
+				doc.fontSize(22)
 					.font("Helvetica-Bold")
-					.text("CERTIFICATE OF PARTICIPATION", { align: "center" })
-					.moveDown(1);
+					.fillColor("#1e293b")
+					.text("CERTIFICATE OF\nPARTICIPATION", 0, 90, {
+						width: pageWidth,
+						align: "center",
+					});
 
-				// Certificate content
-				doc.fontSize(14)
-					.font("Helvetica")
-					.text("This certifies that", { align: "center" })
-					.moveDown(0.5);
+				// Certificate text - smaller
+				doc.fontSize(13).font("Helvetica").fillColor("#334155").text(
+					"This certifies that",
+					{
+						width: pageWidth,
+						align: "center",
+					},
+					155
+				);
 
-				doc.fontSize(18)
+				// Volunteer name - smaller
+				doc.fontSize(22)
 					.font("Helvetica-Bold")
-					.text(volunteerName, { align: "center" })
-					.moveDown(0.5);
+					.fillColor("#0f172a")
+					.text(volunteerName.toUpperCase(), {
+						width: pageWidth,
+						align: "center",
+					})
+					.moveDown(0.2);
 
-				doc.fontSize(14)
+				// Continuing certificate text - smaller
+				doc.fontSize(13)
 					.font("Helvetica")
+					.fillColor("#334155")
 					.text("has successfully participated as a volunteer in", {
+						width: pageWidth,
 						align: "center",
 					})
-					.moveDown(0.5);
+					.moveDown(0.2);
 
-				doc.fontSize(18)
+				// Event name - smaller
+				doc.fontSize(22)
 					.font("Helvetica-Bold")
-					.text(eventName, { align: "center" })
-					.moveDown(0.5);
+					.fillColor("#0f172a")
+					.text(eventName.toUpperCase(), {
+						width: pageWidth,
+						align: "center",
+					})
+					.moveDown(0.2);
 
-				doc.fontSize(14)
+				// Organizer and date - smaller
+				doc.fontSize(13)
 					.font("Helvetica")
+					.fillColor("#334155")
 					.text(`organized by ${organizerName} on ${eventDate}`, {
+						width: pageWidth,
 						align: "center",
-					})
-					.moveDown(1);
+					});
 
-				// Hours and skills
-				if (hours > 0) {
-					doc.text(
-						`Contributing ${hours} hours and demonstrating skills in:`,
-						{ align: "center" }
-					).moveDown(0.5);
-				} else {
-					doc.text("Demonstrating skills in:", {
-						align: "center",
-					}).moveDown(0.5);
-				}
+				// Left section - Skills (smaller and moved up)
+				doc.roundedRect(130, 315, 220, 120, 5)
+					.fillColor("#f0f9ff")
+					.fill();
 
-				doc.fontSize(16)
-					.font("Helvetica-Oblique")
-					.text(skills.join(", ") || "Volunteering", {
-						align: "center",
-					})
-					.moveDown(2);
+				doc.fontSize(13)
+					.font("Helvetica-Bold")
+					.fillColor("#0f172a")
+					.text("SKILLS DEMONSTRATED:", 150, 330);
 
-				// Signature lines
-				doc.fontSize(12)
+				// Add skills as bullet points
+				doc.fontSize(11).font("Helvetica").fillColor("#334155");
+
+				let yPosition = 350;
+				skills.forEach((skill) => {
+					doc.text(`• ${skill}`, 150, yPosition);
+					yPosition += 20;
+				});
+
+				// Right section - Event Details (smaller and moved up)
+				doc.roundedRect(pageWidth - 350, 315, 220, 120, 5)
+					.fillColor("#f0f9ff")
+					.fill();
+
+				doc.fontSize(13)
+					.font("Helvetica-Bold")
+					.fillColor("#0f172a")
+					.text("EVENT DETAILS:", pageWidth - 330, 330);
+
+				// Add event details
+				doc.fontSize(11)
 					.font("Helvetica")
-					.text("_________________________", 100, 500)
-					.text("_________________________", 350, 500)
-					.moveDown(0.5);
+					.fillColor("#334155")
+					.text(`Location: ${location}`, pageWidth - 330, 350)
+					.text(
+						`Duration: ${
+							hours > 0 ? `${hours} hours` : "Not recorded"
+						}`,
+						pageWidth - 330,
+						370
+					)
+					.text(
+						`Cause: ${skills[0] || "Education"}`,
+						pageWidth - 330,
+						390
+					);
 
-				doc.text(organizerName, 100, 520)
-					.text("Digital Signature", 350, 520)
-					.moveDown(0.5);
+				// Signature lines (moved up)
+				doc.fontSize(11)
+					.font("Helvetica")
+					.text("__________________________", 160, 480)
+					.text("__________________________", pageWidth - 270, 480)
+					.moveDown(0.2);
 
-				doc.fontSize(10).text("Event Organizer", 100, 535).moveDown(3);
+				doc.text(organizerName, 160, 500)
+					.text("Digital Signature", pageWidth - 270, 500)
+					.moveDown(0.2);
 
-				// Certificate ID and verification info
-				doc.fontSize(10)
-					.text(`Certificate ID: ${certificateId}`, 100, 600)
-					.text("Verify at: voluntsphere.com/verify", 350, 600);
+				doc.fontSize(9).text("Event Organizer", 160, 515);
+
+				// Certificate ID and verification info (moved up)
+				doc.fontSize(8).text(
+					`Certificate ID: ${certificateId}`,
+					140,
+					550
+				);
+
+				doc.fontSize(8).text(
+					`Verify at: voluntsphere.com/verify`,
+					pageWidth - 300,
+					550
+				);
 
 				doc.end();
 
@@ -258,6 +327,7 @@ class CertificateService {
 				).toLocaleDateString(),
 				hours_contributed: certificate.hours_contributed,
 				skills_demonstrated: certificate.skills_demonstrated,
+				pdf_path: certificate.pdf_path,
 			};
 		} catch (error) {
 			console.error("Error verifying certificate:", error);

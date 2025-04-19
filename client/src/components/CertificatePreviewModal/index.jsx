@@ -61,7 +61,7 @@ export default function CertificatePreviewModal({
 						<Button
 							variant="outline"
 							size="lg"
-							className="flex items-center px-6"
+							className="flex items-center px-6 border-[#e5e7eb] hover:border-[#d1d5db]"
 							onClick={() =>
 								window.open(certificateUrl, "_blank")
 							}
@@ -71,7 +71,7 @@ export default function CertificatePreviewModal({
 						</Button>
 						<Button
 							size="lg"
-							className="flex items-center px-6"
+							className="flex items-center px-6 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200"
 							onClick={() => window.open(downloadUrl, "_blank")}
 						>
 							<Download className="h-5 w-5 mr-2" />
@@ -92,13 +92,16 @@ export default function CertificatePreviewModal({
 
 				<DialogFooter className="flex items-center justify-between">
 					<Button
-						variant="link"
+						variant="outline"
 						onClick={handleVerifyCertificate}
 						className="text-sm"
 					>
 						Verify Certificate
 					</Button>
-					<Button variant="ghost" onClick={onClose}>
+					<Button 
+						variant="outline" 
+						onClick={onClose}
+					>
 						Close
 					</Button>
 				</DialogFooter>

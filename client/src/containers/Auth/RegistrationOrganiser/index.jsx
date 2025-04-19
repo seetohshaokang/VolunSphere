@@ -342,7 +342,7 @@ function RegistrationOrganiser() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button onClick={() => setShowModal(false)}>OK</Button>
+            <Button variant="outline" onClick={() => setShowModal(false)}>OK</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
