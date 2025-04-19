@@ -30,8 +30,13 @@
     cursor: grab;
 }
 
+.pac-container {
+    z-index: 2000 !important;
+}
+
 .map-container:active {
-    cursor: grabbing; /* indicates the map is being dragged */
+    cursor: grabbing;
+    /* indicates the map is being dragged */
 }
 
 .list_header {

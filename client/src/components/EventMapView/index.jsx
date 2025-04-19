@@ -4,6 +4,7 @@ import {
   Map,
   AdvancedMarker,
   InfoWindow,
+  useMap,
   MapControl,
   ControlPosition
 } from "@vis.gl/react-google-maps";
@@ -17,7 +18,6 @@ import {
   X,
   Users
 } from "lucide-react";
-
 import {
   Card,
   CardContent,
@@ -39,6 +39,29 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import Api from "../../helpers/Api";
+import "../GoogleMaps/GoogleMaps.css";
+import PlacesAutocomplete from "../PlacesAutocomplete";
+
+const MapController = () => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (map) {
+      console.log("Map accessed through useMap hook", map);
+
+      // Add a delay to ensure the map is fully initialized
+      setTimeout(() => {
+        map.setOptions({
+          draggable: true,
+          gestureHandling: 'greedy'
+        });
+        console.log("Map draggable set to true with delay");
+      }, 500);
+    }
+  }, [map]);
+
+  return null;
+};
 
 // Custom marker component for better styling
 const EventMarker = ({ event, isSelected, onClick }) => {
@@ -73,6 +96,8 @@ const EventMapView = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   // Load events from API
   useEffect(() => {
@@ -200,10 +225,43 @@ const EventMapView = () => {
     return deg * (Math.PI / 180);
   };
 
+  const handlePlaceSelect = (place) => {
+    if (!place || !place.geometry) return;
+
+    // Set the selected location
+    setSelectedLocation(place);
+
+    // Update map center to the selected location
+    const newCenter = {
+      lat: place.geometry.location.lat(),
+      lng: place.geometry.location.lng()
+    };
+    setMapCenter(newCenter);
+    setUserLocation(newCenter);
+    console.log(userLocation);
+    // Optional: Update the search radius visualization here
+    // You may want to adjust the zoom level based on the place type
+    if (mapRef.current) {
+      // Set appropriate zoom level based on the type of location
+      // e.g., country (zoom=5), city (zoom=12), specific address (zoom=15)
+      const map = mapRef.current.getMap();
+      if (map) {
+        map.setZoom(14);
+      }
+    }
+
+    // Update the input field with the formatted address if available
+    if (place.formatted_address) {
+      setLocationQuery(place.formatted_address);
+    }
+  };
+
   const handleMarkerClick = (event) => {
     setSelectedEvent(event);
     setInfoWindowOpen(true);
-    setMapCenter(event.coordinates);
+    if (!userInteracting) {
+      setMapCenter(event.coordinates);
+    }
   };
 
   const handleListItemClick = (event) => {
@@ -256,10 +314,10 @@ const EventMapView = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
+    <div className="flex flex-col md:flex-row h-[75vh]">
       {/* Left sidebar with event list */}
-      <div className="w-full md:w-1/3 h-1/2 md:h-screen overflow-y-auto border-r">
-        <div className="sticky top-0 bg-white z-10 p-4 border-b">
+      <div className="w-full md:w-1/3 h-1/2 md:h-full overflow-y-auto border-r">
+        <div className="top-0 bg-white z-10 p-4 border-b">
           <h2 className="text-2xl font-bold mb-4">Events Near You</h2>
           {/* Search bar */}
           <div className="relative mb-4">
@@ -289,8 +347,50 @@ const EventMapView = () => {
 
           {/* Expanded filters */}
           {showFilters && (
-            <div className="p-4 bg-gray-50 rounded-md mb-4 animate-in slide-in-from-top duration-300">
+            <div className="p-4 pt-8 bg-gray-50 rounded-md mb-4 animate-in slide-in-from-top duration-300 relative">
+              <Button
+                variant="outline"
+                style={{ borderRadius: "5px" }}
+                size="sm"
+                className="absolute top-2 right-2 h-6 w-6 p-0"
+                onClick={() => setShowFilters(false)}
+              >
+                <X size={16} />
+              </Button>
+
               <div className="mb-4">
+                <div className="mb-4">
+                  <Label className="text-sm font-medium block mb-2">Location Search</Label>
+                  <div className="rounded-md overflow-hidden mb-2 flex justify-center items-center">
+                    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
+                      <PlacesAutocomplete
+                        value={locationQuery}
+                        onPlaceSelect={handlePlaceSelect}
+                        placeholder="Search for a specific location..."
+                      />
+                    </APIProvider>
+                  </div>
+                  {selectedLocation && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">
+                        Showing results near {selectedLocation.name || selectedLocation.formatted_address}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 p-0 text-xs text-gray-500"
+                        onClick={() => {
+                          setSelectedLocation(null);
+                          setLocationQuery("");
+                          // Reset to user location
+                          setMapCenter(userLocation);
+                        }}
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <div className="flex justify-between mb-2">
                   <Label className="text-sm font-medium">Distance (km): {searchRadius}</Label>
                   <span className="text-sm text-gray-500">{searchRadius} km</span>
@@ -307,7 +407,7 @@ const EventMapView = () => {
               {categories.length > 0 && (
                 <div className="mb-4">
                   <Label className="text-sm font-medium block mb-2">Categories</Label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 pr-2">
                     {categories.map(category => (
                       <div key={category} className="flex items-center space-x-2">
                         <Checkbox
@@ -327,8 +427,8 @@ const EventMapView = () => {
                 </div>
               )}
 
-              <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full mt-2">
-                <X size={14} className="mr-1" /> Clear Filters
+              <Button variant="outline" style={{ borderRadius: "5px" }} size="sm" onClick={clearFilters} className="w-full mt-2">
+                Clear Filters
               </Button>
             </div>
           )}
@@ -354,16 +454,15 @@ const EventMapView = () => {
             No events found matching your criteria
           </div>
         ) : (
-          <div className="p-4 space-y-4">
+          <div className="p-4">
             {filteredEvents.map(event => (
               <Card
                 key={event._id}
                 id={`event-list-item-${event._id}`}
-                className={`cursor-pointer transition-all hover:shadow-md ${selectedEvent && selectedEvent._id === event._id ? 'ring-2 ring-primary' : ''
-                  }`}
+                className={`cursor-pointer transition-all hover:shadow-md mb-4 ${selectedEvent && selectedEvent._id === event._id ? 'ring-2 ring-primary' : ''}`}
                 onClick={() => handleListItemClick(event)}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-4 w-full overflow-visible">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold">{event.name}</h3>
                     <Badge className={
@@ -415,7 +514,8 @@ const EventMapView = () => {
       </div>
 
       {/* Right side map */}
-      <div className="w-full md:w-2/3 h-1/2 md:h-screen relative">
+      <div className="w-full md:w-2/3 h-1/2 md:h-screen relative map-container"
+        style={{ cursor: "grab" }}>
         <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}>
           <Map
             defaultZoom={14}
@@ -427,18 +527,15 @@ const EventMapView = () => {
             mapTypeControl={false}
             zoomControl={true}
             mapTypeId={'roadmap'}
-            disableDefaultUI={true}
+            disableDefaultUI={false}
             minZoom={10}
             maxZoom={20}
             gestureHandling="cooperative"
             className="w-full h-full"
-            onLoad={(map) => {
-              // Store map instance in ref when it loads
-              if (mapRef.current !== map) {
-                mapRef.current = map;
-              }
-            }}
+            onDragStart={() => setUserInteracting(true)}
+            onDragEnd={() => setTimeout(() => setUserInteracting(false), 1000)}
           >
+            <MapController />
             {/* Event markers */}
             {filteredEvents.map(event => (
               <AdvancedMarker
@@ -461,18 +558,46 @@ const EventMapView = () => {
                 position={selectedEvent.coordinates}
                 onCloseClick={handleInfoWindowClose}
               >
-                <div className="max-w-xs">
-                  <h3 className="font-bold mb-1">{selectedEvent.name}</h3>
-                  <p className="text-sm mb-2 text-gray-600 line-clamp-2">{selectedEvent.description}</p>
-                  <div className="text-sm mb-1"><strong>Location:</strong> {selectedEvent.location}</div>
-                  <div className="text-sm mb-1">
-                    <strong>Date:</strong> {formatDate(selectedEvent.start_datetime || selectedEvent.start_date || selectedEvent.recurrence_start_date)}
+                <div className="max-w-xs p-2 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-lg">{selectedEvent.name}</h3>
                   </div>
-                  <div className="text-sm mb-2">
-                    <strong>Volunteers:</strong> {selectedEvent.registered_count || 0}/{selectedEvent.max_volunteers || "∞"}
+
+                  <p className="text-sm mb-3 text-gray-600 line-clamp-2">{selectedEvent.description}</p>
+
+                  <div className="bg-gray-50 p-2 rounded-md mb-3">
+                    <div className="flex items-center text-sm mb-1 text-gray-700">
+                      <MapPin size={14} className="mr-2 text-primary" />
+                      <span>{selectedEvent.location}</span>
+                    </div>
+
+                    <div className="flex items-center text-sm mb-1 text-gray-700">
+                      <Calendar size={14} className="mr-2 text-primary" />
+                      <span>{formatDate(selectedEvent.start_datetime || selectedEvent.start_date || selectedEvent.recurrence_start_date)}</span>
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Users size={14} className="mr-2 text-primary" />
+                      <span>{selectedEvent.registered_count || 0}/{selectedEvent.max_volunteers || "∞"} volunteers</span>
+                    </div>
                   </div>
+
+                  {selectedEvent.causes && selectedEvent.causes.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-1">
+                      {selectedEvent.causes.map(cause => (
+                        <Badge
+                          key={cause}
+                          variant="outline"
+                          className="text-xs"
+                        >
+                          {cause}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
                   <Button
-                    className="w-full"
+                    className="w-full bg-primary hover:bg-gray-100 transition-colors"
                     size="sm"
                     onClick={() => navigateToEvent(selectedEvent._id)}
                   >

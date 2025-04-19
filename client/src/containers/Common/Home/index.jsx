@@ -2,12 +2,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
 import EventCard from "../../../components/EventCard";
 import FilterControls from "../../../components/FilterControls";
 import ResultsHeader from "../../../components/ResultsHeader";
+import EventMapView from "../../../components/EventMapView";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import Api from "../../../helpers/Api";
 
 // Add custom focus styles for search inputs
@@ -22,18 +23,17 @@ const customInputStyles = `
 `;
 
 function Home() {
-	// Get the navigate function
-	const navigate = useNavigate();
-	
 	// State management
 	const [events, setEvents] = useState([]);
 	const [filteredEvents, setFilteredEvents] = useState([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
+	const [showMapView, setShowMapView] = useState(false);
+	const [apiKeyError, setApiKeyError] = useState(false);
+
 	const [filters, setFilters] = useState({
 		category: "all",
-		location: "all",
 		dateRange: {
 			start: "",
 			end: "",
@@ -44,10 +44,19 @@ function Home() {
 		},
 	});
 
-	// Navigate to map view
-	const handleMapViewClick = () => {
-		navigate("/events/map");
+	// Toggle between list and map views
+	const toggleMapView = () => {
+		setShowMapView(prevState => !prevState);
 	};
+
+	// Check if Google Maps API key is configured
+	useEffect(() => {
+		const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+		if (!apiKey) {
+			console.warn("Google Maps API key is not configured");
+			setApiKeyError(true);
+		}
+	}, []);
 
 	// Fetch all events initially
 	useEffect(() => {
@@ -56,10 +65,9 @@ function Home() {
 		// Add event listener for when the page regains focus
 		const handleFocus = () => {
 			// Refresh the events when the user returns to this page
-			// (e.g., after signup/removal from the event detail page)
 			fetchEvents(searchTerm);
 		};
-		
+
 		// Add visibility change listener to refresh when tab becomes visible again
 		const handleVisibilityChange = () => {
 			if (document.visibilityState === 'visible') {
@@ -87,9 +95,6 @@ function Home() {
 		};
 	}, []);
 
-	// Other existing functions: fetchEvents, handleSearchSubmit, handleInputChange, etc...
-	// (Keeping the rest of your code the same)
-
 	// Fetch events from API
 	const fetchEvents = async (searchQuery = "") => {
 		setLoading(true);
@@ -101,9 +106,8 @@ function Home() {
 
 			if (searchQuery && searchQuery.trim() !== "") {
 				// If search term exists, construct a URL with the search parameter
-				const apiUrl = `${
-					Api.SERVER_PREFIX
-				}/events?search=${encodeURIComponent(searchQuery.trim())}`;
+				const apiUrl = `${Api.SERVER_PREFIX
+					}/events?search=${encodeURIComponent(searchQuery.trim())}`;
 				response = await fetch(apiUrl);
 			} else {
 				// Otherwise use the Api helper method
@@ -117,10 +121,10 @@ function Home() {
 			const data = await response.json();
 			console.log("Raw API response for events:", data);
 
-			// Process the data as in the 2ad8cdb6 version
+			// Process the data
 			const apiEvents = (data.events || []).map((event) => {
 				console.log(`Event ${event._id} image_url:`, event.image_url);
-				
+
 				return {
 					id: event._id,
 					name: event.name,
@@ -187,13 +191,6 @@ function Home() {
 			);
 		}
 
-		// Apply location filter
-		if (filters.location && filters.location !== "all") {
-			results = results.filter((event) =>
-				(event.location || "").includes(filters.location)
-			);
-		}
-
 		// Apply date filters
 		if (filters.dateRange.start) {
 			results = results.filter(
@@ -223,9 +220,6 @@ function Home() {
 				case "category":
 					newFilters.category = value;
 					break;
-				case "location":
-					newFilters.location = value;
-					break;
 				case "dateStart":
 					newFilters.dateRange.start = value;
 					break;
@@ -246,33 +240,21 @@ function Home() {
 		});
 	};
 
-	// Get unique categories and locations for filter options
+	// Get unique categories for filter options
 	const categories = [
 		...new Set(events.map((event) => event.cause).filter(Boolean)),
-	];
-	const locations = [
-		...new Set(events.map((event) => event.location).filter(Boolean)),
 	];
 
 	return (
 		<div className="min-h-screen flex flex-col">
 			{/* Add style tag for custom search input styles */}
 			<style>{customInputStyles}</style>
-			
+
 			<div className="mb-4">
 				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
 					<h1 className="text-2xl font-bold mb-2 sm:mb-0 flex items-center">
 						Find Volunteer Opportunities
 					</h1>
-                    
-                    {/* Add the map view button here */}
-                    <Button 
-                        onClick={handleMapViewClick}
-                        className="flex items-center gap-2 bg-primary hover:bg-primary/90"
-                    >
-                        <MapPin className="h-4 w-4" />
-                        <span>View Events on Map</span>
-                    </Button>
 				</div>
 				<div className="h-px bg-border mt-2"></div>
 			</div>
@@ -301,50 +283,81 @@ function Home() {
 					</div>
 				</div>
 
-				{/* Filter section */}
+				{/* Filter section with Map Toggle button */}
 				<div className="md:col-span-4">
 					<FilterControls
 						filters={filters}
 						categories={categories}
-						locations={locations}
 						handleFilterChange={handleFilterChange}
+						showMapView={showMapView}
+						toggleMapView={toggleMapView}
 					/>
 				</div>
 			</div>
 
-			{/* Results count */}
-			<ResultsHeader eventCount={filteredEvents.length} />
-
-			{/* Error message */}
-			{error && (
-				<div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded mb-6">
-					{error}
-				</div>
+			{/* Map view error message */}
+			{showMapView && apiKeyError && (
+				<Alert variant="destructive" className="mb-4">
+					<AlertDescription>
+						Google Maps API key is not configured. Please check your environment variables.
+					</AlertDescription>
+				</Alert>
 			)}
 
-			{/* Event cards grid */}
-			{loading ? (
-				<div className="flex justify-center py-12">
-					<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-				</div>
-			) : filteredEvents.length > 0 ? (
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{filteredEvents.map((event) => (
-						<EventCard key={event.id} event={event} />
-					))}
+			{/* Toggle between map view and list view */}
+			{showMapView ? (
+				// Map View
+				<div>
+					<div className="h-calc[100vh-220px] overflow-hidden rounded-lg border mb-4">
+						<EventMapView />
+					</div>
+					<div className="text-sm text-gray-500 mt-4">
+						<h3 className="font-semibold mb-2">About Event Map</h3>
+						<p>
+							The event map shows volunteer opportunities around your location. You can filter events by
+							distance, search for specific keywords, or browse by categories. Click on an event to view details
+							and sign up to volunteer.
+						</p>
+					</div>
 				</div>
 			) : (
-				<Card>
-					<CardContent className="py-12 text-center">
-						<h2 className="text-xl font-semibold">
-							No events found
-						</h2>
-						<p className="text-muted-foreground mt-2">
-							Try adjusting your search or filters to find more
-							opportunities.
-						</p>
-					</CardContent>
-				</Card>
+				// List View
+				<>
+					{/* Results count */}
+					<ResultsHeader eventCount={filteredEvents.length} />
+
+					{/* Error message */}
+					{error && (
+						<div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded mb-6">
+							{error}
+						</div>
+					)}
+
+					{/* Event cards grid */}
+					{loading ? (
+						<div className="flex justify-center py-12">
+							<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+						</div>
+					) : filteredEvents.length > 0 ? (
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+							{filteredEvents.map((event) => (
+								<EventCard key={event.id} event={event} />
+							))}
+						</div>
+					) : (
+						<Card>
+							<CardContent className="py-12 text-center">
+								<h2 className="text-xl font-semibold">
+									No events found
+								</h2>
+								<p className="text-muted-foreground mt-2">
+									Try adjusting your search or filters to find more
+									opportunities.
+								</p>
+							</CardContent>
+						</Card>
+					)}
+				</>
 			)}
 		</div>
 	);

@@ -56,9 +56,8 @@ const EventMapContainer = () => {
           ]}
         />
         
-        <p className="text-gray-600 max-w-2xl mt-2">
-          Discover volunteer opportunities near you. Use the map to explore events in your area or 
-          filter by your preferences to find the perfect match for your volunteering goals.
+        <p className="text-gray-600 mt-2">
+          Discover volunteer opportunities near you. Use the map to explore events in your area or filter by your preferences to find the perfect match for you.
         </p>
       </div>
       
@@ -71,24 +70,13 @@ const EventMapContainer = () => {
       )}
       
       <Tabs defaultValue="map" value={activeView} onValueChange={setActiveView} className="mb-4">
-        <TabsList className="grid grid-cols-2 w-[300px]">
-          <TabsTrigger value="map" className="flex items-center">
-            <MapPin className="h-4 w-4 mr-2" />
-            Map View
-          </TabsTrigger>
-          <TabsTrigger value="list" className="flex items-center">
-            <Compass className="h-4 w-4 mr-2" />
-            List View
-          </TabsTrigger>
-        </TabsList>
-        
         <div className="mt-4">
           <TabsContent value="map" className="m-0">
             <p className="text-sm text-gray-500 mb-4 flex items-center">
               <Info className="h-4 w-4 mr-1" />
               Events are shown based on your current location. Click on markers or event cards to see details.
             </p>
-            <div className="h-[calc(100vh-220px)] overflow-hidden rounded-lg border">
+            <div className="h-calc[100vh-220px] overflow-hidden rounded-lg border">
               <EventMapView />
             </div>
           </TabsContent>
