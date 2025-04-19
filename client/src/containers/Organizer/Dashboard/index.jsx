@@ -29,7 +29,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import Api from "../../../helpers/Api";
 import EventCard from "../../../components/EventCard";
 
-// Add custom focus styles for search inputs
+//custom styles
 const customInputStyles = `
   .search-input:focus {
     border-width: 2px;
@@ -48,10 +48,7 @@ function OrganizerDashboard() {
   const [error, setError] = useState(null);
   const [authError, setAuthError] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  // Add state for the verification modal
   const [showVerificationModal, setShowVerificationModal] = useState(false);
-
-  // Filtering and sorting states
   const [inputSearchTerm, setInputSearchTerm] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -64,7 +61,6 @@ function OrganizerDashboard() {
     checkVerificationStatus();
   }, []);
 
-  // Apply filters and sorting whenever the filter criteria change
   useEffect(() => {
     if (events.length > 0) {
       applyFiltersAndSort();
@@ -77,9 +73,7 @@ function OrganizerDashboard() {
       
       const response = await Api.getOrganizedEvents();
 
-      // Check if response is OK
       if (!response.ok) {
-        // Handle different error status codes
         if (response.status === 401) {
           console.error(
             "Authentication error: Token may be invalid or expired"
@@ -91,24 +85,20 @@ function OrganizerDashboard() {
         throw new Error(`API error: ${response.status}`);
       }
 
-      // Parse the response data
       const data = await response.json();
       console.log("Fetched events:", data);
 
-      // Ensure events is an array (handle different API response formats)
       let eventsList = [];
       if (Array.isArray(data)) {
         eventsList = data;
       } else if (data.events && Array.isArray(data.events)) {
         eventsList = data.events;
       } else if (typeof data === "object") {
-        // If it's some other object structure, initialize as empty array
         console.warn("Unexpected API response format:", data);
         eventsList = [];
       }
 
       setEvents(eventsList);
-      // Default sort by newest
       const sortedEvents = [...eventsList].sort(
         (a, b) =>
           new Date(b.created_at || b.start_datetime || 0) -
@@ -120,16 +110,14 @@ function OrganizerDashboard() {
       console.error("Error fetching organized events:", err);
       setError("Failed to load your events. Please try again.");
       setLoading(false);
-      setEvents([]); // Initialize as empty array on error
+      setEvents([]);
       setFilteredEvents([]);
     }
   };
 
-  // Function to apply filters and sorting
   const applyFiltersAndSort = () => {
     let result = [...events];
 
-    // Apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(
@@ -141,12 +129,10 @@ function OrganizerDashboard() {
       );
     }
 
-    // Apply status filter
     if (statusFilter !== "all") {
       result = result.filter((event) => event.status === statusFilter);
     }
 
-    // Apply date filter
     if (dateFilter !== "all") {
       const now = new Date();
       if (dateFilter === "upcoming") {
@@ -174,7 +160,6 @@ function OrganizerDashboard() {
       }
     }
 
-    // Apply sorting
     switch (sortOption) {
       case "newest":
         result.sort(
@@ -207,7 +192,6 @@ function OrganizerDashboard() {
         );
         break;
       default:
-        // Default to newest
         result.sort(
           (a, b) =>
             new Date(b.created_at || b.start_datetime || 0) -
@@ -218,21 +202,18 @@ function OrganizerDashboard() {
     setFilteredEvents(result);
   };
 
-  // Function to reset filters
   const resetFilters = () => {
     setInputSearchTerm("");
-    setSearchTerm(""); // Also reset the applied search term
+    setSearchTerm("");
     setStatusFilter("all");
     setDateFilter("all");
     setSortOption("newest");
   };
 
-  // Function to handle card click
   const handleCardClick = (eventId) => {
     navigate(`/organizer/events/${eventId}`);
   };
 
-  // Get date string for display
   const getEventDate = (event) => {
     if (event.is_recurring && event.recurrence_start_date) {
       return new Date(event.recurrence_start_date).toLocaleDateString();
@@ -244,7 +225,6 @@ function OrganizerDashboard() {
     return "Date TBD";
   };
 
-  // If auth error, show a message with login button
   if (authError) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -286,7 +266,6 @@ function OrganizerDashboard() {
       const response = await Api.getUserProfile();
       if (response.ok) {
         const data = await response.json();
-        // Check if organizer profile is verified
         if (data.profile && data.profile.verification_status === "verified") {
           setIsVerified(true);
         } else {
@@ -299,7 +278,6 @@ function OrganizerDashboard() {
     }
   };
 
-  // Updated to show verification modal if not verified
   const handleCreateEventClick = () => {
     if (isVerified) {
       navigate("/events/create");
@@ -313,12 +291,10 @@ function OrganizerDashboard() {
     navigate("/organizer/profile");
   };
 
-  // Calculate total volunteers with defensive check
   const totalVolunteers = Array.isArray(events)
     ? events.reduce((acc, event) => acc + (event.registered_count || 0), 0)
     : 0;
 
-  // Calculate active events with defensive check
   const activeEvents = Array.isArray(events)
     ? events.filter((e) => e.status === "active").length
     : 0;
@@ -340,7 +316,6 @@ function OrganizerDashboard() {
 
   return (
     <div className="container mx-auto p-4 md:p-6">
-      {/* Add style tag for custom search input styles */}
       <style>{customInputStyles}</style>
 
       <ContentHeader

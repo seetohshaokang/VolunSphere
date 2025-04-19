@@ -1,4 +1,3 @@
-// src/containers/ListEvents/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,14 +23,12 @@ function ListEvents() {
 	const [error, setError] = useState(null);
 
 	useEffect(() => {
-		// Fetch events from API
 		fetchEvents();
 	}, []);
 
 	const fetchEvents = async () => {
 		setLoading(true);
 		try {
-			// Using the API helper to fetch events
 			const response = await Api.getAllEvents();
 			const data = await response.json();
 
@@ -49,7 +46,6 @@ function ListEvents() {
 		if (window.confirm("Are you sure you want to delete this event?")) {
 			try {
 				await Api.deleteEvent(eventId);
-				// Refresh the events list
 				toast.success("Event deleted successfully");
 				fetchEvents();
 			} catch (err) {

@@ -13,8 +13,6 @@ const AdminEventDetail = () => {
 	const [reports, setReports] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-
-	// For status update modal
 	const [showStatusModal, setShowStatusModal] = useState(false);
 	const [newStatus, setNewStatus] = useState("");
 	const [statusReason, setStatusReason] = useState("");
@@ -24,15 +22,12 @@ const AdminEventDetail = () => {
 		fetchEventDetails();
 	}, [id]);
 
-	// In src/containers/Admin/EventDetail/index.jsx
-
 	const fetchEventDetails = async () => {
 		setLoading(true);
 		setError(null);
 		try {
 			console.log(`Fetching event with ID: ${id}`);
 
-			// Call the API
 			const response = await Api.getAdminEventById(id);
 			console.log("Response status:", response.status);
 
@@ -49,12 +44,10 @@ const AdminEventDetail = () => {
 			const data = await response.json();
 			console.log("Event data received:", data);
 
-			// Set state with received data
 			setEvent(data.event);
 			setRegistrations(data.registrations || []);
 			setReports(data.reports || []);
 
-			// Initialize with current status
 			if (data.event) {
 				setNewStatus(data.event.status);
 			}
@@ -88,31 +81,26 @@ const AdminEventDetail = () => {
 				);
 			}
 
-			// Update local state
 			setEvent((prev) => ({
 				...prev,
 				status: newStatus,
 			}));
 
-			// Close modal
 			setShowStatusModal(false);
 			setStatusReason("");
 		} catch (err) {
 			console.error("Error updating event status:", err);
 			toast.error(`Error: ${err.message}`);
-			// alert(`Error: ${err.message}`);
 		} finally {
 			setUpdateLoading(false);
 		}
 	};
 
-	// Function to format date
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleString();
 	};
 
-	// Function to get status badge
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "active":

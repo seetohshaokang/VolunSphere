@@ -1,4 +1,3 @@
-// client/src/containers/Auth/ResetPassword/index.jsx
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -23,7 +22,6 @@ const ResetPassword = () => {
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 
-	// Verify token on component mount
 	useEffect(() => {
 		if (!token) {
 			toast.error("Invalid reset token");
@@ -55,7 +53,6 @@ const ResetPassword = () => {
 
 			toast.success("Password reset successful! Redirecting to login...");
 
-			// Redirect to login page after 3 seconds
 			setTimeout(() => {
 				navigate("/login");
 			}, 3000);
@@ -69,7 +66,7 @@ const ResetPassword = () => {
 	if (!token) {
 		return (
 			<div className="min-h-screen bg-[#0066FF]/10 flex flex-col justify-center items-center p-4">
-				{/* Back to Home Button */}
+				{/* Back to Home */}
 				<Button
 					variant="ghost"
 					className="absolute top-4 left-4 flex items-center gap-2 text-[#0066FF] hover:bg-[#0066FF]/10"
@@ -124,7 +121,7 @@ const ResetPassword = () => {
 
 	return (
 		<div className="min-h-screen bg-[#0066FF]/10 flex flex-col justify-center items-center p-4 relative">
-			{/* Back to Home Button */}
+			{/* Back to Home */}
 			<Button
 				variant="ghost"
 				className="absolute top-4 left-4 flex items-center gap-2 text-[#0066FF] hover:bg-[#0066FF]/10"

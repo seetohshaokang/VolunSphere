@@ -1,4 +1,3 @@
-// src/containers/Auth/Registration/index.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -16,7 +15,7 @@ function Registration() {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row relative overflow-hidden">
-      {/* Back to Home Button */}
+      {/* Back to Home */}
       <Button
         variant="ghost"
         className="absolute top-4 left-4 z-30 flex items-center gap-2 hover:bg-white/20 text-white"
@@ -26,7 +25,7 @@ function Registration() {
         Back to Home
       </Button>
 
-      {/* Title - positioned in the exact center */}
+      {/* Title */}
       <div className="absolute top-16 left-5 right-0 z-20 flex justify-center">
         <div className="flex items-center">
           <h1 className="text-4xl md:text-6xl font-bold text-white">VOLUN</h1>
@@ -36,7 +35,7 @@ function Registration() {
         </div>
       </div>
 
-      {/* Left Section - For Organizers */}
+      {/* Left Section - Volunteers */}
       <div className="w-full md:w-1/2 bg-[#0066FF] text-white p-8 flex flex-col justify-center items-center">
         <div className="flex flex-col items-center justify-center h-full mt-16 md:mt-24">
           <h2 className="text-2xl md:text-3xl font-bold mt-16 md:mt-20">
@@ -54,7 +53,7 @@ function Registration() {
         </div>
       </div>
 
-      {/* Half circle cutout */}
+      {/* Circle in the middle */}
       <div className="absolute right-0 top-1/2 h-full transform -translate-y-1/2 z-10 md:block hidden">
         <div className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2">
           <div className="bg-white w-64 h-64 rounded-full"></div>
@@ -76,9 +75,8 @@ function Registration() {
         </div>
       </div>
 
-      {/* Right Section - For Volunteers */}
+      {/* Right Section - For Organiser */}
       <div className="w-full md:w-1/2 bg-white p-8 flex flex-col justify-center items-center">
-        {/* Mobile image - only shown on mobile */}
         {isMobile && (
           <div className="my-16">
             <div className="bg-[#0066FF] rounded-full w-32 h-32 flex items-center justify-center overflow-hidden">

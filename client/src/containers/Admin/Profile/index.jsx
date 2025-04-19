@@ -1,4 +1,3 @@
-// client/src/containers/Admin/Profile/index.jsx
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +29,6 @@ function AdminProfile() {
 	const [imageTimestamp, setImageTimestamp] = useState(Date.now());
 
 	useEffect(() => {
-		// Redirect if not an admin
 		if (user && user.role !== "admin") {
 			navigate("/");
 			return;
@@ -58,7 +56,6 @@ function AdminProfile() {
 			const data = await response.json();
 			console.log("Profile data received:", data);
 
-			// Create a default profile data structure
 			const profileData = {
 				firstName: "",
 				lastName: "",
@@ -67,7 +64,6 @@ function AdminProfile() {
 				avatar: data.profile.profile_picture_url,
 			};
 
-			// Parse the name
 			let fullName = data.profile.name || "";
 			if (fullName.includes(" ")) {
 				const nameParts = fullName.split(" ");
@@ -94,7 +90,6 @@ function AdminProfile() {
 	const handleFileChange = (e) => {
 		const file = e.target.files[0];
 		if (file) {
-			// Create a preview URL for display purposes
 			const imageUrl = URL.createObjectURL(file);
 			setProfile({ ...profile, avatar: imageUrl, avatarFile: file });
 		}
@@ -107,7 +102,6 @@ function AdminProfile() {
 		setSuccess(null);
 
 		try {
-			// Create FormData for the API call
 			const formData = new FormData();
 			formData.append(
 				"name",
@@ -131,7 +125,6 @@ function AdminProfile() {
 			setSuccess("Profile updated successfully!");
 			setIsEditing(false);
 
-			// Update the profile data in the auth context
 			if (typeof refreshProfile === "function") {
 				refreshProfile();
 			}
@@ -145,20 +138,16 @@ function AdminProfile() {
 		}
 	};
 
-	// Function to handle avatar URL with potential cache busting
 	const getAvatarUrl = () => {
 		if (!profile.avatar) {
 			return "/src/assets/default-avatar-purple.png";
 		}
 
-		// If it's a full URL
 		if (profile.avatar.startsWith("http")) {
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
 
-		// If it's a relative path with a file extension
 		if (profile.avatar.startsWith("/") || profile.avatar.includes(".")) {
-			// Determine if it's a server-hosted image or a local asset
 			if (
 				profile.avatar.startsWith("/uploads/") ||
 				profile.avatar.includes("profile-")
@@ -170,7 +159,6 @@ function AdminProfile() {
 			return `${profile.avatar}?t=${imageTimestamp}`;
 		}
 
-		// If it's just a filename (most likely from server)
 		return `http://localhost:8000/uploads/profiles/${profile.avatar}?t=${imageTimestamp}`;
 	};
 
@@ -189,21 +177,9 @@ function AdminProfile() {
 
 	return (
 		<div className="min-h-screen">
-			{/* Main content container with width constraints matching main page */}
+			{/* Main content */}
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
 				<ContentHeader title="Admin Profile" />
-
-				{/* {error && (
-					<Alert variant="destructive" className="mb-6">
-						<AlertDescription>{error}</AlertDescription>
-					</Alert>
-				)}
-
-				{success && (
-					<Alert className="mb-6 bg-green-50 text-green-700 border-green-200">
-						<AlertDescription>{success}</AlertDescription>
-					</Alert>
-				)} */}
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					<Card className="md:col-span-1">
@@ -427,7 +403,7 @@ function AdminProfile() {
 						</CardContent>
 					</Card>
 
-					{/* Additional admin-specific card */}
+					{/* Additional Card Details for Damin */}
 					<Card className="md:col-span-3">
 						<CardHeader>
 							<CardTitle>Admin Information</CardTitle>

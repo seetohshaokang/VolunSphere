@@ -15,7 +15,6 @@ const AdminUsers = () => {
 		total: 0,
 	});
 
-	// Filters
 	const [filters, setFilters] = useState({
 		role: "",
 		status: "",
@@ -32,10 +31,6 @@ const AdminUsers = () => {
 			setLoading(true);
 			const response = await Api.getAdminUsers(filters);
 			const data = await response.json();
-			// const testVolunteer = data.users.find(u => u.role === 'volunteer');
-			// const testOrganizer = data.users.find(u => u.role === 'organiser');
-			//console.log("Sample volunteer:", testVolunteer?.profile);
-			// console.log("Sample organizer:", testOrganizer?.profile);
 			if (!response.ok) {
 				throw new Error(data.message || "Failed to fetch users");
 			}
@@ -54,13 +49,12 @@ const AdminUsers = () => {
 		setFilters((prev) => ({
 			...prev,
 			[name]: value,
-			page: 1, // Reset to first page when filter changes
+			page: 1,
 		}));
 	};
 
 	const handleSearch = (e) => {
 		e.preventDefault();
-		// The search will trigger via useEffect when filters change
 	};
 
 	const handlePageChange = (newPage) => {
@@ -71,7 +65,6 @@ const AdminUsers = () => {
 		}));
 	};
 
-	// Function to get appropriate status badge
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "active":
@@ -101,7 +94,6 @@ const AdminUsers = () => {
 		}
 	};
 
-	// Function to render role badge
 	const getRoleBadge = (role) => {
 		switch (role) {
 			case "volunteer":
@@ -131,7 +123,6 @@ const AdminUsers = () => {
 		}
 	};
 
-	// Function to get verification status badge
 	const getVerificationBadge = (status) => {
 		switch (status) {
 			case "verified":
@@ -346,7 +337,6 @@ const AdminUsers = () => {
 												</div>
 												<div className="ml-4">
 													<div className="text-sm font-medium text-gray-900">
-														{/* TODO: FIX */}
 														{user.profile?.name ||
 															user.profile
 																?.organisation_name ||
@@ -423,18 +413,9 @@ const AdminUsers = () => {
 														: "text-green-600 hover:text-green-900"
 												}`}
 												onClick={() => {
-													// This would typically open a confirmation modal
 													toast.success(
 														"User updated successfully"
 													);
-													// alert(
-													// 	`This would ${
-													// 		user.status ===
-													// 		"active"
-													// 			? "suspend"
-													// 			: "activate"
-													// 	} the user account.`
-													// );
 												}}
 											></button>
 										</td>

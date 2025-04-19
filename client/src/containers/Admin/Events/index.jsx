@@ -1,4 +1,3 @@
-// src/containers/Admin/Events/index.jsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Api from "../../../helpers/Api";
@@ -14,7 +13,6 @@ const AdminEvents = () => {
 		total: 0,
 	});
 
-	// Filters
 	const [filters, setFilters] = useState({
 		status: "",
 		cause: "",
@@ -29,7 +27,6 @@ const AdminEvents = () => {
 	const fetchEvents = async () => {
 		try {
 			setLoading(true);
-			// Use the general getEvents API but we'll need to update the Api.js file to add this function
 			const response = await Api.getAdminEvents(filters);
 			const data = await response.json();
 
@@ -59,13 +56,12 @@ const AdminEvents = () => {
 		setFilters((prev) => ({
 			...prev,
 			[name]: value,
-			page: 1, // Reset to first page when filter changes
+			page: 1, 
 		}));
 	};
 
 	const handleSearch = (e) => {
 		e.preventDefault();
-		// The search will trigger via useEffect when filters change
 	};
 
 	const handlePageChange = (newPage) => {
@@ -76,7 +72,6 @@ const AdminEvents = () => {
 		}));
 	};
 
-	// Function to get appropriate status badge
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "active":
@@ -112,7 +107,6 @@ const AdminEvents = () => {
 		}
 	};
 
-	// Format date for display
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleDateString();
