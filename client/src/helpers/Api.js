@@ -829,15 +829,58 @@ const Api = {
     // Make sure organizerId is a string, not an object
     const id = typeof organizerId === "object" ? organizerId._id : organizerId;
 
-    // Use the correct URL structure
-    return fetch(`${Api.SERVER_PREFIX}/api/organizers/${id}`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
+    // We'll use the events endpoint to get the basic event info which includes organizer data
+    try {
+      // First try the authenticated route if user is logged in
+      const token = localStorage.getItem("token");
+      if (token) {
+        const response = await fetch(
+          `${Api.SERVER_PREFIX}/profile/organizer/${id}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        // If successful, return the response
+        if (response.ok) {
+          return response;
+        }
+      }
+
+      // Fallback: Use public event endpoint to get organizer info
+      // Since we don't have a direct public endpoint for organizer profiles
+      return fetch(`${Api.SERVER_PREFIX}/events`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+      }).then(async (response) => {
+        if (response.ok) {
+          const data = await response.json();
+          const event = data.events?.find(
+            (event) => event.organiser_id && event.organiser_id._id === id
+          );
+
+          if (event && event.organiser_id) {
+            // Return modified response with organizer data
+            return {
+              ok: true,
+              json: () => Promise.resolve(event.organiser_id),
+            };
+          }
+        }
+        return { ok: false };
+      });
+    } catch (error) {
+      console.error("Error fetching organizer profile:", error);
+      return { ok: false };
+    }
   },
 };
 

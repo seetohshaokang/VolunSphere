@@ -546,13 +546,13 @@ function EventDetail() {
     }
   };
 
-  // Update the handleViewOrganizerProfile function
+  // Updated handleViewOrganizerProfile function
   const handleViewOrganizerProfile = async () => {
     try {
-      // The organiser_id is the direct reference to the organiser document
-      const organizerId = event.organiser_id;
+      setIsLoadingOrganizer(true);
 
-      console.log("Fetching organizer with ID:", organizerId);
+      // Get organizer ID from the event
+      const organizerId = event.organiser_id?._id || event.organiser_id;
 
       if (!organizerId) {
         console.warn("No organizer ID available in event data");
@@ -564,18 +564,29 @@ function EventDetail() {
           description: "Not provided",
         });
         setShowOrganizerProfileModal(true);
+        setIsLoadingOrganizer(false);
         return;
       }
 
-      setIsLoadingOrganizer(true);
+      console.log("Fetching organizer with ID:", organizerId);
 
-      // Fetch the organizer data using the correct ID
+      // Use the updated API method
       const response = await Api.getOrganizerProfile(organizerId);
 
       if (response.ok) {
         const data = await response.json();
         console.log("Organizer data:", data);
-        setOrganizerData(data);
+
+        // Format the data properly
+        setOrganizerData({
+          name: data.name || event.contact_person || "Organization",
+          email: event.contact_email || "Not provided",
+          phone: data.phone || "Not provided",
+          description: data.description || "Not provided",
+          address: data.address || "Not provided",
+          website: data.website || null,
+          verification_status: data.verification_status || "pending",
+        });
       } else {
         console.error("Failed to fetch organizer profile");
         // Fallback to the event data
@@ -1246,6 +1257,30 @@ function EventDetail() {
                         <span className="text-gray-600">Address:</span>
                         <span className="font-medium">
                           {organizerData.address}
+                        </span>
+                      </>
+                    )}
+
+                    {organizerData?.verification_status && (
+                      <>
+                        <span className="text-gray-600">Verification:</span>
+                        <span className="font-medium">
+                          <Badge
+                            variant={
+                              organizerData.verification_status === "verified"
+                                ? "success"
+                                : "outline"
+                            }
+                            className={
+                              organizerData.verification_status === "verified"
+                                ? "bg-green-100 text-green-800"
+                                : ""
+                            }
+                          >
+                            {organizerData.verification_status === "verified"
+                              ? "Verified"
+                              : "Pending"}
+                          </Badge>
                         </span>
                       </>
                     )}
