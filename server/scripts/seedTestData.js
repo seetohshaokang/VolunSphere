@@ -105,7 +105,7 @@ async function seedTestData() {
 
 		// Create test volunteer user
 		const volunteerUser = new User({
-			email: "testvolunteer1@gmail.com",
+			email: "danielgomez@gmail.com",
 			password: hashedPassword,
 			role: "volunteer",
 			status: "active",
@@ -146,7 +146,7 @@ async function seedTestData() {
 
 		// Create test organiser user
 		const organiserUser = new User({
-			email: "testorganiser1@gmail.com",
+			email: "youthnetwork@gmail.com",
 			password: hashedPassword,
 			role: "organiser",
 			status: "active",
