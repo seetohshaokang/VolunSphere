@@ -21,6 +21,7 @@ import {
   MapPinIcon,
   RepeatIcon,
   ShieldAlert,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -1184,11 +1185,21 @@ function EventDetail() {
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              className="bg-red-500 hover:bg-red-600 text-white flex items-center gap-2"
               onClick={submitReport}
               disabled={isReporting}
             >
-              {isReporting ? "Submitting..." : "Submit Report"}
+              {isReporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Flag className="h-4 w-4" />
+                  Submit Report
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
