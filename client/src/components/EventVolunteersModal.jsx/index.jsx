@@ -113,8 +113,6 @@ const EventVolunteersModal = ({ isOpen, onClose, eventId, eventName }) => {
 					"Verification after removal - registration count:",
 					verifyData.registered_count
 				);
-
-				// Continue with the rest of your code...
 			}
 
 			setShowRemoveDialog(false);
