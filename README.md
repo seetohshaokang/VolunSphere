@@ -101,16 +101,6 @@ cd client
 npm run dev
 ```
 
-## 🔧 Additional Scripts
-
-```bash
-# Seed review data (server)
-npm run seed-reviews
-
-# Auto-complete events that have passed
-npm run auto-complete
-```
-
 ## 👥 Team Members
 
 | **Name**             |
