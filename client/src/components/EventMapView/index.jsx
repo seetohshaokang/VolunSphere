@@ -260,15 +260,11 @@ const EventMapView = () => {
 		console.log(userLocation);
 
 		if (mapRef.current) {
-			// Set appropriate zoom level based on the type of location
-			// e.g., country (zoom=5), city (zoom=12), specific address (zoom=15)
 			const map = mapRef.current.getMap();
 			if (map) {
 				map.setZoom(14);
 			}
 		}
-
-		// Update the input field with the formatted address if available
 		if (place.formatted_address) {
 			setLocationQuery(place.formatted_address);
 		}

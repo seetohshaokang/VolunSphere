@@ -7,7 +7,7 @@ import { useState } from "react";
 const DocumentViewer = ({
 	filename,
 	className = "",
-	documentType = "nric", // Default to NRIC or pass "certification" for organizers
+	documentType = "nric",
 }) => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(false);
@@ -16,14 +16,11 @@ const DocumentViewer = ({
 		filename?.toLowerCase().endsWith(".pdf")
 	);
 
-	// Get the appropriate upload directory based on document type
 	const uploadPath =
 		documentType === "certification" ? "organizer_docs" : "nric";
 
-	// Create URL with cache-busting
 	const getDocumentUrl = () => {
 		if (!filename) return null;
-		// Notice the removal of /api from the URL path
 		const url = `${
 			import.meta.env.VITE_API_URL || "http://localhost:8000"
 		}/uploads/${uploadPath}/${filename}?t=${Date.now()}`;
@@ -34,7 +31,6 @@ const DocumentViewer = ({
 		setLoading(true);
 		setError(false);
 
-		// Force the document to reload by toggling the src
 		const doc = document.getElementById(`doc-${documentType}-${filename}`);
 		if (doc) {
 			doc.src = getDocumentUrl();

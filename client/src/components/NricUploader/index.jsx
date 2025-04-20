@@ -32,7 +32,6 @@ const NricUploader = ({ profile, onUploadSuccess, setError, setSuccess }) => {
 		if (setSuccess) setSuccess(null);
 
 		try {
-			// Create FormData for the API call
 			const formData = new FormData();
 			formData.append("nric_image", nricFile);
 

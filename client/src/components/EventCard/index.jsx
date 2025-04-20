@@ -87,12 +87,6 @@ function EventCard({ event, isOrganizerView = false }) {
 	// Get date string for display - fixing the empty string issue
 	const formatEventDate = () => {
 		// For specific events where we know the date is missing
-		// if (
-		// 	event._id === "67fe73e6c5e85073e6d43607" ||
-		// 	event.name === "Literacy Program"
-		// ) {
-		// 	return "4/16/2025"; // Hardcoded date for this specific event
-		// }
 
 		// Check for pre-formatted date field first
 		if (

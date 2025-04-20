@@ -12,7 +12,7 @@ const DocumentUploader = ({
 	profile,
 	onUploadSuccess,
 	setError,
-	isOrganizer = false, // Simple flag to determine document type
+	isOrganizer = false,
 }) => {
 	const [documentFile, setDocumentFile] = useState(null);
 	const [uploading, setUploading] = useState(false);
@@ -56,7 +56,6 @@ const DocumentUploader = ({
 		if (setError) setError(null);
 
 		try {
-			// Create FormData for the API call
 			const formData = new FormData();
 			formData.append(fileKey, documentFile);
 
@@ -79,7 +78,6 @@ const DocumentUploader = ({
 			const data = await response.json();
 
 			if (response.ok) {
-				// Set the local success message instead of using the parent's setSuccess
 				toast.success(
 					data.message || `Document uploaded successfully.`
 				);
@@ -89,7 +87,6 @@ const DocumentUploader = ({
 				);
 				setDocumentFile(null);
 
-				// Notify parent component about successful upload
 				if (onUploadSuccess && typeof onUploadSuccess === "function") {
 					onUploadSuccess();
 				}

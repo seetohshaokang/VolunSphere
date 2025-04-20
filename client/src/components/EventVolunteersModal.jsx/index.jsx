@@ -90,13 +90,11 @@ const EventVolunteersModal = ({ isOpen, onClose, eventId, eventName }) => {
 
 		setIsRemoving(true);
 		try {
-			// Send the request to remove the volunteer
 			const response = await Api.removeEventSignup(eventId, {
 				registrationId: selectedVolunteer._id,
 				reason: removalReason || "Removed by event organizer",
 			});
 
-			// Check if the request was successful
 			if (!response.ok) {
 				const errorData = await response.json();
 				throw new Error(
@@ -106,7 +104,6 @@ const EventVolunteersModal = ({ isOpen, onClose, eventId, eventName }) => {
 			if (response.ok) {
 				console.log("Volunteer removal successful");
 
-				// Add a verification call to check the current registration count
 				const verifyResponse = await Api.getEvent(eventId);
 				const verifyData = await verifyResponse.json();
 				console.log(
@@ -117,10 +114,8 @@ const EventVolunteersModal = ({ isOpen, onClose, eventId, eventName }) => {
 
 			setShowRemoveDialog(false);
 
-			// Refresh the volunteers list
 			await fetchVolunteers();
 
-			// Call the parent's callback to refresh the event data
 			if (typeof onVolunteerRemoved === "function") {
 				onVolunteerRemoved();
 			}
