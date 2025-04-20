@@ -240,7 +240,7 @@ const AdminVerifications = () => {
 													Verify
 												</button>
 												<Link
-													to={`/admin/users/${volunteer.user_id}`}
+													to={`/admin/users/${volunteer.user_id?._id}`}
 													className="text-indigo-600 hover:text-indigo-900"
 												>
 													View Profile
