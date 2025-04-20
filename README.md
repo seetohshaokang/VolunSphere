@@ -103,10 +103,10 @@ npm run dev
 
 ## 👥 Team Members
 
-| **Name**             |
-| -------------------- |
-| **Bryan Eng**        |
-| **Chong Zi Yuan**    |
-| **Edwitt Lim**       |
-| **Sohn Jong Hyun**   |
-| **Seetoh Shao Kang** |
+| **Name**             | LinkedIn                                          |
+| -------------------- | ------------------------------------------------- |
+| **Bryan Eng**        | https://www.linkedin.com/in/bryan-eng-77104b28b/  |
+| **Chong Zi Yuan**    | https://www.linkedin.com/in/ziyuanchong/          |
+| **Edwitt Lim**       | https://www.linkedin.com/in/edwitt-lim-3ba69b325/ |
+| **Sohn Jong Hyun**   | https://www.linkedin.com/in/jonghyun-sohn/        |
+| **Seetoh Shao Kang** | www.linkedin.com/in/shao-kang-seetoh/             |
