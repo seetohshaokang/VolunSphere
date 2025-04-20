@@ -2,11 +2,13 @@
 require("dotenv").config({ path: "./.env.server" });
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { ObjectId } = require("mongodb");
 const fs = require("fs");
 const path = require("path");
 const User = require("../models/User");
 const Volunteer = require("../models/Volunteer");
 const Organiser = require("../models/Organiser");
+const Report = require("../models/Report");
 const Event = require("../models/Event");
 const EventRegistration = require("../models/EventRegistration");
 const Admin = require("../models/Admin");
@@ -352,6 +354,36 @@ async function seedTestData() {
 
     await pastRegistration.save();
 
+    const reports = [
+      {
+        _id: "6803bd4f7ce8a6ab15eb2e2e",
+        reporter_id: savedVolunteerUser._id,
+        reporter_role: "volunteer",
+        reported_type: "Event",
+        reported_id: savedFoodEvent._id,
+        event_id: savedFoodEvent._id,
+        reason: "Scam or fraud",
+        details: "I got kicked out for no reason.",
+        created_at: new Date("2025-04-19T15:12:15.029Z"),
+        status: "pending",
+        __v: 0,
+      },
+      {
+        _id: "6803be27be634d200be01e48",
+        reporter_id: savedOrganiserUser._id,
+        reporter_role: "organiser",
+        reported_type: "Volunteer",
+        reported_id: savedVolunteerUser._id,
+        event_id: savedLiteracyEvent._id,
+        reason: "Inappropriate behavior",
+        details: "Volunteer kept on vaping though countless warnings",
+        created_at: new Date("2025-04-19T15:15:51.424Z"),
+        status: "pending",
+        __v: 0,
+      },
+    ];
+    const createdReports = await Report.insertMany(reports);
+    console.log(createdReports);
     // Update event registration count
     await Event.findByIdAndUpdate(firstEvent._id, {
       $inc: { registered_count: 1 },

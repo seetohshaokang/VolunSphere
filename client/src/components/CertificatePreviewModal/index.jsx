@@ -21,16 +21,12 @@ export default function CertificatePreviewModal({
 
 	const { certificate_id, pdf_path } = certificateData;
 
-	// Construct the full URLs for the certificate
 	const certificateUrl = `http://localhost:8000${pdf_path}`;
 	const downloadUrl = `http://localhost:8000/api/certificates/download/${certificate_id}`;
 
 	// Function to handle certificate verification
 	const handleVerifyCertificate = () => {
-		// Close the modal first
 		onClose();
-
-		// Navigate to the verification page
 		navigate(`/certificates/verify/${certificate_id}`);
 	};
 
@@ -98,10 +94,7 @@ export default function CertificatePreviewModal({
 					>
 						Verify Certificate
 					</Button>
-					<Button 
-						variant="outline" 
-						onClick={onClose}
-					>
+					<Button variant="outline" onClick={onClose}>
 						Close
 					</Button>
 				</DialogFooter>

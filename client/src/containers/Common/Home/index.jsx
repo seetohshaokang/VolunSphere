@@ -1,4 +1,3 @@
-// src/containers/Common/Home/index.jsx
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,7 @@ import EventMapView from "../../../components/EventMapView";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Api from "../../../helpers/Api";
 
-// Add custom focus styles for search inputs
+//Custome Styles
 const customInputStyles = `
 	.search-input:focus {
 		border-width: 2px;
@@ -23,7 +22,6 @@ const customInputStyles = `
 `;
 
 function Home() {
-	// State management
 	const [events, setEvents] = useState([]);
 	const [filteredEvents, setFilteredEvents] = useState([]);
 	const [searchTerm, setSearchTerm] = useState("");
@@ -44,12 +42,10 @@ function Home() {
 		},
 	});
 
-	// Toggle between list and map views
 	const toggleMapView = () => {
 		setShowMapView(prevState => !prevState);
 	};
 
-	// Check if Google Maps API key is configured
 	useEffect(() => {
 		const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 		if (!apiKey) {
@@ -58,17 +54,13 @@ function Home() {
 		}
 	}, []);
 
-	// Fetch all events initially
 	useEffect(() => {
 		fetchEvents();
 
-		// Add event listener for when the page regains focus
 		const handleFocus = () => {
-			// Refresh the events when the user returns to this page
 			fetchEvents(searchTerm);
 		};
 
-		// Add visibility change listener to refresh when tab becomes visible again
 		const handleVisibilityChange = () => {
 			if (document.visibilityState === 'visible') {
 				console.log('Page visibility changed to visible, refreshing events');
@@ -76,7 +68,6 @@ function Home() {
 			}
 		};
 
-		// Set up periodic refresh of events (every 30 seconds)
 		const refreshInterval = setInterval(() => {
 			if (document.visibilityState === 'visible') {
 				console.log('Periodic refresh of events');
@@ -87,7 +78,6 @@ function Home() {
 		window.addEventListener("focus", handleFocus);
 		document.addEventListener("visibilitychange", handleVisibilityChange);
 
-		// Clean up the event listeners and interval
 		return () => {
 			window.removeEventListener("focus", handleFocus);
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -95,22 +85,18 @@ function Home() {
 		};
 	}, []);
 
-	// Fetch events from API
 	const fetchEvents = async (searchQuery = "") => {
 		setLoading(true);
 		setError(null);
 
 		try {
-			// Use the Api helper but with our improved handling
 			let response;
 
 			if (searchQuery && searchQuery.trim() !== "") {
-				// If search term exists, construct a URL with the search parameter
 				const apiUrl = `${Api.SERVER_PREFIX
 					}/events?search=${encodeURIComponent(searchQuery.trim())}`;
 				response = await fetch(apiUrl);
 			} else {
-				// Otherwise use the Api helper method
 				response = await Api.getAllEvents();
 			}
 
@@ -121,7 +107,6 @@ function Home() {
 			const data = await response.json();
 			console.log("Raw API response for events:", data);
 
-			// Process the data
 			const apiEvents = (data.events || []).map((event) => {
 				console.log(`Event ${event._id} image_url:`, event.image_url);
 
@@ -159,43 +144,36 @@ function Home() {
 		}
 	};
 
-	// Handle search when search button is clicked
 	const handleSearchSubmit = () => {
 		fetchEvents(searchTerm);
 	};
 
-	// Handle input change for search
 	const handleSearchInputChange = (e) => {
 		const newSearchTerm = e.target.value;
 		setSearchTerm(newSearchTerm);
 
-		// If search is cleared completely, fetch all events immediately
 		if (newSearchTerm.trim() === "") {
 			fetchEvents("");
 		}
 	};
 
-	// Handle Enter key press in search input
 	const handleKeyDown = (e) => {
 		if (e.key === "Enter") {
 			handleSearchSubmit();
 		}
 	};
 
-	// Filter events based on search term and filter settings
 	useEffect(() => {
 		if (events.length === 0) return;
 
 		let results = [...events];
 
-		// Apply category filter
 		if (filters.category && filters.category !== "all") {
 			results = results.filter(
 				(event) => event.cause === filters.category
 			);
 		}
 
-		// Apply date filters
 		if (filters.dateRange.start) {
 			results = results.filter(
 				(event) =>
@@ -215,7 +193,6 @@ function Home() {
 		setFilteredEvents(results);
 	}, [filters, events]);
 
-	// Handle filter changes
 	const handleFilterChange = (filterName, value) => {
 		setFilters((prevFilters) => {
 			const newFilters = { ...prevFilters };
@@ -244,14 +221,12 @@ function Home() {
 		});
 	};
 
-	// Get unique categories for filter options
 	const categories = [
 		...new Set(events.map((event) => event.cause).filter(Boolean)),
 	];
 
 	return (
 		<div className="min-h-screen flex flex-col">
-			{/* Add style tag for custom search input styles */}
 			<style>{customInputStyles}</style>
 
 			<div className="mb-4">
@@ -265,7 +240,7 @@ function Home() {
 
 			{/* Search and filter section */}
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-				{/* Custom Search bar */}
+				{/* Search bar */}
 				<div className="relative md:col-span-4">
 					<div className="flex w-full">
 						<Input
@@ -287,7 +262,7 @@ function Home() {
 					</div>
 				</div>
 
-				{/* Filter section with Map Toggle button */}
+				{/* Filter section with Map */}
 				<div className="md:col-span-4">
 					<FilterControls
 						filters={filters}
@@ -310,7 +285,6 @@ function Home() {
 
 			{/* Toggle between map view and list view */}
 			{showMapView ? (
-				// Map View
 				<div>
 					<div className="h-calc[100vh-220px] overflow-hidden rounded-lg border mb-4">
 						<EventMapView />
@@ -325,7 +299,6 @@ function Home() {
 					</div>
 				</div>
 			) : (
-				// List View
 				<>
 					{/* Results count */}
 					<ResultsHeader eventCount={filteredEvents.length} />

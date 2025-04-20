@@ -1,4 +1,3 @@
-// src/containers/Auth/RegistrationOrganiser/index.jsx
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,7 +18,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 
-// Add custom focus styles for inputs
+//Custome Styles
 const customInputStyles = `
   .custom-input {
     transition: all 0.2s ease;
@@ -134,10 +133,7 @@ function RegistrationOrganiser() {
 
 	return (
 		<div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
-			{/* Add style tag for custom input styles */}
 			<style>{customInputStyles}</style>
-
-			{/* Back Button - moved to top left corner with white color */}
 			<Button
 				variant="ghost"
 				className="absolute top-4 left-4 z-30 flex items-center gap-2 hover:bg-white/20 text-white"

@@ -13,8 +13,6 @@ const AdminVerifications = () => {
 		limit: 10,
 		total: 0,
 	});
-
-	// State for verification modal
 	const [showVerificationModal, setShowVerificationModal] = useState(false);
 	const [selectedVolunteer, setSelectedVolunteer] = useState(null);
 	const [verificationStatus, setVerificationStatus] = useState(true);
@@ -60,7 +58,7 @@ const AdminVerifications = () => {
 
 	const openVerificationModal = (volunteer) => {
 		setSelectedVolunteer(volunteer);
-		setVerificationStatus(true); // Default to approve
+		setVerificationStatus(true);
 		setVerificationReason("");
 		setShowVerificationModal(true);
 	};
@@ -85,15 +83,12 @@ const AdminVerifications = () => {
 				);
 			}
 
-			// Close modal
 			setShowVerificationModal(false);
 
-			// Remove the volunteer from the list
 			setVolunteers((prev) =>
 				prev.filter((vol) => vol._id !== selectedVolunteer._id)
 			);
 
-			// Update pagination count
 			setPagination((prev) => ({
 				...prev,
 				total: prev.total - 1,
@@ -104,12 +99,6 @@ const AdminVerifications = () => {
 					verificationStatus ? "approved" : "rejected"
 				} successfully`
 			);
-			// Show success notification
-			// alert(
-			// 	`NRIC verification ${
-			// 		verificationStatus ? "approved" : "rejected"
-			// 	} successfully`
-			// );
 		} catch (err) {
 			console.error("Error updating verification status:", err);
 			alert(`Error: ${err.message}`);
@@ -118,7 +107,6 @@ const AdminVerifications = () => {
 		}
 	};
 
-	// Function to format date
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleString();
@@ -252,7 +240,7 @@ const AdminVerifications = () => {
 													Verify
 												</button>
 												<Link
-													to={`/admin/users/${volunteer.user_id}`}
+													to={`/admin/users/${volunteer.user_id?._id}`}
 													className="text-indigo-600 hover:text-indigo-900"
 												>
 													View Profile

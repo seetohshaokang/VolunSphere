@@ -1,4 +1,3 @@
-// src/containers/Auth/EditPassword/index.jsx
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -33,7 +32,6 @@ function EditPassword() {
 			event.stopPropagation();
 		} else {
 			try {
-				// Simulating successful password reset
 				toast.success(
 					"Password reset successful. You can now log in with your new password."
 				);
@@ -42,7 +40,6 @@ function EditPassword() {
 				);
 				setError("");
 
-				// In a real app, you might redirect after successful reset
 				setTimeout(() => {
 					navigate("/login");
 				}, 3000);
@@ -72,17 +69,6 @@ function EditPassword() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{/* {message && (
-						<Alert className="mb-4 bg-green-50 text-green-700 border-green-200">
-							<AlertDescription>{message}</AlertDescription>
-						</Alert>
-					)}
-					{error && (
-						<Alert variant="destructive" className="mb-4">
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					)} */}
-
 					<form onSubmit={handleSubmit} className="space-y-4">
 						<div className="space-y-2">
 							<Label htmlFor="email">Email address</Label>

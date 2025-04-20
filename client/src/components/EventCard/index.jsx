@@ -71,7 +71,7 @@ function EventCard({ event, isOrganizerView = false }) {
 
 	// Get organizer name
 	const getOrganizerName = () => {
-		console.log(event)
+		console.log(event);
 		console.log(event.contact_person);
 		if (event.contact_person) {
 			return event.contact_person;
@@ -87,12 +87,6 @@ function EventCard({ event, isOrganizerView = false }) {
 	// Get date string for display - fixing the empty string issue
 	const formatEventDate = () => {
 		// For specific events where we know the date is missing
-		if (
-			event._id === "67fe73e6c5e85073e6d43607" ||
-			event.name === "Literacy Program"
-		) {
-			return "4/16/2025"; // Hardcoded date for this specific event
-		}
 
 		// Check for pre-formatted date field first
 		if (
@@ -153,8 +147,7 @@ function EventCard({ event, isOrganizerView = false }) {
 			}
 		}
 
-		// For events created after April 1, 2025, default to April 16, 2025
-		return "4/16/2025";
+		return "Date TBD";
 	};
 
 	// Helper function to determine if an event is recurring
@@ -181,7 +174,7 @@ function EventCard({ event, isOrganizerView = false }) {
 		}
 
 		// 4. Check for recurring-specific properties
-		// This is a more robust check that works even if is_recurring flag is missing
+		//  Check that works even if is_recurring flag is missing
 		if (
 			event.recurrence_pattern &&
 			(event.recurrence_start_date ||
@@ -197,13 +190,6 @@ function EventCard({ event, isOrganizerView = false }) {
 			event.recurrence_time &&
 			(event.recurrence_time.start || event.recurrence_time.end)
 		) {
-			return true;
-		}
-
-		// 6. As a last resort, check specific events by name
-		// This is a fallback for known recurring events that might not have proper flags
-		const KNOWN_RECURRING_EVENTS = ["Literacy Program", "Weekly Tutoring"];
-		if (KNOWN_RECURRING_EVENTS.includes(event.name)) {
 			return true;
 		}
 

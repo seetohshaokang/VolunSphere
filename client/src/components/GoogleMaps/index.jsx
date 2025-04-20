@@ -117,7 +117,6 @@ const GoogleMaps = ({ trigger, setTrigger, extractData }) => {
 		console.log("Latitude:", lat);
 		console.log("Longitude:", lng);
 
-		// Clear previous placeId
 		setPlaceId("");
 		setSelectedCoordinates(new google.maps.LatLng(lat, lng));
 

@@ -410,7 +410,7 @@ exports.getPendingVerifications = async (req, res) => {
     // Step 4: Find volunteers with unverified NRIC images
     // Filter to only those with uploaded but unverified NRIC data
     const volunteers = await Volunteer.find({
-      "nric_image.data": { $ne: null },
+      "nric_image.filename": { $ne: null },
       "nric_image.verified": false,
     })
       .select("user_id name phone nric_image.uploaded_at")
@@ -421,7 +421,7 @@ exports.getPendingVerifications = async (req, res) => {
 
     // Step 5: Count total matching volunteers for pagination metadata
     const total = await Volunteer.countDocuments({
-      "nric_image.data": { $ne: null },
+      "nric_image.filename": { $ne: null },
       "nric_image.verified": false,
     });
 
@@ -587,8 +587,7 @@ exports.getReports = async (req, res) => {
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit))
-      .populate("reporter_id", "email")
-      .populate("reported_id")
+      .populate("reporter_id")
       .populate("event_id");
 
     // Step 6: Count total matching reports for pagination metadata
@@ -626,19 +625,21 @@ exports.getReportById = async (req, res) => {
     }
 
     const { id } = req.params;
-
+    console.log("what id is this", id);
     // Step 2: Validate report ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid report ID" });
     }
 
+    const rawReport = await Report.findById(id).lean();
+    console.log("raw report:", rawReport);
     // Step 3: Fetch report with populated references
     const report = await Report.findById(id)
-      .populate("reporter_id", "email")
-      .populate("reported_id")
+      .populate("reporter_id")
       .populate("event_id")
       .populate("resolved_by");
 
+    console.log(report);
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
     }
@@ -1032,7 +1033,9 @@ exports.getEventById = async (req, res) => {
     }
 
     // Get registrations for this event
-    const basicRegistrations = await EventRegistration.find({ event_id: id })
+    const basicRegistrations = await EventRegistration.find({
+      event_id: id,
+    })
       .populate("user_id", "email _id")
       .sort({ registration_date: -1 });
 

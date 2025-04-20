@@ -1,11 +1,3 @@
-/**
- * Gets the user's profile image URL with cache busting
- *
- * @param {Object} user - The user object from auth context
- * @param {string|null} profilePictureUrl - The profile picture URL from the profile data
- * @param {number} timestamp - Optional timestamp for cache busting
- * @returns {string} The URL to the user's profile image
- */
 export const getProfileImageUrl = (
 	user,
 	profilePictureUrl,
@@ -45,13 +37,6 @@ export const getProfileImageUrl = (
 	return `http://localhost:8000/uploads/profiles/${profilePictureUrl}?t=${timestamp}`;
 };
 
-/**
- * Gets the initials from a user's name
- *
- * @param {string} firstName - User's first name
- * @param {string} lastName - User's last name
- * @returns {string} User's initials
- */
 export const getUserInitials = (firstName, lastName) => {
 	const firstInitial = firstName?.charAt(0) || "";
 	const lastInitial = lastName?.charAt(0) || "";

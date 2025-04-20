@@ -1,4 +1,3 @@
-// src/containers/Review/index.jsx
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,7 +22,6 @@ function ReviewPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [isEditingReview, setIsEditingReview] = useState(false);
-	// Assume the type is always 'event' for simplicity in this implementation
 	const type = "event";
 
 	useEffect(() => {
@@ -32,16 +30,12 @@ function ReviewPage() {
 			setError(null);
 
 			try {
-				// Fetch event details
 				const eventResponse = await Api.getEvent(id);
 				const eventData = await eventResponse.json();
 				setTarget(eventData);
-
-				// Fetch reviews for the event
 				const reviewsResponse = await Api.getEventReviews(id);
 				const reviewsData = await reviewsResponse.json();
 
-				// If user is logged in, check if they already have a review
 				if (user) {
 					const userHasReview = reviewsData.find(
 						(review) => review.reviewer_id === user.id
@@ -49,7 +43,6 @@ function ReviewPage() {
 
 					if (userHasReview) {
 						setUserReview(userHasReview);
-						// Filter out user's review from the list of other reviews
 						setReviews(
 							reviewsData.filter(
 								(review) => review.reviewer_id !== user.id
@@ -76,7 +69,6 @@ function ReviewPage() {
 
 	const handleSubmitReview = async (newReview) => {
 		try {
-			// Prepare the review data for the API
 			const reviewData = {
 				rating: newReview.rating,
 				comment: newReview.comment,
@@ -85,20 +77,16 @@ function ReviewPage() {
 			let response;
 
 			if (userReview) {
-				// If editing an existing review
 				response = await Api.updateEventReview(
 					id,
 					userReview.id,
 					reviewData
 				);
 			} else {
-				// If creating a new review
 				response = await Api.createEventReview(id, reviewData);
 			}
 
 			const responseData = await response.json();
-
-			// Update the UI with the submitted review
 			const completeReview = {
 				id: responseData.id || userReview?.id || `new-${Date.now()}`,
 				reviewer: newReview.reviewer,
@@ -111,8 +99,6 @@ function ReviewPage() {
 
 			setUserReview(completeReview);
 			setIsEditingReview(false);
-
-			// Redirect back to event page after a short delay
 			const entityUrl = `/events/${id}`;
 			setTimeout(() => {
 				navigate(entityUrl);
@@ -177,7 +163,6 @@ function ReviewPage() {
 			<Navbar />
 			<main className="flex-1">
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-					{/* Removed the first ContentHeader that was causing the error */}
 
 					<ContentHeader
 						title={`Review ${

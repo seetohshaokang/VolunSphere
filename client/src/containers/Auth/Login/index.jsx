@@ -1,4 +1,3 @@
-// src/containers/Auth/Login/index.jsx
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -26,7 +25,6 @@ function Login() {
 	const { login } = useAuth();
 	const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-	// Handle window resize for responsive design
 	useEffect(() => {
 		const handleResize = () => setIsMobile(window.innerWidth <= 768);
 		window.addEventListener("resize", handleResize);
@@ -37,20 +35,13 @@ function Login() {
 		event.preventDefault();
 
 		try {
-			// Send credentials to the server
 			const response = await Api.loginUser({ email, password });
 			const data = await response.json();
 
 			if (response.ok) {
-				// Make sure you're storing the token properly
 				localStorage.setItem("token", data.token);
-
-				// Then call your context login function
 				login(data.user);
-
 				toast.success("Login successful!");
-
-				// Navigate based on role
 				if (data.user.role === "organiser") {
 					navigate("/organizer");
 				} else if (data.user.role === "admin") {
@@ -71,7 +62,7 @@ function Login() {
 
 	return (
 		<div className="min-h-screen bg-[#0066FF]/10 flex flex-col justify-center items-center p-4 relative">
-			{/* Back to Home Button */}
+			{/* Back to Home */}
 			<Button
 				variant="ghost"
 				className="absolute top-4 left-4 flex items-center gap-2 text-[#0066FF] hover:bg-[#0066FF]/10"
@@ -100,11 +91,6 @@ function Login() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="pt-6">
-					{/* {error && (
-						<Alert className="mb-4 border border-red-500 bg-red-100 text-red-700 px-4 py-3 rounded">
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					)} */}
 
 					<form onSubmit={handleSubmit} className="space-y-4">
 						<div className="space-y-2">

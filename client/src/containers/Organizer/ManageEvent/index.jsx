@@ -1,4 +1,3 @@
-// src/containers/Organizer/ManageEvent/index.jsx
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,7 @@ import ContentHeader from "../../../components/ContentHeader";
 import GoogleMaps from "../../../components/GoogleMaps";
 import Api from "../../../helpers/Api";
 
-// Add custom focus styles for inputs
+//custom styles
 const customInputStyles = `
   .custom-input:focus {
     border-width: 2px;
@@ -83,16 +82,12 @@ function OrganizerManageEvent() {
 		cause: "",
 		max_volunteers: 10,
 		status: "active",
-
-		// Single event fields
 		date: "",
 		start_time: "",
 		end_time: "",
-
-		// Recurring event fields
 		is_recurring: false,
 		recurrence_pattern: "weekly",
-		recurrence_days: [1], // Default to Monday
+		recurrence_days: [1],
 		recurrence_start_date: "",
 		recurrence_end_date: "",
 		recurrence_time_start: "09:00",
@@ -123,14 +118,12 @@ function OrganizerManageEvent() {
 
 	useEffect(() => {
 		if (isEditMode) {
-			// Fetch event data for editing
 			const fetchEventDetails = async () => {
 				try {
 					const response = await Api.getEvent(id);
 					const eventData = await response.json();
 					console.log("Fetched event data:", eventData);
 
-					// Check if event is completed and redirect if it is
 					if (eventData.status === "completed") {
 						setError("Completed events cannot be edited.");
 						toast.error("Completed events cannot be edited.");
@@ -140,13 +133,11 @@ function OrganizerManageEvent() {
 						return;
 					}
 
-					// Set current image URL if exists
 					if (eventData.image_url) {
 						setCurrentImageUrl(eventData.image_url);
 						setImagePreview(eventData.image_url);
 					}
 
-					// Handle dates and times based on event type
 					let date = "";
 					let startTime = "";
 					let endTime = "";
@@ -193,7 +184,6 @@ function OrganizerManageEvent() {
 						};
 					}
 
-					// Update form with event data
 					setFormData({
 						name: eventData.name || "",
 						description: eventData.description || "",
@@ -249,23 +239,20 @@ function OrganizerManageEvent() {
 		const currentDays = [...formData.recurrence_days];
 
 		if (checked) {
-			// Add the day if not present
 			if (!currentDays.includes(day)) {
 				currentDays.push(day);
 			}
 		} else {
-			// Remove the day
 			const index = currentDays.indexOf(day);
 			if (index !== -1) {
 				currentDays.splice(index, 1);
 			}
 		}
 
-		// Ensure at least one day is selected
 		if (currentDays.length > 0 || !checked) {
 			setFormData({
 				...formData,
-				recurrence_days: currentDays.sort((a, b) => a - b), // Sort numerically
+				recurrence_days: currentDays.sort((a, b) => a - b),
 			});
 		}
 	};
@@ -274,7 +261,6 @@ function OrganizerManageEvent() {
 		const file = e.target.files[0];
 		if (!file) return;
 
-		// Check file type
 		const validTypes = [
 			"image/jpeg",
 			"image/jpg",
@@ -289,7 +275,6 @@ function OrganizerManageEvent() {
 			return;
 		}
 
-		// Check file size (5MB max)
 		if (file.size > 5 * 1024 * 1024) {
 			setError("Image size should be less than 5MB");
 			return;
@@ -297,7 +282,6 @@ function OrganizerManageEvent() {
 
 		setImageFile(file);
 
-		// Create preview URL
 		const reader = new FileReader();
 		reader.onload = () => {
 			setImagePreview(reader.result);
@@ -323,30 +307,22 @@ function OrganizerManageEvent() {
 		setError(null);
 
 		try {
-			// Prepare the data for submission
 			const eventData = { ...formData };
 
-			// Format the data differently based on whether it's recurring or not
 			if (eventData.is_recurring) {
-				// For recurring events, format the recurrence data
 				eventData.recurrence_time = {
 					start: eventData.recurrence_time_start,
 					end: eventData.recurrence_time_end,
 				};
 
-				// Remove single event fields
 				delete eventData.date;
 				delete eventData.start_time;
 				delete eventData.end_time;
 			} else {
-				// For single events, we need to reformat to match the expected backend format
 				eventData.start_date = eventData.date;
-				eventData.end_date = eventData.date; // Same date for non-recurring events
+				eventData.end_date = eventData.date; 
 
-				// Remove date field as it's not expected by the backend
 				delete eventData.date;
-
-				// Remove recurring fields
 				delete eventData.recurrence_pattern;
 				delete eventData.recurrence_days;
 				delete eventData.recurrence_start_date;
@@ -355,18 +331,14 @@ function OrganizerManageEvent() {
 				delete eventData.recurrence_time_end;
 			}
 
-			// Fix the data format for causes
 			eventData.causes = eventData.cause ? [eventData.cause] : [];
 			delete eventData.cause;
-
-			// Remove helper fields
 			delete eventData.recurrence_time_start;
 			delete eventData.recurrence_time_end;
 
 			console.log("Submitting event data:", eventData);
 
 			if (isEditMode) {
-				// Update existing event
 				const response = await Api.updateEvent(
 					id,
 					eventData,
@@ -380,7 +352,6 @@ function OrganizerManageEvent() {
 					setError(data.message || "Failed to update event");
 				}
 			} else {
-				// Create new event
 				const response = await Api.createEvent(eventData, imageFile);
 
 				if (response.ok) {
@@ -407,8 +378,6 @@ function OrganizerManageEvent() {
 				const errorData = await response.json();
 				throw new Error(errorData.message || "Failed to delete event");
 			}
-
-			// Redirect to events list
 			navigate("/dashboard");
 		} catch (err) {
 			console.error("Error deleting event:", err);
@@ -419,12 +388,9 @@ function OrganizerManageEvent() {
 		}
 	};
 
-	// Use the check-out endpoint to undo check-in
 	const handleUndoCheckIn = async (registrationId) => {
 		try {
 			console.log(`Undoing check-in for registration ${registrationId}`);
-
-			// Use the API method for check-out instead of direct PUT request
 			const response = await Api.checkOutRegistration(registrationId);
 
 			if (!response.ok) {
@@ -433,7 +399,6 @@ function OrganizerManageEvent() {
 			}
 
 			console.log("Check-in status successfully reset");
-			// Refresh the list after update
 			await fetchVolunteers();
 		} catch (err) {
 			console.error("Error undoing check-in:", err);
@@ -453,7 +418,6 @@ function OrganizerManageEvent() {
 
 	return (
 		<div className="container mx-auto py-6 px-4">
-			{/* Add style tag for custom input styles */}
 			<style>{customInputStyles}</style>
 
 			<ContentHeader
@@ -481,7 +445,7 @@ function OrganizerManageEvent() {
 							)}
 
 							<form onSubmit={handleSubmit} className="space-y-4">
-								{/* Hero section with event title and actions */}
+								{/* Event title and actions */}
 								<div className="relative mb-8">
 									<div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-500 rounded-lg opacity-90"></div>
 									<div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8">
@@ -580,7 +544,6 @@ function OrganizerManageEvent() {
 
 								{/* Conditional fields based on event type */}
 								{formData.is_recurring ? (
-									// Recurring Event Fields
 									<>
 										<div className="space-y-2">
 											<Label htmlFor="recurrence_pattern">
@@ -731,7 +694,6 @@ function OrganizerManageEvent() {
 										</div>
 									</>
 								) : (
-									// Single Event Fields
 									<>
 										<div className="space-y-2">
 											<Label htmlFor="date">Date</Label>
@@ -903,7 +865,7 @@ function OrganizerManageEvent() {
 									</div>
 								)}
 
-								{/* Action buttons - moved to the bottom of the form */}
+								{/* Action buttons */}
 								<div className="flex flex-col sm:flex-row gap-3 pt-6">
 									<Button
 										variant="outline"
@@ -1003,7 +965,6 @@ function OrganizerManageEvent() {
 								</div>
 							)}
 
-							{/* Hidden file input */}
 							<input
 								ref={fileInputRef}
 								type="file"
@@ -1012,7 +973,7 @@ function OrganizerManageEvent() {
 								accept="image/jpeg,image/png,image/gif,image/webp"
 							/>
 
-							{/* Only show this button if there's already an image */}
+							{/* Show if no image */}
 							{imagePreview && (
 								<Button
 									type="button"
@@ -1032,7 +993,7 @@ function OrganizerManageEvent() {
 						</CardContent>
 					</Card>
 
-					{/* Event registration stats card */}
+					{/* Event registration card */}
 					<Card className="shadow-md border-0 overflow-hidden">
 						<CardHeader className="bg-amber-500 text-white pb-2 pt-4">
 							<CardTitle className="text-lg font-medium">

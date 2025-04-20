@@ -1,4 +1,3 @@
-// src/containers/Admin/Events/index.jsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Api from "../../../helpers/Api";
@@ -14,7 +13,6 @@ const AdminEvents = () => {
 		total: 0,
 	});
 
-	// Filters
 	const [filters, setFilters] = useState({
 		status: "",
 		cause: "",
@@ -29,7 +27,6 @@ const AdminEvents = () => {
 	const fetchEvents = async () => {
 		try {
 			setLoading(true);
-			// Use the general getEvents API but we'll need to update the Api.js file to add this function
 			const response = await Api.getAdminEvents(filters);
 			const data = await response.json();
 
@@ -59,13 +56,12 @@ const AdminEvents = () => {
 		setFilters((prev) => ({
 			...prev,
 			[name]: value,
-			page: 1, // Reset to first page when filter changes
+			page: 1, 
 		}));
 	};
 
 	const handleSearch = (e) => {
 		e.preventDefault();
-		// The search will trigger via useEffect when filters change
 	};
 
 	const handlePageChange = (newPage) => {
@@ -76,7 +72,6 @@ const AdminEvents = () => {
 		}));
 	};
 
-	// Function to get appropriate status badge
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "active":
@@ -112,7 +107,6 @@ const AdminEvents = () => {
 		}
 	};
 
-	// Format date for display
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleDateString();
@@ -296,20 +290,22 @@ const AdminEvents = () => {
 													)}
 											</div>
 										</td>
+
 										<td className="px-6 py-4 whitespace-nowrap">
-											{event.organiser_id?.name ||
-												"Unknown"}
+											<div className="max-w-[150px] truncate" title={event.contact_person || "Unknown"}>
+												{event.contact_person || "Unknown"}
+											</div>
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											{event.is_recurring
 												? `${formatDate(
-														event.recurrence_start_date
-												  )} - ${formatDate(
-														event.recurrence_end_date
-												  )}`
+													event.recurrence_start_date
+												)} - ${formatDate(
+													event.recurrence_end_date
+												)}`
 												: formatDate(
-														event.start_datetime
-												  )}
+													event.start_datetime
+												)}
 										</td>
 										<td className="px-6 py-4 whitespace-nowrap">
 											{getStatusBadge(event.status)}
@@ -369,11 +365,10 @@ const AdminEvents = () => {
 								handlePageChange(pagination.page - 1)
 							}
 							disabled={pagination.page === 1}
-							className={`px-4 py-2 border rounded ${
-								pagination.page === 1
+							className={`px-4 py-2 border rounded ${pagination.page === 1
 									? "bg-gray-100 text-gray-400 cursor-not-allowed"
 									: "bg-white text-gray-700 hover:bg-gray-50"
-							}`}
+								}`}
 						>
 							Previous
 						</button>
@@ -382,11 +377,10 @@ const AdminEvents = () => {
 								handlePageChange(pagination.page + 1)
 							}
 							disabled={pagination.page === pagination.pages}
-							className={`px-4 py-2 border rounded ${
-								pagination.page === pagination.pages
+							className={`px-4 py-2 border rounded ${pagination.page === pagination.pages
 									? "bg-gray-100 text-gray-400 cursor-not-allowed"
 									: "bg-white text-gray-700 hover:bg-gray-50"
-							}`}
+								}`}
 						>
 							Next
 						</button>

@@ -43,7 +43,6 @@ function Navbar() {
 		navigate("/registration");
 	};
 
-	// Get avatar URL from profile data
 	const getAvatarUrl = () => {
 		return getProfileImageUrl(
 			user,
@@ -88,7 +87,6 @@ function Navbar() {
 	};
 
 	return (
-		// The support backdrop keeps the navbar at the top of the screen as u scroll and the content blurs out behind it
 		<header className="sticky top-0 z-50 w-full border-b bg-[#c9ebff] backdrop-blur supports-[backdrop-filter]:bg-[#c9ebff]/60">
 			<div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 				{/* Added max-width constraint inside this div*/}
@@ -164,7 +162,12 @@ function Navbar() {
 								<Button variant="outline" onClick={handleLogin}>
 									Log In
 								</Button>
-								<Button variant="outline" onClick={handleSignup}>Sign Up</Button>
+								<Button
+									variant="outline"
+									onClick={handleSignup}
+								>
+									Sign Up
+								</Button>
 							</div>
 						)}
 					</div>

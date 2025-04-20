@@ -9,13 +9,20 @@ const AdminReportDetail = () => {
 	const [report, setReport] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
-
-	// State for status update modal
 	const [showStatusModal, setShowStatusModal] = useState(false);
 	const [newStatus, setNewStatus] = useState("");
 	const [adminNotes, setAdminNotes] = useState("");
 	const [resolutionAction, setResolutionAction] = useState("none");
 	const [updateLoading, setUpdateLoading] = useState(false);
+	const [event, setEvent] = useState(null);
+	const [user, setUser] = useState(null);
+	const [volunteer, setVolunteer] = useState(null);
+	const [organiser, setOrganiser] = useState(null);
+
+	const [newUserStatus, setNewUserStatus] = useState("");
+	const [statusReason, setStatusReason] = useState("");
+	const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+	const [showReasonWarning, setShowReasonWarning] = useState(false);
 
 	useEffect(() => {
 		fetchReportDetails();
@@ -33,11 +40,26 @@ const AdminReportDetail = () => {
 				);
 			}
 
-			setReport(data.report);
-			// Initialize with current status
-			setNewStatus(data.report.status);
-			setAdminNotes(data.report.admin_notes || "");
-			setResolutionAction(data.report.resolution_action || "none");
+			if (data.report.reported_type === "Volunteer" || data.report.reported_type === "Organiser") {
+				const userResponse = await Api.getUserById(data.report.reported_id);
+				const userResponseJson = await userResponse.json();
+				setUser(userResponseJson)
+				console.log(userResponseJson);
+				setReport(data.report);
+				// Initialize with current status
+				setNewStatus(data.report.status);
+				setAdminNotes(data.report.admin_notes || "");
+				setResolutionAction(data.report.resolution_action || "none");
+			} else {
+				console.log(data.report)
+				const eventResponse = await Api.getEvent(data.report.reported_id);
+				const eventJson = await eventResponse.json();
+				setEvent(eventJson)
+				setReport(data.report);
+				setNewStatus(data.report.status);
+				setAdminNotes(data.report.admin_notes || "");
+				setResolutionAction(data.report.resolution_action || "none");
+			}
 		} catch (err) {
 			console.error("Error fetching report details:", err);
 			setError(err.message);
@@ -46,16 +68,18 @@ const AdminReportDetail = () => {
 		}
 	};
 
-	// Function to navigate to the reported user's detail page
+
 	const handleViewUserDetail = () => {
 		if (report.reported_type === "Event") {
-			// If it's an event, navigate to event detail page
 			navigate(`/admin/events/${report.reported_id._id}`);
 		} else {
 			// For Volunteer or Organiser, navigate to user detail page
-			navigate(`/admin/users/${report.reported_id.user_id}`);
+			navigate(`/admin/users/${report.reported_id}`);
 		}
 	};
+
+	// Simplified handleStatusUpdate function that automatically updates user status
+	// without showing additional modals
 
 	const handleStatusUpdate = async () => {
 		if (!newStatus || newStatus === report.status) {
@@ -72,7 +96,6 @@ const AdminReportDetail = () => {
 				reportType: report.reported_type,
 			});
 
-			// If resolving or dismissing, require admin notes
 			if (
 				(newStatus === "resolved" || newStatus === "dismissed") &&
 				!adminNotes
@@ -80,38 +103,28 @@ const AdminReportDetail = () => {
 				toast.error(
 					"Please provide admin notes for resolving or dismissing a report"
 				);
-				// alert(
-				// 	"Please provide admin notes for resolving or dismissing a report"
-				// );
 				return;
 			}
 
-			// If resolving, validate resolution action
 			if (
 				newStatus === "resolved" &&
 				resolutionAction === "none" &&
 				report.reported_type !== "Event"
 			) {
-				alert(
-					"Please select a resolution action when resolving a report"
-				);
 				return;
 			}
 
-			// Prepare data for API call
 			const requestBody = {
 				status: newStatus,
-				admin_notes: adminNotes || "", // Ensure we send an empty string, not undefined
+				admin_notes: adminNotes || "", 
 			};
 
-			// Only add resolution_action when status is resolved
 			if (newStatus === "resolved") {
 				requestBody.resolution_action = resolutionAction;
 			}
 
 			console.log("Sending request body:", requestBody);
 
-			// Make direct fetch request to ensure correct data format
 			const response = await fetch(
 				`${Api.SERVER_PREFIX}/admin/reports/${id}`,
 				{
@@ -127,14 +140,11 @@ const AdminReportDetail = () => {
 				}
 			);
 
-			// Log the raw response status
 			console.log("Response status:", response.status);
 
-			// Try to get the response text first to see raw response
 			const responseText = await response.text();
 			console.log("Raw response text:", responseText);
 
-			// Parse JSON if possible
 			let data;
 			try {
 				data = JSON.parse(responseText);
@@ -154,32 +164,76 @@ const AdminReportDetail = () => {
 					data.message || "Failed to update report status"
 				);
 			}
-
-			// Update local state with new status
 			setReport(data.report);
 
-			// Close modal
+			// AUTOMATICALLY UPDATE USER STATUS WHEN RESOLUTION IS SUSPENSION OR BAN
+			// Only proceed if this is about a user (Volunteer or Organiser) and we have the user data
+			if (
+				newStatus === "resolved" &&
+				(report.reported_type === "Volunteer" || report.reported_type === "Organiser") &&
+				user &&
+				user.user &&
+				user.user._id &&
+				(resolutionAction === "suspension" || resolutionAction === "ban")
+			) {
+				// Determine the user status based on resolution action
+				const userStatus = resolutionAction === "suspension" ? "suspended" : "inactive";
+				const statusReason = `User ${resolutionAction} due to report #${report._id}: ${adminNotes}`;
+
+				try {
+					console.log(`Automatically updating user status to: ${userStatus}`);
+
+					// Call API to update user status
+					const userResponse = await Api.updateUserStatus(
+						user.user._id,
+						userStatus,
+						statusReason
+					);
+
+					const userData = await userResponse.json();
+
+					if (!userResponse.ok) {
+						throw new Error(userData.message || "Failed to update user status");
+					}
+
+					// Update the local user state
+					setUser((prev) => ({
+						...prev,
+						user: {
+							...prev.user,
+							status: userStatus,
+						},
+					}));
+
+					// Show success notification for user status update
+					toast.success(`User ${userStatus} successfully`);
+
+				} catch (err) {
+					console.error("Error updating user status:", err);
+					toast.error(`Report resolved but failed to update user status: ${err.message}`);
+				}
+			}
+
+			// Close modal after everything is done
 			setShowStatusModal(false);
 
-			// Show success notification
+			// Show success notification for report status update
 			toast.success("Report status updated successfully");
-			// alert("Report status updated successfully");
 		} catch (err) {
 			console.error("Error updating report status:", err);
 			toast.error(`Error: ${err.message}`);
-			// alert(`Error: ${err.message}`);
 		} finally {
 			setUpdateLoading(false);
 		}
 	};
 
-	// Function to format date
+
+
 	const formatDate = (dateString) => {
 		if (!dateString) return "N/A";
 		return new Date(dateString).toLocaleString();
 	};
 
-	// Function to get appropriate status badge
 	const getStatusBadge = (status) => {
 		switch (status) {
 			case "pending":
@@ -276,7 +330,6 @@ const AdminReportDetail = () => {
 
 			{/* Report Information */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-				{/* Report Overview */}
 				<div className="bg-white rounded-lg shadow p-6 col-span-2">
 					<h2 className="text-xl font-semibold mb-4">
 						Report Overview
@@ -306,20 +359,10 @@ const AdminReportDetail = () => {
 							<p className="text-gray-600">Reported Entity:</p>
 							<div className="flex items-center space-x-3">
 								<p className="font-medium">
-									{report.reported_id?.name ||
-										report.reported_id?.organisation_name ||
-										"Unknown"}
+									{report.reported_type === "Event"
+										? event?.name
+										: user?.profile.name}
 								</p>
-								{(report.reported_type === "Volunteer" ||
-									report.reported_type === "Organiser") &&
-									report.reported_id && (
-										<button
-											onClick={handleViewUserDetail}
-											className="bg-blue-500 hover:bg-blue-700 text-white text-xs py-1 px-2 rounded"
-										>
-											Manage User
-										</button>
-									)}
 							</div>
 						</div>
 						{report.event_id && (
@@ -374,7 +417,7 @@ const AdminReportDetail = () => {
 					)}
 				</div>
 
-				{/* Reporter & Resolution Information */}
+				{/* Reporter Information */}
 				<div className="bg-white rounded-lg shadow p-6">
 					<h2 className="text-xl font-semibold mb-4">
 						Reporter & Resolution
@@ -396,7 +439,7 @@ const AdminReportDetail = () => {
 						<hr className="my-4" />
 
 						{report.status === "resolved" ||
-						report.status === "dismissed" ? (
+							report.status === "dismissed" ? (
 							<>
 								<div>
 									<p className="text-gray-600">
@@ -440,49 +483,18 @@ const AdminReportDetail = () => {
 							<div>
 								<p className="text-gray-600">Name:</p>
 								<p className="font-medium">
-									{report.reported_id.name || "Unknown"}
+									{user.profile.name || "Unknown"}
 								</p>
 							</div>
 							<div>
 								<p className="text-gray-600">Contact:</p>
 								<p className="font-medium">
-									{report.reported_id.phone || "Not provided"}
+									{user.profile.phone || "Not provided"}
 								</p>
 							</div>
 							<div>
 								<Link
-									to={`/admin/users/${report.reported_id.user_id}`}
-									className="text-blue-600 hover:text-blue-800"
-								>
-									View Full Profile
-								</Link>
-							</div>
-						</div>
-					</div>
-				)}
-
-				{report.reported_type === "Organiser" && report.reported_id && (
-					<div>
-						<h3 className="font-medium text-lg">
-							Organiser Information
-						</h3>
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-							<div>
-								<p className="text-gray-600">Organisation:</p>
-								<p className="font-medium">
-									{report.reported_id.organisation_name ||
-										"Unknown"}
-								</p>
-							</div>
-							<div>
-								<p className="text-gray-600">Contact:</p>
-								<p className="font-medium">
-									{report.reported_id.phone || "Not provided"}
-								</p>
-							</div>
-							<div>
-								<Link
-									to={`/admin/users/${report.reported_id.user_id}`}
+									to={`/admin/users/${user.profile.user_id}`}
 									className="text-blue-600 hover:text-blue-800"
 								>
 									View Full Profile
@@ -501,35 +513,35 @@ const AdminReportDetail = () => {
 							<div>
 								<p className="text-gray-600">Event Name:</p>
 								<p className="font-medium">
-									{report.reported_id.name || "Unknown"}
+									{event.name || "Unknown"}
 								</p>
 							</div>
 							<div>
 								<p className="text-gray-600">Location:</p>
 								<p className="font-medium">
-									{report.reported_id.location ||
+									{event.location ||
 										"Not provided"}
 								</p>
 							</div>
 							<div>
 								<p className="text-gray-600">Status:</p>
 								<p className="font-medium">
-									{report.reported_id.status}
+									{event.status}
 								</p>
 							</div>
 							<div>
 								<p className="text-gray-600">Date:</p>
 								<p className="font-medium">
 									{formatDate(
-										report.reported_id.start_datetime ||
-											report.reported_id
-												.recurrence_start_date
+										event.start_datetime ||
+										event
+											.recurrence_start_date
 									)}
 								</p>
 							</div>
 							<div>
 								<Link
-									to={`/events/${report.reported_id._id}`}
+									to={`/admin/events/${event._id}`}
 									className="text-blue-600 hover:text-blue-800"
 								>
 									View Event
@@ -540,7 +552,7 @@ const AdminReportDetail = () => {
 				)}
 			</div>
 
-			{/* Status Update Modal */}
+			{/* Status Update */}
 			{showStatusModal && (
 				<div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
 					<div className="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -615,10 +627,10 @@ const AdminReportDetail = () => {
 											<option value="ban">Ban</option>
 											{report.reported_type ===
 												"Event" && (
-												<option value="event_removed">
-													Remove Event
-												</option>
-											)}
+													<option value="event_removed">
+														Remove Event
+													</option>
+												)}
 										</select>
 									</div>
 								)}

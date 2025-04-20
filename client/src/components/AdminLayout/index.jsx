@@ -8,7 +8,6 @@ const AdminLayout = () => {
 	const [minContentHeight, setMinContentHeight] = useState("auto");
 	const location = useLocation();
 
-	// Update min-height when route changes to ensure consistent sidebar height
 	useEffect(() => {
 		const updateMinHeight = () => {
 			const windowHeight = window.innerHeight;
