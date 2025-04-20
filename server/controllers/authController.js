@@ -7,26 +7,10 @@ const Admin = require("../models/Admin");
 const crypto = require("crypto");
 const { sendResetEmail } = require("../utils/emailUtils");
 
-/**
- * Register a new volunteer
- *
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body
- * @param {string} req.body.email - Volunteer's email
- * @param {string} req.body.password - Volunteer's password
- * @param {string} req.body.confirmPassword - Password confirmation
- * @param {string} req.body.name - Volunteer's name (optional, default provided)
- * @param {string} req.body.phone - Volunteer's phone (optional, default provided)
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with registration status
- * @throws {Error} If server error occurs during registration
- */
 exports.registerVolunteer = async (req, res) => {
   try {
     console.log("registerVolunteer called with data:", {
       email: req.body.email,
-      // Don't log the actual password for security
       passwordProvided: !!req.body.password,
       confirmPasswordProvided: !!req.body.confirmPassword,
       name: req.body.name,
@@ -37,19 +21,19 @@ exports.registerVolunteer = async (req, res) => {
 
     // Validate input
     if (!email || !password || !confirmPassword) {
-      console.log("❌ Validation error: Missing required fields");
+      console.log("Validation error: Missing required fields");
       return res.status(400).json({ message: "All fields are required" });
     }
 
     if (password !== confirmPassword) {
-      console.log("❌ Validation error: Passwords do not match");
+      console.log(" Validation error: Passwords do not match");
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
     // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      console.log("❌ Email already exists in database");
+      console.log(" Email already exists in database");
       return res.status(400).json({ message: "Email already in use" });
     }
 
@@ -67,7 +51,7 @@ exports.registerVolunteer = async (req, res) => {
     });
 
     const savedUser = await newUser.save();
-    console.log("✅ User saved with ID:", savedUser._id);
+    console.log(" User saved with ID:", savedUser._id);
 
     // Create volunteer profile
     const volunteer = new Volunteer({
@@ -85,7 +69,7 @@ exports.registerVolunteer = async (req, res) => {
     });
 
     await volunteer.save();
-    console.log("✅ Volunteer profile saved successfully");
+    console.log(" Volunteer profile saved successfully");
 
     return res.status(201).json({
       message: "Volunteer registration successful, please login",
@@ -99,21 +83,6 @@ exports.registerVolunteer = async (req, res) => {
   }
 };
 
-/**
- * Register a new organiser
- *
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body
- * @param {string} req.body.email - Organiser's email
- * @param {string} req.body.password - Organiser's password
- * @param {string} req.body.confirmPassword - Password confirmation
- * @param {string} req.body.name - Organisation name (optional, default provided)
- * @param {string} req.body.phone - Organiser's phone (optional, default provided)
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with registration status
- * @throws {Error} If server error occurs during registration
- */
 exports.registerOrganiser = async (req, res) => {
   try {
     console.log(" registerOrganiser called with data:", {
@@ -138,12 +107,12 @@ exports.registerOrganiser = async (req, res) => {
 
     // Validate input
     if (!email || !password || !confirmPassword) {
-      console.log("❌ Validation error: Missing required fields");
+      console.log("Validation error: Missing required fields");
       return res.status(400).json({ message: "All fields are required" });
     }
 
     if (password !== confirmPassword) {
-      console.log("❌ Validation error: Passwords do not match");
+      console.log(" Validation error: Passwords do not match");
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
@@ -167,7 +136,7 @@ exports.registerOrganiser = async (req, res) => {
     });
 
     const savedUser = await newUser.save();
-    console.log("✅ User saved with ID:", savedUser._id);
+    console.log(" User saved with ID:", savedUser._id);
 
     // Create organiser profile
     const organiser = new Organiser({
@@ -181,7 +150,7 @@ exports.registerOrganiser = async (req, res) => {
     });
 
     await organiser.save();
-    console.log("✅ Organiser profile saved successfully");
+    console.log("Organiser profile saved successfully");
 
     return res.status(201).json({
       message: "Organiser registration successful, please login",
@@ -195,34 +164,8 @@ exports.registerOrganiser = async (req, res) => {
   }
 };
 
-// Keep the old method temporarily for backward compatibility
-exports.registerUser = async (req, res) => {
-  // Original implementation with default values for name and phone
-  // ...
-};
+exports.registerUser = async (req, res) => {};
 
-/**
- * Authenticate a user and provide access token
- *
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body containing login credentials
- * @param {string} req.body.email - User's email address
- * @param {string} req.body.password - User's password
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with token and user information
- * @throws {Error} If server error occurs during authentication
- *
- * Steps:
- * 1. Validate input (email, password)
- * 2. Find user by email
- * 3. Check if user is active
- * 4. Compare password with stored hash
- * 5. Get user profile based on role (volunteer, organiser, or admin)
- * 6. Update last login time
- * 7. Generate JWT token
- * 8. Return token and user data
- */
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -313,23 +256,8 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-/**
- * Log out a user and invalidate token
- * For JWT, this is typically handled client-side by removing the token
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with logout status
- * @throws {Error} If server error occurs during logout
- *
- * Steps:
- * 1. Return success response (JWT is stateless, so no server-side action needed)
- */
 exports.logoutUser = async (req, res) => {
   try {
-    // JWT is stateless, so we don't need to invalidate it server-side
-    // Client should remove the token from storage
     res.json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Error logging out:", error);
@@ -340,23 +268,6 @@ exports.logoutUser = async (req, res) => {
   }
 };
 
-/**
- * Request a password reset
- *
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body
- * @param {string} req.body.email - User's email address
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with reset token request status
- * @throws {Error} If server error occurs during password reset request
- *
- * Steps:
- * 1. Validate input (email)
- * 2. Find user by email
- * 3. Generate reset token
- * 4. Return success message (with token for testing)
- */
 exports.requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
@@ -384,27 +295,6 @@ exports.requestPasswordReset = async (req, res) => {
   }
 };
 
-/**
- * Reset password with token
- *
- * @param {Object} req - Express request object
- * @param {Object} req.body - Request body
- * @param {string} req.body.token - Password reset token
- * @param {string} req.body.newPassword - New password
- * @param {string} req.body.confirmPassword - Password confirmation
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with password reset status
- * @throws {Error} If server error occurs during password reset
- *
- * Steps:
- * 1. Validate input (token, newPassword, confirmPassword)
- * 2. Verify token
- * 3. Find user by ID from token
- * 4. Hash new password
- * 5. Update user's password
- * 6. Return success message
- */
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;

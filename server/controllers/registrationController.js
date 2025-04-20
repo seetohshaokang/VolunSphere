@@ -5,24 +5,6 @@ const Organiser = require("../models/Organiser");
 const EventRegistration = require("../models/EventRegistration");
 const mongoose = require("mongoose");
 
-/**
- * Get current user's event registrations
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with user's registrations
- * @throws {Error} If server error occurs during retrieval
- *
- * Steps:
- * 1. Get user role
- * 2. Verify user is a volunteer
- * 3. Get volunteer profile
- * 4. Get registrations with populated event details
- * 5. Return registrations
- */
 exports.getUserRegistrations = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -68,34 +50,6 @@ exports.getUserRegistrations = async (req, res) => {
   }
 };
 
-/**
- * Register for an event
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} req.body - Registration details
- * @param {string} req.body.event_id - Event ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with registration details
- * @throws {Error} If server error occurs during registration
- *
- * Steps:
- * 1. Validate event ID
- * 2. Verify user is a volunteer
- * 3. Get volunteer profile
- * 4. Find event by ID
- * 5. Check if event is active
- * 6. Check if event has reached max capacity
- * 7. Check if already registered
- * 8. Create new registration
- * 9. Start transaction
- * 10. Save registration
- * 11. Increment registered_count on event
- * 12. Commit transaction or abort on error
- * 13. Return success message with registration
- */
 exports.createRegistration = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -184,27 +138,6 @@ exports.createRegistration = async (req, res) => {
   }
 };
 
-/**
- * Get specific registration details
- *
- * @param {Object} req - Express request object
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Registration ID
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with registration details
- * @throws {Error} If server error occurs during retrieval
- *
- * Steps:
- * 1. Check if ID is valid
- * 2. Find registration by ID with populated details
- * 3. Check authorization based on user role
- * 4. For volunteers: verify it's their own registration
- * 5. For organisers: verify it's for their event
- * 6. Return registration details
- */
 exports.getRegistrationById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -272,31 +205,6 @@ exports.getRegistrationById = async (req, res) => {
   }
 };
 
-/**
- * Update registration (e.g., add feedback)
- *
- * @param {Object} req - Express request object
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Registration ID
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} req.body - Update data
- * @param {Object} [req.body.feedback] - Feedback information
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with updated registration
- * @throws {Error} If server error occurs during update
- *
- * Steps:
- * 1. Check if ID is valid
- * 2. Find registration by ID
- * 3. Check authorization based on user role
- * 4. Prepare update data
- * 5. For volunteers: add volunteer feedback if provided
- * 6. For organisers: add organiser feedback if provided
- * 7. Update registration
- * 8. Return success message with updated registration
- */
 exports.updateRegistration = async (req, res) => {
   try {
     const { id } = req.params;
@@ -361,29 +269,6 @@ exports.updateRegistration = async (req, res) => {
   }
 };
 
-/**
- * Cancel event registration
- *
- * @param {Object} req - Express request object
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Registration ID
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with cancellation status
- * @throws {Error} If server error occurs during cancellation
- *
- * Steps:
- * 1. Check if ID is valid
- * 2. Find registration by ID
- * 3. Check authorization (only volunteer who registered can cancel)
- * 4. Start transaction
- * 5. Delete registration
- * 6. Decrement registered_count on event
- * 7. Commit transaction or abort on error
- * 8. Return success message
- */
 exports.cancelRegistration = async (req, res) => {
   try {
     const { id } = req.params;
@@ -443,26 +328,6 @@ exports.cancelRegistration = async (req, res) => {
   }
 };
 
-/**
- * Record volunteer check-in
- *
- * @param {Object} req - Express request object
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Registration ID
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with check-in status
- * @throws {Error} If server error occurs during check-in
- *
- * Steps:
- * 1. Check if ID is valid
- * 2. Find registration by ID
- * 3. Check authorization (only organizer of the event can check in volunteers)
- * 4. Update registration with check-in time and status
- * 5. Return success message with updated registration
- */
 exports.checkInRegistration = async (req, res) => {
   try {
     const { id } = req.params;
@@ -529,27 +394,6 @@ exports.checkInRegistration = async (req, res) => {
   }
 };
 
-/**
- * Record volunteer check-out
- *
- * @param {Object} req - Express request object
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Registration ID
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with check-out status
- * @throws {Error} If server error occurs during check-out
- *
- * Steps:
- * 1. Check if ID is valid
- * 2. Find registration by ID
- * 3. Verify registration has been checked in
- * 4. Check authorization (only organizer of the event can check out volunteers)
- * 5. Update registration with check-out time
- * 6. Return success message with updated registration
- */
 exports.checkOutRegistration = async (req, res) => {
   try {
     const { id } = req.params;
@@ -618,31 +462,6 @@ exports.checkOutRegistration = async (req, res) => {
   }
 };
 
-/**
- * Add feedback to registration
- *
- * @param {Object} req - Express request object
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Registration ID
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - User ID
- * @param {Object} req.body - Feedback data
- * @param {string} req.body.comment - Feedback comment
- * @param {number} req.body.rating - Feedback rating (1-5)
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with feedback status
- * @throws {Error} If server error occurs during feedback submission
- *
- * Steps:
- * 1. Check if ID is valid
- * 2. Validate feedback data
- * 3. Find registration by ID
- * 4. Check authorization based on user role
- * 5. Create feedback data
- * 6. Update registration with feedback
- * 7. Return success message with updated registration
- */
 exports.addFeedback = async (req, res) => {
   try {
     const { id } = req.params;

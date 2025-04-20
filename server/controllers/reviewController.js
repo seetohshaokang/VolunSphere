@@ -3,9 +3,8 @@ const User = require("../models/User");
 const Event = require("../models/Event");
 const mongoose = require("mongoose");
 
-/**
- * Get all reviews for an event
- */
+//Get all reviews for an event
+
 exports.getEventReviews = async (req, res) => {
   try {
     const { id } = req.params;
@@ -47,9 +46,8 @@ exports.getEventReviews = async (req, res) => {
   }
 };
 
-/**
- * Create a review for an event
- */
+//Create a review for an event
+
 exports.createEventReview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -125,9 +123,8 @@ exports.createEventReview = async (req, res) => {
   }
 };
 
-/**
- * Update a review
- */
+//Update a review
+
 exports.updateEventReview = async (req, res) => {
   try {
     const { id, reviewId } = req.params;
@@ -135,7 +132,10 @@ exports.updateEventReview = async (req, res) => {
     const { rating, comment } = req.body;
 
     // Check if IDs are valid
-    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(reviewId)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(id) ||
+      !mongoose.Types.ObjectId.isValid(reviewId)
+    ) {
       return res.status(400).json({ message: "Invalid ID" });
     }
 
@@ -195,16 +195,18 @@ exports.updateEventReview = async (req, res) => {
   }
 };
 
-/**
- * Delete a review
- */
+//Delete a review
+
 exports.deleteEventReview = async (req, res) => {
   try {
     const { id, reviewId } = req.params;
     const userId = req.user.id;
 
     // Check if IDs are valid
-    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(reviewId)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(id) ||
+      !mongoose.Types.ObjectId.isValid(reviewId)
+    ) {
       return res.status(400).json({ message: "Invalid ID" });
     }
 
@@ -232,4 +234,4 @@ exports.deleteEventReview = async (req, res) => {
       error: error.message,
     });
   }
-}; 
+};

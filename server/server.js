@@ -1,7 +1,6 @@
 const app = require("./app");
 const initCronJobs = require("./scripts/cronJobs");
 
-// Get port from environment or use default
 const port = process.env.PORT || 8000;
 
 if (process.env.NODE_ENV !== "test") {
@@ -10,9 +9,9 @@ if (process.env.NODE_ENV !== "test") {
 
 // Start the server
 const server = app.listen(port, () => {
-  console.log(`✅ VolunSphere Server running on http://localhost:${port}`);
-  console.log(`🕒 Server started at: ${new Date().toLocaleString()}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(` VolunSphere Server running on http://localhost:${port}`);
+  console.log(` Server started at: ${new Date().toLocaleString()}`);
+  console.log(` Environment: ${process.env.NODE_ENV || "development"}`);
 });
 
 // Configure proper shutdown
@@ -20,15 +19,15 @@ process.on("SIGTERM", gracefulShutdown);
 process.on("SIGINT", gracefulShutdown);
 
 function gracefulShutdown() {
-  console.log("🛑 Received shutdown signal, closing server...");
+  console.log(" Received shutdown signal, closing server...");
   server.close(() => {
-    console.log("✅ HTTP server closed");
+    console.log(" HTTP server closed");
 
     // Close any database connections or other resources
-    console.log("🔄 Closing database connections...");
+    console.log(" Closing database connections...");
 
     // Exit process
-    console.log("👋 Process terminated gracefully");
+    console.log(" Process terminated gracefully");
     process.exit(0);
   });
 
@@ -41,11 +40,10 @@ function gracefulShutdown() {
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (err) => {
-  console.log("❌ UNHANDLED REJECTION! Shutting down...");
+  console.log(" UNHANDLED REJECTION. Shutting down...");
   console.log(err.name, err.message);
   console.log(err.stack);
 
-  // Graceful shutdown
   server.close(() => {
     process.exit(1);
   });
@@ -53,10 +51,9 @@ process.on("unhandledRejection", (err) => {
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (err) => {
-  console.log("❌ UNCAUGHT EXCEPTION! Shutting down...");
+  console.log(" UNCAUGHT EXCEPTION! Shutting down...");
   console.log(err.name, err.message);
   console.log(err.stack);
 
-  // Graceful shutdown
   process.exit(1);
 });

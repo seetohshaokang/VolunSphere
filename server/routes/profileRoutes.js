@@ -26,18 +26,8 @@ const upload = multer({
   },
 }).single("profile_picture");
 
-/**
- * @route   GET /profile
- * @desc    Get user profile based on role
- * @access  Private
- */
 router.get("/", protectRoute, profileController.fetchProfile);
 
-/**
- * @route   PUT /profile
- * @desc    Update user profile information
- * @access  Private
- */
 router.put(
   "/",
   protectRoute,
@@ -45,18 +35,8 @@ router.put(
   profileController.updateProfile
 );
 
-/**
- * @route   DELETE /profile
- * @desc    Delete user profile and account
- * @access  Private
- */
 router.delete("/", protectRoute, profileController.deleteProfile);
 
-/**
- * @route   POST /profile/nric
- * @desc    Upload volunteer's NRIC image for verification
- * @access  Private (Volunteer only)
- */
 router.post(
   "/nric",
   protectRoute,
@@ -64,31 +44,15 @@ router.post(
   profileController.uploadNRIC
 );
 
-/**
- * @route   POST /profile/certification
- * @desc    Upload organizer's charity certification for verification
- * @access  Private (Organizer only)
- */
 router.post(
   "/certification",
   protectRoute,
   certificationUploadMiddleware,
   profileController.uploadCertification
 );
-/**
- * @route   GET /profile/events
- * @desc    Get events associated with user (registered or organized)
- * @access  Private
- */
+
 router.get("/events", protectRoute, profileController.getProfileEvents);
 
-// Add this to your profileRoutes.js file
-
-/**
- * @route   GET /profile/organizer/:id
- * @desc    Get organizer profile by ID (public)
- * @access  Public
- */
 router.get("/organizer/:id", async (req, res) => {
   try {
     const { id } = req.params;

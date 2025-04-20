@@ -8,29 +8,6 @@ const AdminAction = require("../models/AdminAction");
 const EventRegistration = require("../models/EventRegistration");
 const mongoose = require("mongoose");
 
-/**
- * Get admin dashboard statistics
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with dashboard statistics
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Get user statistics
- * 3. Get new users in last 30 days
- * 4. Get event statistics
- * 5. Get registration statistics
- * 6. Get report statistics
- * 7. Get verification statistics
- * 8. Get most popular event causes
- * 9. Compile all statistics
- * 10. Return statistics
- */
 exports.getDashboardStats = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -143,33 +120,6 @@ exports.getDashboardStats = async (req, res) => {
   }
 };
 
-/**
- * Get list of all users
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.query - Query parameters for filtering
- * @param {string} [req.query.role] - Filter by role (volunteer/organiser)
- * @param {string} [req.query.status] - Filter by status (active/inactive/suspended)
- * @param {string} [req.query.search] - Search by email
- * @param {number} [req.query.page=1] - Page number
- * @param {number} [req.query.limit=10] - Number of users per page
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with users list and pagination info
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Get query parameters
- * 3. Build query with filters
- * 4. Calculate pagination
- * 5. Get users
- * 6. Get total count for pagination
- * 7. Get profile details for each user
- * 8. Return users with profiles and pagination info
- */
 exports.getUsers = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -205,7 +155,7 @@ exports.getUsers = async (req, res) => {
 
     // Step 5: Fetch users with pagination and sorting
     const users = await User.find(query)
-      .select("-password") // Exclude sensitive information
+      .select("-password")
       .sort({ created_at: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -258,30 +208,7 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-/**
- * Get specific user details
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - User ID to retrieve
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with comprehensive user details
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Validate user ID
- * 3. Get user
- * 4. Get profile based on role
- * 5. Get events or registrations based on role
- * 6. Get reports submitted by user
- * 7. Get admin actions targeting this user
- * 8. Return comprehensive user data
- */
-// Updated getUserById function in adminController.js
+// getUserById
 exports.getUserById = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -369,33 +296,6 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-/**
- * Update user status
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - User ID to update
- * @param {Object} req.body - Update data
- * @param {string} req.body.status - New status (active/inactive/suspended)
- * @param {string} [req.body.reason] - Reason for status change
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with updated user status
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Validate user ID and status
- * 3. Get user and profile
- * 4. Start transaction
- * 5. Update user status
- * 6. Create admin action record
- * 7. Handle side effects (cancel registrations, events)
- * 8. Commit transaction
- * 9. Return success message with updated user
- */
 exports.updateUserStatus = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -489,27 +389,6 @@ exports.updateUserStatus = async (req, res) => {
   }
 };
 
-/**
- * Get volunteers with pending NRIC verification
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.query - Query parameters
- * @param {number} [req.query.page=1] - Page number
- * @param {number} [req.query.limit=10] - Items per page
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with pending verifications
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Calculate pagination
- * 3. Get volunteers with unverified NRIC
- * 4. Get total count for pagination
- * 5. Return volunteers with pagination info
- */
 exports.getPendingVerifications = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -565,33 +444,6 @@ exports.getPendingVerifications = async (req, res) => {
   }
 };
 
-/**
- * Update volunteer NRIC verification status
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Volunteer ID
- * @param {Object} req.body - Update data
- * @param {boolean} req.body.verified - Verification status
- * @param {string} [req.body.reason] - Reason for decision
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with verification update status
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Validate volunteer ID and verification status
- * 3. Get volunteer and check NRIC image
- * 4. Start transaction
- * 5. Update verification status
- * 6. Create admin action record
- * 7. Increment admin's reports_handled count
- * 8. Commit transaction
- * 9. Return success message
- */
 exports.updateVerificationStatus = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -695,30 +547,6 @@ exports.updateVerificationStatus = async (req, res) => {
   }
 };
 
-/**
- * Get list of all reports
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.query - Query parameters
- * @param {string} [req.query.status] - Filter by report status
- * @param {string} [req.query.reported_type] - Filter by reported entity type
- * @param {number} [req.query.page=1] - Page number
- * @param {number} [req.query.limit=10] - Items per page
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with reports and pagination info
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Build query with filters
- * 3. Calculate pagination
- * 4. Get reports with populated details
- * 5. Get total count for pagination
- * 6. Return reports with pagination info
- */
 exports.getReports = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -785,25 +613,6 @@ exports.getReports = async (req, res) => {
   }
 };
 
-/**
- * Get specific report details
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Report ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with detailed report information
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Validate report ID
- * 3. Get report with populated details
- * 4. Return report
- */
 exports.getReportById = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -845,35 +654,6 @@ exports.getReportById = async (req, res) => {
   }
 };
 
-/**
- * Update report status
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Report ID
- * @param {Object} req.body - Update data
- * @param {string} req.body.status - New status
- * @param {string} [req.body.admin_notes] - Admin notes
- * @param {string} [req.body.resolution_action] - Resolution action
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with updated report
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Validate report ID and status
- * 3. Get report
- * 4. Validate resolution action if resolving
- * 5. Start transaction
- * 6. Update report status and fields
- * 7. Take actions based on resolution if needed
- * 8. Increment admin's reports_handled count
- * 9. Commit transaction
- * 10. Return success message with updated report
- */
 exports.updateReportStatus = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -1013,30 +793,6 @@ exports.updateReportStatus = async (req, res) => {
   }
 };
 
-/**
- * Get list of admin actions
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.query - Query parameters
- * @param {string} [req.query.action_type] - Filter by action type
- * @param {string} [req.query.target_type] - Filter by target type
- * @param {number} [req.query.page=1] - Page number
- * @param {number} [req.query.limit=10] - Items per page
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with admin actions and pagination info
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Build query with filters
- * 3. Calculate pagination
- * 4. Get actions with populated details
- * 5. Get total count for pagination
- * 6. Return actions with pagination info
- */
 exports.getActions = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -1110,34 +866,6 @@ exports.getActions = async (req, res) => {
   }
 };
 
-/**
- * Create a new admin action
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.body - Action details
- * @param {string} req.body.action - Action type
- * @param {string} req.body.target_type - Target entity type
- * @param {string} req.body.target_id - Target entity ID
- * @param {string} req.body.reason - Reason for action
- * @param {string} [req.body.related_report_id] - Related report ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with created action
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Validate required fields, action, target type, and IDs
- * 3. Verify target exists
- * 4. Start transaction
- * 5. Create admin action record
- * 6. Execute action effects based on type
- * 7. Update related report if provided
- * 8. Commit transaction
- * 9. Return success message with action details
- */
 exports.createAction = async (req, res) => {
   try {
     // Step 1: Verify user has admin permissions
@@ -1279,30 +1007,6 @@ exports.createAction = async (req, res) => {
   }
 };
 
-/**
- * Get specific event details for admin view
- *
- * @param {Object} req - Express request object
- * @param {Object} req.user - Authenticated user information
- * @param {string} req.user.id - Admin user ID
- * @param {Object} req.params - URL parameters
- * @param {string} req.params.id - Event ID
- * @param {Object} res - Express response object
- *
- * @returns {Object} JSON response with event details
- * @throws {Error} If server error occurs or if user lacks admin permissions
- *
- * Steps:
- * 1. Verify user is admin
- * 2. Validate event ID
- * 3. Get event with organiser details
- * 4. Get registrations for this event
- * 5. Get reports related to this event
- * 6. Return event data
- */
-/**
- * Get specific event details for admin view
- */
 exports.getEventById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1368,9 +1072,8 @@ exports.getEventById = async (req, res) => {
   }
 };
 
-/**
- * Update event status
- */
+//Update event status
+
 exports.updateEventStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1427,9 +1130,8 @@ exports.updateEventStatus = async (req, res) => {
     });
   }
 };
-/**
- * Get events for admin view with filters and pagination
- */
+//Get events for admin view with filters and pagination
+
 exports.getEvents = async (req, res) => {
   try {
     // Extract query parameters
@@ -1496,9 +1198,8 @@ exports.getEvents = async (req, res) => {
   }
 };
 
-/**
- * Update organiser verification status
- */
+//Update organiser verification status
+
 exports.updateOrganiserVerification = async (req, res) => {
   try {
     const { id } = req.params;

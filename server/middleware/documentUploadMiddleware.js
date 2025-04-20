@@ -10,14 +10,11 @@ const certUploadDir = path.join(__dirname, "../public/uploads/organizer_docs");
 fs.mkdirSync(nricUploadDir, { recursive: true });
 fs.mkdirSync(certUploadDir, { recursive: true });
 
-/**
- * Create document upload middleware for a specific document type
- * @param {string} fieldName - Form field name for the file
- * @param {string} uploadDir - Directory to upload the file to
- * @param {string} filenamePrefix - Prefix for the generated filename
- * @returns {Function} - Express middleware function
- */
-const createDocumentUploadMiddleware = (fieldName, uploadDir, filenamePrefix) => {
+const createDocumentUploadMiddleware = (
+  fieldName,
+  uploadDir,
+  filenamePrefix
+) => {
   // Configure storage strategy with specific destination
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -46,7 +43,7 @@ const createDocumentUploadMiddleware = (fieldName, uploadDir, filenamePrefix) =>
 
     // Check mimetype as additional validation
     if (
-      !file.mimetype.startsWith("image/") && 
+      !file.mimetype.startsWith("image/") &&
       file.mimetype !== "application/pdf"
     ) {
       return cb(new ApiError("File must be an image or PDF!", 400), false);
@@ -80,9 +77,7 @@ const createDocumentUploadMiddleware = (fieldName, uploadDir, filenamePrefix) =>
           });
         } else if (err instanceof ApiError) {
           // Our custom ApiError
-          return res
-            .status(err.statusCode)
-            .json({ message: err.message });
+          return res.status(err.statusCode).json({ message: err.message });
         } else {
           // Unknown error
           return res.status(500).json({
@@ -98,18 +93,18 @@ const createDocumentUploadMiddleware = (fieldName, uploadDir, filenamePrefix) =>
 
 // Create specific middleware instances for the two document types we need
 const nricUploadMiddleware = createDocumentUploadMiddleware(
-  "nric_image", 
-  nricUploadDir, 
+  "nric_image",
+  nricUploadDir,
   "nric"
 );
 
 const certificationUploadMiddleware = createDocumentUploadMiddleware(
-  "certification_document", 
-  certUploadDir, 
+  "certification_document",
+  certUploadDir,
   "cert"
 );
 
 module.exports = {
   nricUploadMiddleware,
-  certificationUploadMiddleware
+  certificationUploadMiddleware,
 };
