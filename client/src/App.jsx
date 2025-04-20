@@ -16,10 +16,9 @@ function App() {
 							padding: "16px",
 							border: "1px solid #E5E7EB",
 							borderRadius: "0.375rem",
-							marginBottom: "10px", // Added a bit of margin at the bottom
-							marginLeft: "10px", // Added a bit of margin on the left
+							marginBottom: "10px",
+							marginLeft: "10px",
 						},
-						// Default duration
 						duration: 4000,
 						// Custom styles for different toast types
 						success: {
